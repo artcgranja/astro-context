@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SourceType(StrEnum):
@@ -36,7 +36,7 @@ class ContextItem(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    model_config = {"frozen": True}
+    model_config = ConfigDict(frozen=True)
 
 
 class ContextWindow(BaseModel):

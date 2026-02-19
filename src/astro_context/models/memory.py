@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
+
+Role = Literal["user", "assistant", "system", "tool"]
 
 
 class ConversationTurn(BaseModel):
     """A single turn in a conversation (user or assistant message)."""
 
-    role: str  # "user" | "assistant" | "system"
+    role: Role
     content: str
     token_count: int = Field(default=0, ge=0)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -24,7 +27,7 @@ class MemoryEntry(BaseModel):
     Inspired by Mem0's memory entries with priority scoring.
     """
 
-    id: str
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     content: str
     relevance_score: float = Field(default=0.5, ge=0.0, le=1.0)
     access_count: int = Field(default=0, ge=0)

@@ -16,7 +16,7 @@ from astro_context.models.query import QueryBundle
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
-from .step import PipelineStep, SyncStepFn
+from .step import AsyncStepFn, PipelineStep, SyncStepFn
 
 
 class ContextPipeline:
@@ -94,9 +94,7 @@ class ContextPipeline:
     def step(self, fn: SyncStepFn, /) -> SyncStepFn: ...
 
     @overload
-    def step(
-        self, *, name: str | None = None
-    ) -> Callable[[SyncStepFn], SyncStepFn]: ...
+    def step(self, /, *, name: str | None = ...) -> Callable[[SyncStepFn], SyncStepFn]: ...
 
     def step(
         self,
@@ -121,7 +119,10 @@ class ContextPipeline:
         """
 
         def _register(func: SyncStepFn) -> SyncStepFn:
-            step_name = name or func.__name__
+            if inspect.iscoroutinefunction(func):
+                msg = f"'{func.__name__}' is async -- use @pipeline.async_step instead"
+                raise TypeError(msg)
+            step_name: str = name or str(getattr(func, "__name__", "unnamed_step"))
             pipeline_step = PipelineStep(name=step_name, fn=func)
             self._steps.append(pipeline_step)
             return func
@@ -130,13 +131,21 @@ class ContextPipeline:
             return _register(fn)
         return _register
 
+    @overload
+    def async_step(self, fn: AsyncStepFn, /) -> AsyncStepFn: ...
+
+    @overload
+    def async_step(
+        self, /, *, name: str | None = ...
+    ) -> Callable[[AsyncStepFn], AsyncStepFn]: ...
+
     def async_step(
         self,
-        fn: Any = None,
+        fn: AsyncStepFn | None = None,
         /,
         *,
         name: str | None = None,
-    ) -> Any:
+    ) -> AsyncStepFn | Callable[[AsyncStepFn], AsyncStepFn]:
         """Decorator to register an async function as a pipeline step.
 
         Usage::
@@ -151,11 +160,12 @@ class ContextPipeline:
                 ...
         """
 
-        def _register(func: Any) -> Any:
+        def _register(func: AsyncStepFn) -> AsyncStepFn:
             if not inspect.iscoroutinefunction(func):
-                msg = f"@async_step requires an async function, got {func.__name__}"
+                fn_name = getattr(func, "__name__", repr(func))
+                msg = f"@async_step requires an async function, got {fn_name}"
                 raise TypeError(msg)
-            step_name = name or func.__name__
+            step_name: str = name or str(getattr(func, "__name__", "unnamed_async_step"))
             pipeline_step = PipelineStep(name=step_name, fn=func, is_async=True)
             self._steps.append(pipeline_step)
             return func
@@ -181,16 +191,7 @@ class ContextPipeline:
         for item in items:
             if item.token_count == 0:
                 token_count = self._tokenizer.count_tokens(item.content)
-                item = ContextItem(
-                    id=item.id,
-                    content=item.content,
-                    source=item.source,
-                    score=item.score,
-                    priority=item.priority,
-                    token_count=token_count,
-                    metadata=item.metadata,
-                    created_at=item.created_at,
-                )
+                item = item.model_copy(update={"token_count": token_count})
             counted.append(item)
         return counted
 
@@ -221,8 +222,10 @@ class ContextPipeline:
             build_time_ms=round(build_time, 2),
         )
 
-    def build(self, query: QueryBundle) -> ContextResult:
+    def build(self, query: str | QueryBundle) -> ContextResult:
         """Execute the full pipeline synchronously and return assembled context."""
+        if isinstance(query, str):
+            query = QueryBundle(query_str=query)
         start_time = time.monotonic()
         diagnostics: dict[str, Any] = {"steps": []}
 
@@ -241,7 +244,7 @@ class ContextPipeline:
         counted_items = self._count_tokens(all_items)
         return self._assemble_result(counted_items, diagnostics, start_time)
 
-    async def abuild(self, query: QueryBundle) -> ContextResult:
+    async def abuild(self, query: str | QueryBundle) -> ContextResult:
         """Execute the full pipeline asynchronously and return assembled context.
 
         Supports both sync and async pipeline steps. Sync steps are called
@@ -249,6 +252,8 @@ class ContextPipeline:
         (e.g., in-memory BM25) with async retrievers (e.g., database lookups)
         in the same pipeline.
         """
+        if isinstance(query, str):
+            query = QueryBundle(query_str=query)
         start_time = time.monotonic()
         diagnostics: dict[str, Any] = {"steps": []}
 

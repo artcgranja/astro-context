@@ -28,7 +28,10 @@ class AnthropicFormatter:
             if item.source == SourceType.SYSTEM:
                 system_parts.append(item.content)
             elif item.source == SourceType.MEMORY:
+                allowed_roles = {"user", "assistant", "system"}
                 role = item.metadata.get("role", "user")
+                if role not in allowed_roles:
+                    role = "user"
                 messages.append({"role": role, "content": item.content})
             else:
                 context_parts.append(item.content)

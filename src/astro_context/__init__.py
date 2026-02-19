@@ -20,6 +20,7 @@ from astro_context.models import (
     ContextResult,
     ContextWindow,
     ConversationTurn,
+    MemoryEntry,
     QueryBundle,
     SourceType,
     TokenBudget,
@@ -37,13 +38,14 @@ from astro_context.protocols import (
     AsyncPostProcessor,
     AsyncRetriever,
     ContextStore,
+    DocumentStore,
     PostProcessor,
     Retriever,
     Tokenizer,
     VectorStore,
 )
 from astro_context.retrieval import DenseRetriever, HybridRetriever, SparseRetriever
-from astro_context.storage import InMemoryContextStore, InMemoryVectorStore
+from astro_context.storage import InMemoryContextStore, InMemoryDocumentStore, InMemoryVectorStore
 from astro_context.tokens import TiktokenCounter
 
 __version__ = "0.1.0"
@@ -62,11 +64,14 @@ __all__ = [
     "ContextWindow",
     "ConversationTurn",
     "DenseRetriever",
+    "DocumentStore",
     "FormatterError",
     "GenericTextFormatter",
     "HybridRetriever",
     "InMemoryContextStore",
+    "InMemoryDocumentStore",
     "InMemoryVectorStore",
+    "MemoryEntry",
     "MemoryManager",
     "OpenAIFormatter",
     "PipelineStep",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import tiktoken
 
 
@@ -30,11 +32,14 @@ class TiktokenCounter:
 
 
 _default_counter: TiktokenCounter | None = None
+_counter_lock = threading.Lock()
 
 
 def get_default_counter() -> TiktokenCounter:
-    """Get or create the default TiktokenCounter singleton."""
+    """Get or create the default TiktokenCounter singleton (thread-safe)."""
     global _default_counter
     if _default_counter is None:
-        _default_counter = TiktokenCounter()
+        with _counter_lock:
+            if _default_counter is None:
+                _default_counter = TiktokenCounter()
     return _default_counter

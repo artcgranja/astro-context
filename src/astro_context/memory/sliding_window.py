@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections import deque
+
 from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import ConversationTurn
+from astro_context.models.memory import ConversationTurn, Role
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
@@ -22,7 +24,7 @@ class SlidingWindowMemory:
     ) -> None:
         self._max_tokens = max_tokens
         self._tokenizer = tokenizer or get_default_counter()
-        self._turns: list[ConversationTurn] = []
+        self._turns: deque[ConversationTurn] = deque()
         self._total_tokens: int = 0
 
     @property
@@ -37,7 +39,7 @@ class SlidingWindowMemory:
     def max_tokens(self) -> int:
         return self._max_tokens
 
-    def add_turn(self, role: str, content: str, **metadata: object) -> ConversationTurn:
+    def add_turn(self, role: Role, content: str, **metadata: object) -> ConversationTurn:
         """Add a conversation turn, evicting old turns if necessary."""
         token_count = self._tokenizer.count_tokens(content)
         turn = ConversationTurn(
@@ -60,7 +62,7 @@ class SlidingWindowMemory:
 
         # Evict oldest turns until the new turn fits
         while self._turns and (self._total_tokens + turn.token_count > self._max_tokens):
-            evicted = self._turns.pop(0)
+            evicted = self._turns.popleft()
             self._total_tokens -= evicted.token_count
 
         self._turns.append(turn)
@@ -70,13 +72,17 @@ class SlidingWindowMemory:
     def to_context_items(self, priority: int = 7) -> list[ContextItem]:
         """Convert conversation turns to ContextItems for the pipeline."""
         items: list[ContextItem] = []
-        for turn in self._turns:
+        num_turns = len(self._turns)
+        for i, turn in enumerate(self._turns):
+            full_content = f"{turn.role}: {turn.content}"
+            # Recency-weighted score: oldest=0.5, newest=1.0
+            recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
             item = ContextItem(
-                content=f"{turn.role}: {turn.content}",
+                content=full_content,
                 source=SourceType.MEMORY,
-                score=0.8,
+                score=round(recency_score, 4),
                 priority=priority,
-                token_count=turn.token_count,
+                token_count=self._tokenizer.count_tokens(full_content),
                 metadata={"role": turn.role, **turn.metadata},
                 created_at=turn.timestamp,
             )

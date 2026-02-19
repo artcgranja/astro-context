@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 from .context import SourceType
+
+OverflowStrategy = Literal["truncate", "drop"]
 
 
 class BudgetAllocation(BaseModel):
@@ -13,7 +17,7 @@ class BudgetAllocation(BaseModel):
     source: SourceType
     max_tokens: int = Field(gt=0)
     priority: int = Field(default=5, ge=1, le=10)
-    overflow_strategy: str = Field(default="truncate")  # "truncate" | "drop"
+    overflow_strategy: OverflowStrategy = Field(default="truncate")
 
 
 class TokenBudget(BaseModel):
@@ -48,7 +52,7 @@ class TokenBudget(BaseModel):
                 return alloc.max_tokens
         return self.shared_pool
 
-    def get_overflow_strategy(self, source: SourceType) -> str:
+    def get_overflow_strategy(self, source: SourceType) -> OverflowStrategy:
         """Get the overflow strategy for a source type."""
         for alloc in self.allocations:
             if alloc.source == source:

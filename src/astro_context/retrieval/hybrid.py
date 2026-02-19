@@ -64,7 +64,7 @@ class HybridRetriever:
         min_rrf = rrf_scores[sorted_ids[-1]] if len(sorted_ids) > 1 else 0.0
         score_range = max_rrf - min_rrf if max_rrf > min_rrf else 1.0
 
-        results: list[ContextItem] = []
+        fused_results: list[ContextItem] = []
         for item_id in sorted_ids:
             original = item_map[item_id]
             normalized_score = (
@@ -84,5 +84,5 @@ class HybridRetriever:
                 },
                 created_at=original.created_at,
             )
-            results.append(fused_item)
-        return results
+            fused_results.append(fused_item)
+        return fused_results
