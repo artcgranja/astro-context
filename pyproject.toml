@@ -1,0 +1,85 @@
+[project]
+name = "astro-context"
+version = "0.1.0"
+description = "Context engineering toolkit for AI applications"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Astro", email = "astro@astro-context.dev" }
+]
+keywords = ["context-engineering", "rag", "llm", "ai", "retrieval", "memory"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "pydantic>=2.8,<3",
+    "tiktoken>=0.7,<1",
+]
+
+[project.optional-dependencies]
+bm25 = ["rank-bm25>=0.2.2,<1"]
+cli = ["typer>=0.12,<1", "rich>=13,<14"]
+docs = [
+    "mkdocs-material>=9,<10",
+    "mkdocstrings[python]>=0.25",
+]
+all = ["astro-context[bm25,cli]"]
+
+[project.scripts]
+astro-context = "astro_context.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.24,<1",
+    "pytest-cov>=5,<6",
+    "ruff>=0.5,<1",
+    "mypy>=1.10,<2",
+    "rank-bm25>=0.2.2,<1",
+    "typer>=0.12,<1",
+    "rich>=13,<14",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.17,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["astro_context"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--strict-markers -v"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["astro_context"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

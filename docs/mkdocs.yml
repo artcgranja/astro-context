@@ -1,0 +1,35 @@
+site_name: astro-context
+site_description: Context engineering toolkit for AI applications
+repo_url: https://github.com/artcgranja/astro-context
+repo_name: artcgranja/astro-context
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+  features:
+    - content.code.copy
+    - navigation.tabs
+    - navigation.sections
+    - search.highlight
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonitions
+  - toc:
+      permalink: true
