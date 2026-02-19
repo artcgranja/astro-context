@@ -61,7 +61,7 @@ def info() -> None:
 @app.command()
 def index(
     path: Path = typer.Argument(..., help="Path to file or directory to index"),  # noqa: B008
-    chunk_size: int = typer.Option(512, "--chunk-size", "-c", help="Chunk size in tokens"),  # noqa: B008
+    chunk_size: int = typer.Option(512, "--chunk-size", "-c", help="Chunk size in tokens"),
 ) -> None:
     """Index documents from a file or directory (placeholder for MVP)."""
     console.print(f"[yellow]Indexing from {path} (chunk_size={chunk_size})[/yellow]")
@@ -85,9 +85,9 @@ def index(
 
 @app.command()
 def query(
-    query_text: str = typer.Argument(..., help="Query text"),  # noqa: B008
-    max_tokens: int = typer.Option(4096, "--max-tokens", "-t", help="Max context tokens"),  # noqa: B008
-    output_format: str = typer.Option(  # noqa: B008
+    query_text: str = typer.Argument(..., help="Query text"),
+    max_tokens: int = typer.Option(4096, "--max-tokens", "-t", help="Max context tokens"),
+    output_format: str = typer.Option(
         "generic", "--format", "-f", help="Output format: generic|anthropic|openai"
     ),
 ) -> None:

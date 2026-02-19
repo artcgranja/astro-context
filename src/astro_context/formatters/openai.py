@@ -6,10 +6,8 @@ from typing import Any
 
 from astro_context.models.context import ContextWindow, SourceType
 
-from .base import BaseFormatter
 
-
-class OpenAIFormatter(BaseFormatter):
+class OpenAIFormatter:
     """Formats context for the OpenAI Chat Completions API.
 
     Produces a dict with:

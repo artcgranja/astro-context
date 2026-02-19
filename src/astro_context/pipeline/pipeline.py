@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import inspect
 import time
-from typing import Any
+from collections.abc import Callable
+from typing import Any, overload
 
 from astro_context.formatters.base import BaseFormatter
 from astro_context.formatters.generic import GenericTextFormatter
@@ -14,7 +16,7 @@ from astro_context.models.query import QueryBundle
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
-from .step import PipelineStep
+from .step import PipelineStep, SyncStepFn
 
 
 class ContextPipeline:
@@ -30,6 +32,10 @@ class ContextPipeline:
             .add_system_prompt("You are a helpful assistant.")
         )
         result = pipeline.build(QueryBundle(query_str="What is context engineering?"))
+
+    For async pipelines::
+
+        result = await pipeline.abuild(QueryBundle(query_str="..."))
 
     The pipeline follows this flow:
         1. Collect system items (system prompts, instructions)
@@ -82,34 +88,97 @@ class ContextPipeline:
         self._system_items.append(item)
         return self
 
-    def build(self, query: QueryBundle) -> ContextResult:
-        """Execute the full pipeline and return assembled context."""
-        start_time = time.monotonic()
-        diagnostics: dict[str, Any] = {"steps": []}
+    # -- Decorator-based step registration (inspired by @agent.tool from Pydantic AI) --
 
-        # 1. Start with system items
+    @overload
+    def step(self, fn: SyncStepFn, /) -> SyncStepFn: ...
+
+    @overload
+    def step(
+        self, *, name: str | None = None
+    ) -> Callable[[SyncStepFn], SyncStepFn]: ...
+
+    def step(
+        self,
+        fn: SyncStepFn | None = None,
+        /,
+        *,
+        name: str | None = None,
+    ) -> SyncStepFn | Callable[[SyncStepFn], SyncStepFn]:
+        """Decorator to register a function as a pipeline step.
+
+        Can be used with or without arguments::
+
+            pipeline = ContextPipeline()
+
+            @pipeline.step
+            def my_filter(items, query):
+                return [i for i in items if i.score > 0.5]
+
+            @pipeline.step(name="custom-name")
+            def another_step(items, query):
+                return items
+        """
+
+        def _register(func: SyncStepFn) -> SyncStepFn:
+            step_name = name or func.__name__
+            pipeline_step = PipelineStep(name=step_name, fn=func)
+            self._steps.append(pipeline_step)
+            return func
+
+        if fn is not None:
+            return _register(fn)
+        return _register
+
+    def async_step(
+        self,
+        fn: Any = None,
+        /,
+        *,
+        name: str | None = None,
+    ) -> Any:
+        """Decorator to register an async function as a pipeline step.
+
+        Usage::
+
+            @pipeline.async_step
+            async def my_async_retriever(items, query):
+                results = await fetch_from_db(query)
+                return items + results
+
+            @pipeline.async_step(name="db-lookup")
+            async def db_step(items, query):
+                ...
+        """
+
+        def _register(func: Any) -> Any:
+            if not inspect.iscoroutinefunction(func):
+                msg = f"@async_step requires an async function, got {func.__name__}"
+                raise TypeError(msg)
+            step_name = name or func.__name__
+            pipeline_step = PipelineStep(name=step_name, fn=func, is_async=True)
+            self._steps.append(pipeline_step)
+            return func
+
+        if fn is not None:
+            return _register(fn)
+        return _register
+
+    def _collect_pre_step_items(self, diagnostics: dict[str, Any]) -> list[ContextItem]:
+        """Gather system + memory items before executing pipeline steps."""
         all_items: list[ContextItem] = list(self._system_items)
 
-        # 2. Add memory items
         if self._memory is not None:
             memory_items = self._memory.get_context_items()
             all_items.extend(memory_items)
             diagnostics["memory_items"] = len(memory_items)
 
-        # 3. Execute pipeline steps
-        for step in self._steps:
-            step_start = time.monotonic()
-            all_items = step.execute(all_items, query)
-            step_time = (time.monotonic() - step_start) * 1000
-            diagnostics["steps"].append({
-                "name": step.name,
-                "items_after": len(all_items),
-                "time_ms": round(step_time, 2),
-            })
+        return all_items
 
-        # 4. Ensure all items have token counts
-        counted_items: list[ContextItem] = []
-        for item in all_items:
+    def _count_tokens(self, items: list[ContextItem]) -> list[ContextItem]:
+        """Ensure all items have token counts."""
+        counted: list[ContextItem] = []
+        for item in items:
             if item.token_count == 0:
                 token_count = self._tokenizer.count_tokens(item.content)
                 item = ContextItem(
@@ -122,13 +191,19 @@ class ContextPipeline:
                     metadata=item.metadata,
                     created_at=item.created_at,
                 )
-            counted_items.append(item)
+            counted.append(item)
+        return counted
 
-        # 5. Assemble into ContextWindow
+    def _assemble_result(
+        self,
+        counted_items: list[ContextItem],
+        diagnostics: dict[str, Any],
+        start_time: float,
+    ) -> ContextResult:
+        """Assemble items into a ContextWindow and format the output."""
         window = ContextWindow(max_tokens=self._max_tokens)
         overflow = window.add_items_by_priority(counted_items)
 
-        # 6. Format output
         formatted = self._formatter.format(window)
 
         build_time = (time.monotonic() - start_time) * 1000
@@ -145,3 +220,49 @@ class ContextPipeline:
             diagnostics=diagnostics,
             build_time_ms=round(build_time, 2),
         )
+
+    def build(self, query: QueryBundle) -> ContextResult:
+        """Execute the full pipeline synchronously and return assembled context."""
+        start_time = time.monotonic()
+        diagnostics: dict[str, Any] = {"steps": []}
+
+        all_items = self._collect_pre_step_items(diagnostics)
+
+        for step in self._steps:
+            step_start = time.monotonic()
+            all_items = step.execute(all_items, query)
+            step_time = (time.monotonic() - step_start) * 1000
+            diagnostics["steps"].append({
+                "name": step.name,
+                "items_after": len(all_items),
+                "time_ms": round(step_time, 2),
+            })
+
+        counted_items = self._count_tokens(all_items)
+        return self._assemble_result(counted_items, diagnostics, start_time)
+
+    async def abuild(self, query: QueryBundle) -> ContextResult:
+        """Execute the full pipeline asynchronously and return assembled context.
+
+        Supports both sync and async pipeline steps. Sync steps are called
+        directly; async steps are awaited. This allows mixing sync retrievers
+        (e.g., in-memory BM25) with async retrievers (e.g., database lookups)
+        in the same pipeline.
+        """
+        start_time = time.monotonic()
+        diagnostics: dict[str, Any] = {"steps": []}
+
+        all_items = self._collect_pre_step_items(diagnostics)
+
+        for step in self._steps:
+            step_start = time.monotonic()
+            all_items = await step.aexecute(all_items, query)
+            step_time = (time.monotonic() - step_start) * 1000
+            diagnostics["steps"].append({
+                "name": step.name,
+                "items_after": len(all_items),
+                "time_ms": round(step_time, 2),
+            })
+
+        counted_items = self._count_tokens(all_items)
+        return self._assemble_result(counted_items, diagnostics, start_time)

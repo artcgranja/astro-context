@@ -1,4 +1,4 @@
-"""PostProcessor protocol definition.
+"""PostProcessor protocol definitions.
 
 PostProcessors transform context items after retrieval.
 Examples: reranking, filtering, deduplication, PII removal.
@@ -14,8 +14,17 @@ from astro_context.models.query import QueryBundle
 
 @runtime_checkable
 class PostProcessor(Protocol):
-    """Protocol for post-processing retrieved context items."""
+    """Protocol for synchronous post-processing of retrieved context items."""
 
     def process(
+        self, items: list[ContextItem], query: QueryBundle | None = None
+    ) -> list[ContextItem]: ...
+
+
+@runtime_checkable
+class AsyncPostProcessor(Protocol):
+    """Protocol for asynchronous post-processing (e.g., LLM-based reranking)."""
+
+    async def aprocess(
         self, items: list[ContextItem], query: QueryBundle | None = None
     ) -> list[ContextItem]: ...

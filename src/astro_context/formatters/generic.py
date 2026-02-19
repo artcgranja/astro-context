@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from astro_context.models.context import ContextWindow, SourceType
 
-from .base import BaseFormatter
 
-
-class GenericTextFormatter(BaseFormatter):
+class GenericTextFormatter:
     """Formats context as structured plain text with section headers."""
 
     @property

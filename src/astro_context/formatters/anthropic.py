@@ -6,10 +6,8 @@ from typing import Any
 
 from astro_context.models.context import ContextWindow, SourceType
 
-from .base import BaseFormatter
 
-
-class AnthropicFormatter(BaseFormatter):
+class AnthropicFormatter:
     """Formats context for the Anthropic Messages API.
 
     Produces a dict with:

@@ -111,7 +111,7 @@ class TestDenseRetrieverRetrieve:
         # Then create a retriever without embed_fn
         retriever = _make_retriever(vs=vs, cs=cs, embed_fn=None)
         query = QueryBundle(query_str="test")
-        with pytest.raises(ValueError, match="Either provide query.embedding"):
+        with pytest.raises(ValueError, match=r"Either provide query\.embedding"):
             retriever.retrieve(query)
 
     def test_retrieve_with_query_embedding_works(self) -> None:
