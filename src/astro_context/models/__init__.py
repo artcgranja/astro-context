@@ -11,6 +11,7 @@ from .context import (
 )
 from .memory import ConversationTurn, MemoryEntry, Role
 from .query import QueryBundle
+from .streaming import StreamDelta, StreamResult, StreamUsage
 
 __all__ = [
     "BudgetAllocation",
@@ -25,5 +26,8 @@ __all__ = [
     "Role",
     "SourceType",
     "StepDiagnostic",
+    "StreamDelta",
+    "StreamResult",
+    "StreamUsage",
     "TokenBudget",
 ]

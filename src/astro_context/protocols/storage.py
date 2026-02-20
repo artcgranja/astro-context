@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any, Protocol, runtime_checkable
 
 from astro_context.models.context import ContextItem
+from astro_context.models.memory import MemoryEntry
 
 
 @runtime_checkable
@@ -191,3 +192,14 @@ class DocumentStore(Protocol):
             The document is permanently removed from the store.
         """
         ...
+
+
+@runtime_checkable
+class MemoryEntryStore(Protocol):
+    """Protocol for persistent memory entry storage."""
+
+    def add(self, entry: MemoryEntry) -> None: ...
+    def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]: ...
+    def list_all(self) -> list[MemoryEntry]: ...
+    def delete(self, entry_id: str) -> bool: ...
+    def clear(self) -> None: ...
