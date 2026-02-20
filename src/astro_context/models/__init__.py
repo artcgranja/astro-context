@@ -1,6 +1,7 @@
 """Core data models for astro-context."""
 
 from .budget import BudgetAllocation, OverflowStrategy, TokenBudget
+from .budget_defaults import default_agent_budget, default_chat_budget, default_rag_budget
 from .context import (
     ContextItem,
     ContextResult,
@@ -9,7 +10,7 @@ from .context import (
     SourceType,
     StepDiagnostic,
 )
-from .memory import ConversationTurn, MemoryEntry, Role
+from .memory import ConversationTurn, MemoryEntry, MemoryType, Role
 from .query import QueryBundle
 from .streaming import StreamDelta, StreamResult, StreamUsage
 
@@ -20,6 +21,7 @@ __all__ = [
     "ContextWindow",
     "ConversationTurn",
     "MemoryEntry",
+    "MemoryType",
     "OverflowStrategy",
     "PipelineDiagnostics",
     "QueryBundle",
@@ -30,4 +32,7 @@ __all__ = [
     "StreamResult",
     "StreamUsage",
     "TokenBudget",
+    "default_agent_budget",
+    "default_chat_budget",
+    "default_rag_budget",
 ]

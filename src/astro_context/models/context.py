@@ -30,6 +30,9 @@ class PipelineDiagnostics(TypedDict, total=False):
     items_overflow: int
     token_utilization: float
     token_usage_by_source: dict[str, int]
+    query_enriched: bool
+    skipped_steps: list[str]
+    failed_step: str
 
 
 class SourceType(StrEnum):
@@ -40,6 +43,7 @@ class SourceType(StrEnum):
     SYSTEM = "system"
     USER = "user"
     TOOL = "tool"
+    CONVERSATION = "conversation"
 
 
 class ContextItem(BaseModel):
