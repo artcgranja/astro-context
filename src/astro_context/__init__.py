@@ -5,6 +5,7 @@ from importlib.metadata import PackageNotFoundError, version
 from astro_context.exceptions import (
     AstroContextError,
     FormatterError,
+    PipelineExecutionError,
     RetrieverError,
     StorageError,
     TokenBudgetExceededError,
@@ -30,6 +31,8 @@ from astro_context.models import (
     Role,
     SourceType,
     StepDiagnostic,
+    StreamResult,
+    StreamUsage,
     TokenBudget,
 )
 from astro_context.pipeline import (
@@ -51,7 +54,7 @@ from astro_context.protocols import (
     Tokenizer,
     VectorStore,
 )
-from astro_context.retrieval import DenseRetriever, HybridRetriever, SparseRetriever
+from astro_context.retrieval import DenseRetriever, HybridRetriever, ScoreReranker, SparseRetriever
 from astro_context.storage import InMemoryContextStore, InMemoryDocumentStore, InMemoryVectorStore
 from astro_context.tokens import TiktokenCounter
 
@@ -87,17 +90,21 @@ __all__ = [
     "OpenAIFormatter",
     "OverflowStrategy",
     "PipelineDiagnostics",
+    "PipelineExecutionError",
     "PipelineStep",
     "PostProcessor",
     "QueryBundle",
     "Retriever",
     "RetrieverError",
     "Role",
+    "ScoreReranker",
     "SlidingWindowMemory",
     "SourceType",
     "SparseRetriever",
     "StepDiagnostic",
     "StorageError",
+    "StreamResult",
+    "StreamUsage",
     "TiktokenCounter",
     "TokenBudget",
     "TokenBudgetExceededError",

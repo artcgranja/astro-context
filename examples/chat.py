@@ -16,6 +16,13 @@ import os
 import sys
 
 try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+try:
     import anthropic
 except ImportError:
     print(
@@ -42,7 +49,7 @@ from astro_context.pipeline.pipeline import ContextPipeline
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL = "claude-sonnet-4-20250514"
+MODEL = "claude-haiku-4-5-20251001"
 MAX_PIPELINE_TOKENS = 8192
 CONVERSATION_TOKENS = 6144
 SYSTEM_PROMPT = (
