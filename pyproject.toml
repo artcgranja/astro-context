@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 
 dependencies = [
@@ -27,14 +28,21 @@ dependencies = [
 [project.optional-dependencies]
 bm25 = ["rank-bm25>=0.2.2,<1"]
 cli = ["typer>=0.12,<1", "rich>=13,<14"]
+anthropic = ["anthropic>=0.40,<1"]
 docs = [
     "mkdocs-material>=9,<10",
-    "mkdocstrings[python]>=0.25",
+    "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["astro-context[bm25,cli]"]
+all = ["astro-context[bm25,cli,anthropic]"]
 
 [project.scripts]
 astro-context = "astro_context.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/arthurgranja/astro-context"
+Repository = "https://github.com/arthurgranja/astro-context"
+Documentation = "https://arthurgranja.github.io/astro-context"
+"Bug Tracker" = "https://github.com/arthurgranja/astro-context/issues"
 
 [dependency-groups]
 dev = [
@@ -57,7 +65,11 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "RUF", "C90", "PT", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PT011"]
+"examples/**/*.py" = ["S101", "T201"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["astro_context"]
