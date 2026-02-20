@@ -1,9 +1,11 @@
-"""In-memory implementation of MemoryEntryStore with filtering support."""
+"""JSON-file-backed persistent store for MemoryEntry."""
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from astro_context.models.memory import MemoryType
@@ -11,44 +13,60 @@ if TYPE_CHECKING:
 from astro_context.models.memory import MemoryEntry
 
 
-class InMemoryEntryStore:
-    """In-memory store for MemoryEntry objects with advanced filtering.
+class JsonFileMemoryStore:
+    """Persistent MemoryEntry store backed by a JSON file.
 
     Implements the ``MemoryEntryStore`` protocol and adds extra methods for
-    filtered search, per-user deletion, and single-entry retrieval.
+    filtered search, per-user deletion, data export, and explicit save/load.
 
-    Useful for testing and single-session applications.
-    For persistence across sessions, use ``JsonFileMemoryStore``.
+    Suitable for development and single-process applications.
+    Not suitable for concurrent multi-process access.
+
+    Auto-saves to disk on every mutation (``add``, ``delete``, ``clear``).
+    Call ``save()`` explicitly after bulk operations or direct ``_entries``
+    manipulation if needed.
+
+    Example::
+
+        store = JsonFileMemoryStore("memories.json")
+        store.add(MemoryEntry(content="hello"))
+        entries = store.search("hello")
     """
 
-    __slots__ = ("_entries",)
+    __slots__ = ("_dirty", "_entries", "_file_path")
 
-    def __init__(self) -> None:
+    def __init__(self, file_path: str | Path) -> None:
+        self._file_path = Path(file_path)
         self._entries: dict[str, MemoryEntry] = {}
+        self._dirty: bool = False
+        if self._file_path.exists():
+            self.load()
 
     # ------------------------------------------------------------------
     # MemoryEntryStore protocol methods
     # ------------------------------------------------------------------
 
     def add(self, entry: MemoryEntry) -> None:
-        """Add or overwrite a memory entry."""
+        """Add or overwrite a memory entry and persist to disk."""
         self._entries[entry.id] = entry
+        self._dirty = True
+        self.save()
 
     def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]:
         """Search entries by substring match, excluding expired entries.
 
-        Results are sorted by relevance_score (descending) as a tiebreaker.
+        Results are sorted by relevance_score (descending).
         """
         query_lower = query.lower()
         now = datetime.now(UTC)
-        scored: list[MemoryEntry] = []
+        results: list[MemoryEntry] = []
         for entry in self._entries.values():
             if entry.expires_at is not None and entry.expires_at <= now:
                 continue
             if query_lower in entry.content.lower():
-                scored.append(entry)
-        scored.sort(key=lambda e: e.relevance_score, reverse=True)
-        return scored[:top_k]
+                results.append(entry)
+        results.sort(key=lambda e: e.relevance_score, reverse=True)
+        return results[:top_k]
 
     def list_all(self) -> list[MemoryEntry]:
         """Return all non-expired entries."""
@@ -59,12 +77,51 @@ class InMemoryEntryStore:
         ]
 
     def delete(self, entry_id: str) -> bool:
-        """Delete an entry by id. Returns True if found and deleted."""
-        return self._entries.pop(entry_id, None) is not None
+        """Delete an entry by id, persist to disk. Returns True if found."""
+        removed = self._entries.pop(entry_id, None) is not None
+        if removed:
+            self._dirty = True
+            self.save()
+        return removed
 
     def clear(self) -> None:
-        """Remove all entries."""
+        """Remove all entries and persist the empty state to disk."""
         self._entries.clear()
+        self._dirty = True
+        self.save()
+
+    # ------------------------------------------------------------------
+    # Persistence methods
+    # ------------------------------------------------------------------
+
+    def save(self) -> None:
+        """Flush all entries to the JSON file on disk."""
+        data: list[dict[str, Any]] = [
+            entry.model_dump(mode="json") for entry in self._entries.values()
+        ]
+        self._file_path.parent.mkdir(parents=True, exist_ok=True)
+        self._file_path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+        self._dirty = False
+
+    def load(self) -> None:
+        """Reload entries from the JSON file on disk."""
+        if not self._file_path.exists():
+            self._entries.clear()
+            self._dirty = False
+            return
+
+        text = self._file_path.read_text(encoding="utf-8")
+        if not text.strip():
+            self._entries.clear()
+            self._dirty = False
+            return
+
+        raw_list: list[dict[str, Any]] = json.loads(text)
+        self._entries.clear()
+        for raw in raw_list:
+            entry = MemoryEntry.model_validate(raw)
+            self._entries[entry.id] = entry
+        self._dirty = False
 
     # ------------------------------------------------------------------
     # Extra methods (beyond MemoryEntryStore protocol)
@@ -82,7 +139,21 @@ class InMemoryEntryStore:
         ]
         for eid in to_delete:
             del self._entries[eid]
+        if to_delete:
+            self._dirty = True
+            self.save()
         return len(to_delete)
+
+    def export_user_entries(self, user_id: str) -> list[MemoryEntry]:
+        """Export all entries belonging to a user (GDPR data portability).
+
+        Returns a list of all entries with the given user_id, including
+        expired entries (for completeness of the data export).
+        """
+        return [
+            entry for entry in self._entries.values()
+            if entry.user_id == user_id
+        ]
 
     def search_filtered(
         self,
@@ -161,4 +232,4 @@ class InMemoryEntryStore:
         return not (created_before is not None and entry.created_at >= created_before)
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}(entries={len(self._entries)})"
+        return f"{type(self).__name__}(file={self._file_path!s}, entries={len(self._entries)})"
