@@ -71,11 +71,11 @@ class TestMemoryManagerGetContextItems:
         items = mgr.get_context_items()
         assert len(items) == 2
 
-    def test_items_have_memory_source(self) -> None:
+    def test_items_have_conversation_source(self) -> None:
         mgr = make_memory_manager()
         mgr.add_user_message("Hello")
         items = mgr.get_context_items()
-        assert all(item.source == SourceType.MEMORY for item in items)
+        assert all(item.source == SourceType.CONVERSATION for item in items)
 
     def test_items_have_specified_priority(self) -> None:
         mgr = make_memory_manager()

@@ -98,11 +98,11 @@ class TestSlidingWindowToContextItems:
         items = mem.to_context_items()
         assert len(items) == 2
 
-    def test_context_items_have_memory_source(self) -> None:
+    def test_context_items_have_conversation_source(self) -> None:
         mem = _make_memory(max_tokens=1000)
         mem.add_turn("user", "Hello")
         items = mem.to_context_items()
-        assert items[0].source == SourceType.MEMORY
+        assert items[0].source == SourceType.CONVERSATION
 
     def test_context_items_have_correct_priority(self) -> None:
         mem = _make_memory(max_tokens=1000)

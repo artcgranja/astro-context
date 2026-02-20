@@ -2,29 +2,48 @@
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import ConversationTurn, Role
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
+if TYPE_CHECKING:
+    from astro_context.protocols.memory import EvictionPolicy, RecencyScorer
+
+logger = logging.getLogger(__name__)
+
 
 class SlidingWindowMemory:
     """Maintains a rolling window of conversation turns within a token budget.
 
     When adding turns that would exceed the token limit, oldest turns are
-    evicted first (FIFO). This is the simplest and most common memory strategy.
+    evicted first (FIFO) unless a custom ``eviction_policy`` is provided.
+    Similarly, recency scores default to linear 0.5-1.0 unless a custom
+    ``recency_scorer`` is supplied.
     """
 
-    __slots__ = ("_max_tokens", "_on_evict", "_tokenizer", "_total_tokens", "_turns")
+    __slots__ = (
+        "_eviction_policy",
+        "_max_tokens",
+        "_on_evict",
+        "_recency_scorer",
+        "_tokenizer",
+        "_total_tokens",
+        "_turns",
+    )
 
     def __init__(
         self,
         max_tokens: int = 4096,
         tokenizer: Tokenizer | None = None,
         on_evict: Callable[[list[ConversationTurn]], None] | None = None,
+        eviction_policy: EvictionPolicy | None = None,
+        recency_scorer: RecencyScorer | None = None,
     ) -> None:
         if max_tokens <= 0:
             msg = "max_tokens must be a positive integer"
@@ -32,6 +51,8 @@ class SlidingWindowMemory:
         self._max_tokens = max_tokens
         self._tokenizer = tokenizer or get_default_counter()
         self._on_evict = on_evict
+        self._eviction_policy = eviction_policy
+        self._recency_scorer = recency_scorer
         self._turns: deque[ConversationTurn] = deque()
         self._total_tokens: int = 0
 
@@ -75,15 +96,38 @@ class SlidingWindowMemory:
                 metadata={**dict(metadata), "truncated": True},
             )
 
-        # Evict oldest turns until the new turn fits
+        # Evict turns until the new turn fits
         evicted_turns: list[ConversationTurn] = []
-        while self._turns and (self._total_tokens + turn.token_count > self._max_tokens):
-            evicted = self._turns.popleft()
-            self._total_tokens -= evicted.token_count
-            evicted_turns.append(evicted)
+        if (
+            self._eviction_policy is not None
+            and self._turns
+            and (self._total_tokens + turn.token_count > self._max_tokens)
+        ):
+            tokens_to_free = (self._total_tokens + turn.token_count) - self._max_tokens
+            indices = self._eviction_policy.select_for_eviction(
+                list(self._turns), tokens_to_free
+            )
+            # Sort descending so we can pop from highest index first
+            # to avoid index shifting
+            for idx in sorted(indices, reverse=True):
+                evicted = self._turns[idx]
+                del self._turns[idx]
+                self._total_tokens -= evicted.token_count
+                evicted_turns.append(evicted)
+            # Reverse so evicted_turns is in original order (oldest first)
+            evicted_turns.reverse()
+        else:
+            # Default FIFO eviction
+            while self._turns and (self._total_tokens + turn.token_count > self._max_tokens):
+                evicted = self._turns.popleft()
+                self._total_tokens -= evicted.token_count
+                evicted_turns.append(evicted)
 
         if evicted_turns and self._on_evict is not None:
-            self._on_evict(evicted_turns)
+            try:
+                self._on_evict(evicted_turns)
+            except Exception:
+                logger.exception("on_evict callback failed — ignoring to protect pipeline")
 
         self._turns.append(turn)
         self._total_tokens += turn.token_count
@@ -101,11 +145,14 @@ class SlidingWindowMemory:
         items: list[ContextItem] = []
         num_turns = len(self._turns)
         for i, turn in enumerate(self._turns):
-            # Recency-weighted score: oldest=0.5, newest=1.0
-            recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
+            # Recency-weighted score: use custom scorer or default linear 0.5-1.0
+            if self._recency_scorer is not None:
+                recency_score = self._recency_scorer.score(i, num_turns)
+            else:
+                recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
             item = ContextItem(
                 content=turn.content,
-                source=SourceType.MEMORY,
+                source=SourceType.CONVERSATION,
                 score=round(recency_score, 4),
                 priority=priority,
                 token_count=turn.token_count,
