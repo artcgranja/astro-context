@@ -24,7 +24,7 @@ class TestAnthropicFormatter:
         assert output["system"] == [{"type": "text", "text": "You are helpful."}]
         assert output["messages"] == []
 
-    def test_multiple_system_prompts_joined(self) -> None:
+    def test_multiple_system_prompts_separate_blocks(self) -> None:
         window = ContextWindow(max_tokens=10000)
         window.add_item(
             ContextItem(content="Be helpful.", source=SourceType.SYSTEM, token_count=5)
@@ -34,7 +34,10 @@ class TestAnthropicFormatter:
         )
         formatter = AnthropicFormatter()
         output = formatter.format(window)
-        assert output["system"] == [{"type": "text", "text": "Be helpful.\n\nBe concise."}]
+        assert output["system"] == [
+            {"type": "text", "text": "Be helpful."},
+            {"type": "text", "text": "Be concise."},
+        ]
 
     def test_memory_items_become_messages(self) -> None:
         window = ContextWindow(max_tokens=10000)

@@ -41,14 +41,16 @@ class AnthropicFormatter:
         """
         classified = classify_window_items(window)
 
-        # Build system content blocks
+        # Build system content blocks — one block per system item for
+        # finer-grained Anthropic prompt caching.  When caching is enabled,
+        # ``cache_control`` is placed on the *last* system block so the
+        # entire static prefix is cached up to that breakpoint.
         system_blocks: list[dict[str, Any]] = []
-        if classified.system_parts:
-            system_text = "\n\n".join(classified.system_parts)
-            block: dict[str, Any] = {"type": "text", "text": system_text}
-            if self._enable_caching:
-                block["cache_control"] = {"type": "ephemeral"}
+        for part in classified.system_parts:
+            block: dict[str, Any] = {"type": "text", "text": part}
             system_blocks.append(block)
+        if self._enable_caching and system_blocks:
+            system_blocks[-1]["cache_control"] = {"type": "ephemeral"}
 
         # Build messages
         messages: list[dict[str, Any]] = []

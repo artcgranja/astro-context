@@ -91,7 +91,7 @@ class TestPipelineWithMemory:
         assert len(result.window.items) == 2
         assert result.diagnostics.get("memory_items") == 2
 
-    def test_memory_items_have_memory_source(self) -> None:
+    def test_memory_items_have_conversation_source(self) -> None:
         memory = make_memory_manager()
         memory.add_user_message("Hello")
 
@@ -99,7 +99,7 @@ class TestPipelineWithMemory:
         pipeline.with_memory(memory)
 
         result = pipeline.build(QueryBundle(query_str="test"))
-        assert all(item.source == SourceType.MEMORY for item in result.window.items)
+        assert all(item.source == SourceType.CONVERSATION for item in result.window.items)
 
 
 class TestPipelineWithFormatter:
@@ -243,7 +243,7 @@ class TestPipelinePriorityOrdering:
         # System (priority 10) should come before memory (priority 7) which should come
         # before retrieval (priority 3)
         assert items[0].source == SourceType.SYSTEM
-        assert items[1].source == SourceType.MEMORY
+        assert items[1].source == SourceType.CONVERSATION
         assert items[2].source == SourceType.RETRIEVAL
 
 

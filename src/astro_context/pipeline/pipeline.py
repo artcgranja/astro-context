@@ -25,6 +25,7 @@ from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
 from .callbacks import PipelineCallback
+from .enrichment import ContextQueryEnricher
 from .step import AsyncStepFn, PipelineStep, SyncStepFn
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class ContextPipeline:
         self._system_items: list[ContextItem] = []
         self._budget: TokenBudget | None = budget
         self._callbacks: list[PipelineCallback] = []
+        self._query_enricher: ContextQueryEnricher | None = None
 
     # -- Read-only properties --
 
@@ -154,6 +156,19 @@ class ContextPipeline:
     def add_callback(self, callback: PipelineCallback) -> ContextPipeline:
         """Register an event callback for pipeline observability. Returns self for chaining."""
         self._callbacks.append(callback)
+        return self
+
+    def with_query_enricher(self, enricher: ContextQueryEnricher) -> ContextPipeline:
+        """Attach a query enricher for memory-aware query expansion.
+
+        The enricher is called after memory items are collected but before
+        pipeline steps execute.  It receives the query string and the memory
+        context items, and returns an enriched query string that replaces
+        ``query.query_str`` for downstream steps.
+
+        Returns self for chaining.
+        """
+        self._query_enricher = enricher
         return self
 
     def _fire(self, method: str, *args: Any) -> None:
@@ -285,6 +300,50 @@ class ContextPipeline:
             counted.append(item)
         return counted
 
+    def _apply_source_budgets(
+        self,
+        items: list[ContextItem],
+    ) -> tuple[list[ContextItem], list[ContextItem]]:
+        """Pre-filter items by per-source-type token budgets.
+
+        Groups items by ``source``, applies the per-source ``max_tokens``
+        cap from ``budget.allocations``, and returns (accepted, overflow).
+        Items whose source has no explicit allocation are passed through
+        uncapped (they compete in the shared pool during window assembly).
+        """
+        budget = self._budget
+        assert budget is not None  # caller guarantees  # noqa: S101
+
+        # Build a lookup of source -> max_tokens for allocated sources
+        source_caps: dict[SourceType, int] = {}
+        for alloc in budget.allocations:
+            source_caps[alloc.source] = alloc.max_tokens
+
+        # Group items by source, preserving priority/score ordering
+        by_source: dict[SourceType, list[ContextItem]] = {}
+        for item in sorted(items, key=lambda x: (-x.priority, -x.score)):
+            by_source.setdefault(item.source, []).append(item)
+
+        accepted: list[ContextItem] = []
+        overflow: list[ContextItem] = []
+
+        for source, source_items in by_source.items():
+            if source not in source_caps:
+                # No explicit allocation -- pass through for shared pool
+                accepted.extend(source_items)
+                continue
+
+            cap = source_caps[source]
+            used = 0
+            for item in source_items:
+                if used + item.token_count <= cap:
+                    accepted.append(item)
+                    used += item.token_count
+                else:
+                    overflow.append(item)
+
+        return accepted, overflow
+
     def _assemble_result(
         self,
         counted_items: list[ContextItem],
@@ -296,8 +355,14 @@ class ContextPipeline:
         if self._budget is not None:
             effective_max = self._max_tokens - self._budget.reserve_tokens
 
+        # Apply per-source budgets when allocations are defined
+        budget_overflow: list[ContextItem] = []
+        if self._budget is not None and self._budget.allocations:
+            counted_items, budget_overflow = self._apply_source_budgets(counted_items)
+
         window = ContextWindow(max_tokens=effective_max)
-        overflow = window.add_items_by_priority(counted_items)
+        window_overflow = window.add_items_by_priority(counted_items)
+        overflow = budget_overflow + window_overflow
 
         try:
             formatted = self._formatter.format(window)
@@ -309,7 +374,7 @@ class ContextPipeline:
             raise FormatterError(msg) from e
 
         build_time = (time.monotonic() - start_time) * 1000
-        diagnostics["total_items_considered"] = len(counted_items)
+        diagnostics["total_items_considered"] = len(counted_items) + len(budget_overflow)
         diagnostics["items_included"] = len(window.items)
         diagnostics["items_overflow"] = len(overflow)
         diagnostics["token_utilization"] = round(window.utilization, 4)
@@ -340,6 +405,18 @@ class ContextPipeline:
         self._fire("on_pipeline_start", query)
 
         all_items = self._collect_pre_step_items(diagnostics)
+
+        # Enrich query with memory context before retrieval steps
+        if self._query_enricher is not None:
+            memory_items = [
+                i
+                for i in all_items
+                if i.source in (SourceType.MEMORY, SourceType.CONVERSATION)
+            ]
+            if memory_items:
+                enriched_text = self._query_enricher.enrich(query.query_str, memory_items)
+                query = query.model_copy(update={"query_str": enriched_text})
+                diagnostics["query_enriched"] = True
 
         for step in self._steps:
             step_start = time.monotonic()
@@ -394,6 +471,18 @@ class ContextPipeline:
         self._fire("on_pipeline_start", query)
 
         all_items = self._collect_pre_step_items(diagnostics)
+
+        # Enrich query with memory context before retrieval steps
+        if self._query_enricher is not None:
+            memory_items = [
+                i
+                for i in all_items
+                if i.source in (SourceType.MEMORY, SourceType.CONVERSATION)
+            ]
+            if memory_items:
+                enriched_text = self._query_enricher.enrich(query.query_str, memory_items)
+                query = query.model_copy(update={"query_str": enriched_text})
+                diagnostics["query_enriched"] = True
 
         for step in self._steps:
             step_start = time.monotonic()

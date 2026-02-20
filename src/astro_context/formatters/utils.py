@@ -40,7 +40,10 @@ def classify_window_items(window: ContextWindow) -> ClassifiedItems:
 
     * **system_parts** -- content strings from :attr:`SourceType.SYSTEM` items.
     * **memory_items** -- full :class:`ContextItem` objects for
-      :attr:`SourceType.MEMORY` (callers typically need the metadata).
+      :attr:`SourceType.MEMORY` and :attr:`SourceType.CONVERSATION`
+      (callers typically need the metadata).  Both persistent memory
+      facts and session-scoped conversation turns appear here so that
+      formatters place them in the messages section.
     * **context_parts** -- content strings for every other source type
       (retrieval, tool, user, etc.).
     """
@@ -51,7 +54,7 @@ def classify_window_items(window: ContextWindow) -> ClassifiedItems:
     for item in window.items:
         if item.source == SourceType.SYSTEM:
             system_parts.append(item.content)
-        elif item.source == SourceType.MEMORY:
+        elif item.source in (SourceType.MEMORY, SourceType.CONVERSATION):
             memory_items.append(item)
         else:
             context_parts.append(item.content)
