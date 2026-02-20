@@ -29,6 +29,7 @@ class PipelineDiagnostics(TypedDict, total=False):
     items_included: int
     items_overflow: int
     token_utilization: float
+    token_usage_by_source: dict[str, int]
 
 
 class SourceType(StrEnum):

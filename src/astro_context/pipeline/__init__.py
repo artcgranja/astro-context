@@ -1,5 +1,6 @@
 """Context pipeline orchestration."""
 
+from .callbacks import PipelineCallback
 from .pipeline import ContextPipeline
 from .step import (
     PipelineStep,
@@ -12,6 +13,7 @@ from .step import (
 
 __all__ = [
     "ContextPipeline",
+    "PipelineCallback",
     "PipelineStep",
     "async_postprocessor_step",
     "async_retriever_step",

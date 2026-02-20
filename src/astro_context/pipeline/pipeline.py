@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import inspect
+import logging
 import time
 from collections.abc import Callable
-from typing import Any, cast, overload
+from typing import Any, Literal, cast, overload
 
-from astro_context.exceptions import AstroContextError, FormatterError
+from astro_context.exceptions import AstroContextError, FormatterError, PipelineExecutionError
 from astro_context.formatters.base import Formatter
 from astro_context.formatters.generic import GenericTextFormatter
 from astro_context.memory.manager import MemoryManager
+from astro_context.models.budget import TokenBudget
 from astro_context.models.context import (
     ContextItem,
     ContextResult,
@@ -22,7 +24,10 @@ from astro_context.models.query import QueryBundle
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
+from .callbacks import PipelineCallback
 from .step import AsyncStepFn, PipelineStep, SyncStepFn
+
+logger = logging.getLogger(__name__)
 
 
 class ContextPipeline:
@@ -56,6 +61,7 @@ class ContextPipeline:
         self,
         max_tokens: int = 8192,
         tokenizer: Tokenizer | None = None,
+        budget: TokenBudget | None = None,
     ) -> None:
         if max_tokens <= 0:
             msg = "max_tokens must be a positive integer"
@@ -66,6 +72,8 @@ class ContextPipeline:
         self._memory: MemoryManager | None = None
         self._formatter: Formatter = GenericTextFormatter()
         self._system_items: list[ContextItem] = []
+        self._budget: TokenBudget | None = budget
+        self._callbacks: list[PipelineCallback] = []
 
     # -- Read-only properties --
 
@@ -88,6 +96,11 @@ class ContextPipeline:
     def system_items(self) -> list[ContextItem]:
         """A copy of the registered system items."""
         return list(self._system_items)
+
+    @property
+    def budget(self) -> TokenBudget | None:
+        """The optional token budget for fine-grained allocation."""
+        return self._budget
 
     def __repr__(self) -> str:
         return (
@@ -115,6 +128,11 @@ class ContextPipeline:
         self._memory = memory
         return self
 
+    def with_budget(self, budget: TokenBudget) -> ContextPipeline:
+        """Attach a token budget for fine-grained allocation. Returns self for chaining."""
+        self._budget = budget
+        return self
+
     def with_formatter(self, formatter: Formatter) -> ContextPipeline:
         """Set the output formatter. Returns self for chaining."""
         self._formatter = formatter
@@ -133,13 +151,32 @@ class ContextPipeline:
         self._system_items.append(item)
         return self
 
+    def add_callback(self, callback: PipelineCallback) -> ContextPipeline:
+        """Register an event callback for pipeline observability. Returns self for chaining."""
+        self._callbacks.append(callback)
+        return self
+
+    def _fire(self, method: str, *args: Any) -> None:
+        """Invoke a callback method on all registered callbacks, swallowing errors."""
+        for cb in self._callbacks:
+            try:
+                getattr(cb, method)(*args)
+            except Exception:
+                logger.debug("Callback %r.%s failed", cb, method, exc_info=True)
+
     # -- Decorator-based step registration (inspired by @agent.tool from Pydantic AI) --
 
     @overload
     def step(self, fn: SyncStepFn, /) -> SyncStepFn: ...
 
     @overload
-    def step(self, /, *, name: str | None = ...) -> Callable[[SyncStepFn], SyncStepFn]: ...
+    def step(
+        self,
+        /,
+        *,
+        name: str | None = ...,
+        on_error: Literal["raise", "skip"] = ...,
+    ) -> Callable[[SyncStepFn], SyncStepFn]: ...
 
     def step(
         self,
@@ -147,6 +184,7 @@ class ContextPipeline:
         /,
         *,
         name: str | None = None,
+        on_error: Literal["raise", "skip"] = "raise",
     ) -> SyncStepFn | Callable[[SyncStepFn], SyncStepFn]:
         """Decorator to register a function as a pipeline step.
 
@@ -158,7 +196,7 @@ class ContextPipeline:
             def my_filter(items, query):
                 return [i for i in items if i.score > 0.5]
 
-            @pipeline.step(name="custom-name")
+            @pipeline.step(name="custom-name", on_error="skip")
             def another_step(items, query):
                 return items
         """
@@ -168,7 +206,7 @@ class ContextPipeline:
                 msg = f"'{func.__name__}' is async -- use @pipeline.async_step instead"
                 raise TypeError(msg)
             step_name: str = name or str(getattr(func, "__name__", "unnamed_step"))
-            pipeline_step = PipelineStep(name=step_name, fn=func)
+            pipeline_step = PipelineStep(name=step_name, fn=func, on_error=on_error)
             self._steps.append(pipeline_step)
             return func
 
@@ -181,7 +219,11 @@ class ContextPipeline:
 
     @overload
     def async_step(
-        self, /, *, name: str | None = ...
+        self,
+        /,
+        *,
+        name: str | None = ...,
+        on_error: Literal["raise", "skip"] = ...,
     ) -> Callable[[AsyncStepFn], AsyncStepFn]: ...
 
     def async_step(
@@ -190,6 +232,7 @@ class ContextPipeline:
         /,
         *,
         name: str | None = None,
+        on_error: Literal["raise", "skip"] = "raise",
     ) -> AsyncStepFn | Callable[[AsyncStepFn], AsyncStepFn]:
         """Decorator to register an async function as a pipeline step.
 
@@ -200,7 +243,7 @@ class ContextPipeline:
                 results = await fetch_from_db(query)
                 return items + results
 
-            @pipeline.async_step(name="db-lookup")
+            @pipeline.async_step(name="db-lookup", on_error="skip")
             async def db_step(items, query):
                 ...
         """
@@ -211,7 +254,9 @@ class ContextPipeline:
                 msg = f"@async_step requires an async function, got {fn_name}"
                 raise TypeError(msg)
             step_name: str = name or str(getattr(func, "__name__", "unnamed_async_step"))
-            pipeline_step = PipelineStep(name=step_name, fn=func, is_async=True)
+            pipeline_step = PipelineStep(
+                name=step_name, fn=func, is_async=True, on_error=on_error,
+            )
             self._steps.append(pipeline_step)
             return func
 
@@ -247,7 +292,11 @@ class ContextPipeline:
         start_time: float,
     ) -> ContextResult:
         """Assemble items into a ContextWindow and format the output."""
-        window = ContextWindow(max_tokens=self._max_tokens)
+        effective_max = self._max_tokens
+        if self._budget is not None:
+            effective_max = self._max_tokens - self._budget.reserve_tokens
+
+        window = ContextWindow(max_tokens=effective_max)
         overflow = window.add_items_by_priority(counted_items)
 
         try:
@@ -265,6 +314,13 @@ class ContextPipeline:
         diagnostics["items_overflow"] = len(overflow)
         diagnostics["token_utilization"] = round(window.utilization, 4)
 
+        if self._budget is not None:
+            usage_by_source: dict[str, int] = {}
+            for item in window.items:
+                key = item.source.value
+                usage_by_source[key] = usage_by_source.get(key, 0) + item.token_count
+            diagnostics["token_usage_by_source"] = usage_by_source
+
         return ContextResult(
             window=window,
             formatted_output=formatted,
@@ -281,19 +337,36 @@ class ContextPipeline:
         start_time = time.monotonic()
         diagnostics: dict[str, Any] = {"steps": []}
 
+        self._fire("on_pipeline_start", query)
+
         all_items = self._collect_pre_step_items(diagnostics)
 
         for step in self._steps:
             step_start = time.monotonic()
+            items_before = all_items
+            self._fire("on_step_start", step.name, list(all_items))
             try:
                 all_items = step.execute(all_items, query)
-            except (AstroContextError, TypeError, ValueError):
+            except (AstroContextError, TypeError, ValueError) as exc:
+                self._fire("on_step_error", step.name, exc)
+                if step.on_error == "skip":
+                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
+                    diagnostics.setdefault("skipped_steps", []).append(step.name)
+                    all_items = items_before
+                    continue
                 raise
             except Exception as e:
+                self._fire("on_step_error", step.name, e)
+                if step.on_error == "skip":
+                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
+                    diagnostics.setdefault("skipped_steps", []).append(step.name)
+                    all_items = items_before
+                    continue
                 diagnostics["failed_step"] = step.name
                 msg = f"Pipeline failed at step '{step.name}'"
-                raise AstroContextError(msg) from e
+                raise PipelineExecutionError(msg, diagnostics=diagnostics) from e
             step_time = (time.monotonic() - step_start) * 1000
+            self._fire("on_step_end", step.name, all_items, step_time)
             diagnostics["steps"].append({
                 "name": step.name,
                 "items_after": len(all_items),
@@ -301,7 +374,9 @@ class ContextPipeline:
             })
 
         counted_items = self._count_tokens(all_items)
-        return self._assemble_result(counted_items, diagnostics, start_time)
+        result = self._assemble_result(counted_items, diagnostics, start_time)
+        self._fire("on_pipeline_end", result)
+        return result
 
     async def abuild(self, query: str | QueryBundle) -> ContextResult:
         """Execute the full pipeline asynchronously and return assembled context.
@@ -316,19 +391,36 @@ class ContextPipeline:
         start_time = time.monotonic()
         diagnostics: dict[str, Any] = {"steps": []}
 
+        self._fire("on_pipeline_start", query)
+
         all_items = self._collect_pre_step_items(diagnostics)
 
         for step in self._steps:
             step_start = time.monotonic()
+            items_before = all_items
+            self._fire("on_step_start", step.name, list(all_items))
             try:
                 all_items = await step.aexecute(all_items, query)
-            except (AstroContextError, TypeError, ValueError):
+            except (AstroContextError, TypeError, ValueError) as exc:
+                self._fire("on_step_error", step.name, exc)
+                if step.on_error == "skip":
+                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
+                    diagnostics.setdefault("skipped_steps", []).append(step.name)
+                    all_items = items_before
+                    continue
                 raise
             except Exception as e:
+                self._fire("on_step_error", step.name, e)
+                if step.on_error == "skip":
+                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
+                    diagnostics.setdefault("skipped_steps", []).append(step.name)
+                    all_items = items_before
+                    continue
                 diagnostics["failed_step"] = step.name
                 msg = f"Pipeline failed at step '{step.name}'"
-                raise AstroContextError(msg) from e
+                raise PipelineExecutionError(msg, diagnostics=diagnostics) from e
             step_time = (time.monotonic() - step_start) * 1000
+            self._fire("on_step_end", step.name, all_items, step_time)
             diagnostics["steps"].append({
                 "name": step.name,
                 "items_after": len(all_items),
@@ -336,4 +428,6 @@ class ContextPipeline:
             })
 
         counted_items = self._count_tokens(all_items)
-        return self._assemble_result(counted_items, diagnostics, start_time)
+        result = self._assemble_result(counted_items, diagnostics, start_time)
+        self._fire("on_pipeline_end", result)
+        return result

@@ -1,8 +1,13 @@
 """Custom exceptions for astro-context."""
 
+from __future__ import annotations
+
+from typing import Any
+
 __all__ = [
     "AstroContextError",
     "FormatterError",
+    "PipelineExecutionError",
     "RetrieverError",
     "StorageError",
     "TokenBudgetExceededError",
@@ -11,6 +16,14 @@ __all__ = [
 
 class AstroContextError(Exception):
     """Base exception for all astro-context errors."""
+
+
+class PipelineExecutionError(AstroContextError):
+    """Error during pipeline execution with partial diagnostics attached."""
+
+    def __init__(self, message: str, diagnostics: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.diagnostics = diagnostics or {}
 
 
 class TokenBudgetExceededError(AstroContextError):

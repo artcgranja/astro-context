@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from astro_context.exceptions import AstroContextError
 from astro_context.models.context import ContextItem
@@ -33,6 +33,7 @@ class PipelineStep:
     name: str
     fn: StepFn
     is_async: bool = False
+    on_error: Literal["raise", "skip"] = "raise"
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def execute(self, items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
