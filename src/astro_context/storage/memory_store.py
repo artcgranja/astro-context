@@ -7,6 +7,7 @@ that satisfy the storage protocols.
 
 from __future__ import annotations
 
+import heapq
 from typing import Any
 
 from astro_context.models.context import ContextItem
@@ -14,6 +15,8 @@ from astro_context.models.context import ContextItem
 
 class InMemoryContextStore:
     """Dict-backed context store. Implements ContextStore protocol."""
+
+    __slots__ = ("_items",)
 
     def __init__(self) -> None:
         self._items: dict[str, ContextItem] = {}
@@ -33,6 +36,9 @@ class InMemoryContextStore:
     def clear(self) -> None:
         self._items.clear()
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(items={len(self._items)})"
+
 
 class InMemoryVectorStore:
     """Brute-force cosine similarity vector store.
@@ -40,6 +46,8 @@ class InMemoryVectorStore:
     For development/testing only. Production use should provide
     FAISS, Chroma, Qdrant, etc. via the VectorStore protocol.
     """
+
+    __slots__ = ("_embeddings", "_metadata")
 
     def __init__(self) -> None:
         self._embeddings: dict[str, list[float]] = {}
@@ -61,8 +69,7 @@ class InMemoryVectorStore:
         for item_id, emb in self._embeddings.items():
             score = self._cosine_similarity(query_embedding, emb)
             results.append((item_id, score))
-        results.sort(key=lambda x: x[1], reverse=True)
-        return results[:top_k]
+        return heapq.nlargest(top_k, results, key=lambda x: x[1])
 
     def delete(self, item_id: str) -> bool:
         removed = self._embeddings.pop(item_id, None) is not None
@@ -80,9 +87,14 @@ class InMemoryVectorStore:
         similarity: float = dot / (norm_a * norm_b)
         return max(-1.0, min(1.0, similarity))
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(embeddings={len(self._embeddings)})"
+
 
 class InMemoryDocumentStore:
     """Dict-backed document store. Implements DocumentStore protocol."""
+
+    __slots__ = ("_documents", "_metadata")
 
     def __init__(self) -> None:
         self._documents: dict[str, str] = {}
@@ -105,3 +117,6 @@ class InMemoryDocumentStore:
         removed = self._documents.pop(doc_id, None) is not None
         self._metadata.pop(doc_id, None)
         return removed
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(documents={len(self._documents)})"

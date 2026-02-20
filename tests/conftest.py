@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from astro_context.memory.manager import MemoryManager
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.query import QueryBundle
 from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
@@ -49,25 +50,46 @@ class FakeTokenizer:
         return " ".join(words[:max_tokens])
 
 
-@pytest.fixture()
+class FakeRetriever:
+    """Fake retriever that returns pre-configured results for testing.
+
+    Used across pipeline and retrieval tests as a stand-in for real retrievers.
+    """
+
+    def __init__(self, items: list[ContextItem]) -> None:
+        self._items = items
+
+    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
+        return self._items[:top_k]
+
+
+def make_memory_manager(conversation_tokens: int = 2000) -> MemoryManager:
+    """Create a MemoryManager with FakeTokenizer for testing.
+
+    Shared helper for both pipeline and memory manager tests.
+    """
+    return MemoryManager(conversation_tokens=conversation_tokens, tokenizer=FakeTokenizer())
+
+
+@pytest.fixture
 def counter() -> FakeTokenizer:
     """Return a FakeTokenizer instance for testing."""
     return FakeTokenizer()
 
 
-@pytest.fixture()
+@pytest.fixture
 def context_store() -> InMemoryContextStore:
     """Return a fresh InMemoryContextStore."""
     return InMemoryContextStore()
 
 
-@pytest.fixture()
+@pytest.fixture
 def vector_store() -> InMemoryVectorStore:
     """Return a fresh InMemoryVectorStore."""
     return InMemoryVectorStore()
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_items(counter: FakeTokenizer) -> list[ContextItem]:
     """Return 5 ContextItems with token counts from FakeTokenizer."""
     texts = [
@@ -93,7 +115,7 @@ def sample_items(counter: FakeTokenizer) -> list[ContextItem]:
     return items
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_query() -> QueryBundle:
     """Return a sample QueryBundle for testing."""
     return QueryBundle(

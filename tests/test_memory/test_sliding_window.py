@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from astro_context.memory.sliding_window import SlidingWindowMemory
 from astro_context.models.context import SourceType
 from tests.conftest import FakeTokenizer
@@ -108,11 +110,19 @@ class TestSlidingWindowToContextItems:
         items = mem.to_context_items(priority=8)
         assert items[0].priority == 8
 
-    def test_context_items_contain_role_prefix(self) -> None:
+    def test_context_items_content_has_no_role_prefix(self) -> None:
+        """Content should be raw message text without role prefix.
+
+        The role is conveyed via metadata so downstream formatters
+        (Anthropic, OpenAI) can set it in their message structure
+        without producing duplicated roles like
+        ``{"role": "user", "content": "user: Hello"}``.
+        """
         mem = _make_memory(max_tokens=1000)
         mem.add_turn("user", "Hello")
         items = mem.to_context_items()
-        assert items[0].content.startswith("user: ")
+        assert items[0].content == "Hello"
+        assert not items[0].content.startswith("user: ")
 
     def test_context_items_have_role_metadata(self) -> None:
         mem = _make_memory(max_tokens=1000)
@@ -123,6 +133,14 @@ class TestSlidingWindowToContextItems:
     def test_empty_memory_returns_empty_list(self) -> None:
         mem = _make_memory(max_tokens=1000)
         assert mem.to_context_items() == []
+
+    def test_context_item_token_count_matches_content(self) -> None:
+        """Token count should match the raw content, not a role-prefixed string."""
+        mem = _make_memory(max_tokens=1000)
+        mem.add_turn("user", "Hello world")
+        items = mem.to_context_items()
+        tokenizer = FakeTokenizer()
+        assert items[0].token_count == tokenizer.count_tokens("Hello world")
 
 
 class TestSlidingWindowClear:
@@ -158,3 +176,29 @@ class TestSlidingWindowProperties:
     def test_max_tokens_property(self) -> None:
         mem = _make_memory(max_tokens=4096)
         assert mem.max_tokens == 4096
+
+
+class TestSlidingWindowRepr:
+    """__repr__ returns a useful string representation."""
+
+    def test_repr_empty(self) -> None:
+        mem = _make_memory(max_tokens=1000)
+        r = repr(mem)
+        assert "SlidingWindowMemory" in r
+        assert "turns=0" in r
+        assert "tokens=0/1000" in r
+
+    def test_repr_with_turns(self) -> None:
+        mem = _make_memory(max_tokens=1000)
+        mem.add_turn("user", "Hello")
+        r = repr(mem)
+        assert "turns=1" in r
+
+
+class TestSlidingWindowSlots:
+    """__slots__ prevents arbitrary attribute assignment."""
+
+    def test_cannot_set_arbitrary_attribute(self) -> None:
+        mem = _make_memory(max_tokens=1000)
+        with pytest.raises(AttributeError):
+            mem.some_random_attr = "oops"  # type: ignore[attr-defined]

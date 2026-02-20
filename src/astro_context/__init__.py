@@ -1,5 +1,7 @@
 """astro-context: Context engineering toolkit for AI applications."""
 
+from importlib.metadata import PackageNotFoundError, version
+
 from astro_context.exceptions import (
     AstroContextError,
     FormatterError,
@@ -10,6 +12,7 @@ from astro_context.exceptions import (
 from astro_context.formatters import (
     AnthropicFormatter,
     BaseFormatter,
+    Formatter,
     GenericTextFormatter,
     OpenAIFormatter,
 )
@@ -21,8 +24,12 @@ from astro_context.models import (
     ContextWindow,
     ConversationTurn,
     MemoryEntry,
+    OverflowStrategy,
+    PipelineDiagnostics,
     QueryBundle,
+    Role,
     SourceType,
+    StepDiagnostic,
     TokenBudget,
 )
 from astro_context.pipeline import (
@@ -48,7 +55,10 @@ from astro_context.retrieval import DenseRetriever, HybridRetriever, SparseRetri
 from astro_context.storage import InMemoryContextStore, InMemoryDocumentStore, InMemoryVectorStore
 from astro_context.tokens import TiktokenCounter
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("astro-context")
+except PackageNotFoundError:
+    __version__ = "0.0.0-dev"
 
 __all__ = [
     "AnthropicFormatter",
@@ -65,6 +75,7 @@ __all__ = [
     "ConversationTurn",
     "DenseRetriever",
     "DocumentStore",
+    "Formatter",
     "FormatterError",
     "GenericTextFormatter",
     "HybridRetriever",
@@ -74,14 +85,18 @@ __all__ = [
     "MemoryEntry",
     "MemoryManager",
     "OpenAIFormatter",
+    "OverflowStrategy",
+    "PipelineDiagnostics",
     "PipelineStep",
     "PostProcessor",
     "QueryBundle",
     "Retriever",
     "RetrieverError",
+    "Role",
     "SlidingWindowMemory",
     "SourceType",
     "SparseRetriever",
+    "StepDiagnostic",
     "StorageError",
     "TiktokenCounter",
     "TokenBudget",

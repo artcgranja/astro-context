@@ -24,10 +24,17 @@ pipeline = (
     .add_system_prompt("You are a helpful assistant.")
 )
 
-result = pipeline.build(QueryBundle(query_str="What is context engineering?"))
+result = pipeline.build("What is context engineering?")   # Plain strings work too
 print(result.formatted_output)   # Ready for Claude API
 print(result.diagnostics)        # Token usage, timing, overflow info
 ```
+
+> **Tip:** `build()` accepts either a plain string or a `QueryBundle` object:
+> ```python
+> result = pipeline.build("What is context engineering?")
+> # equivalent to:
+> result = pipeline.build(QueryBundle(query_str="What is context engineering?"))
+> ```
 
 ## Why astro-context?
 
@@ -109,6 +116,60 @@ result = pipeline.with_formatter(AnthropicFormatter()).build(query)
 result = pipeline.with_formatter(OpenAIFormatter()).build(query)
 ```
 
+## Decorator API
+
+Instead of `add_step()` with factory functions, you can use the `@pipeline.step` decorator to register pipeline steps directly:
+
+```python
+from astro_context import ContextPipeline, ContextItem, QueryBundle
+
+pipeline = ContextPipeline(max_tokens=8192)
+
+@pipeline.step
+def boost_recent(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Boost the score of recent items."""
+    for item in items:
+        if item.metadata.get("recent"):
+            item = item.model_copy(update={"score": item.score * 1.5})
+    return items
+
+@pipeline.step(name="quality-filter")
+def filter_low_quality(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Remove items below a quality threshold."""
+    return [item for item in items if item.score > 0.3]
+
+result = pipeline.build("What is context engineering?")
+```
+
+## Async Pipeline
+
+For pipelines that include async steps (e.g., database lookups, API calls), use `abuild()` and `@pipeline.async_step`:
+
+```python
+import asyncio
+from astro_context import ContextPipeline, ContextItem, SourceType, QueryBundle
+
+pipeline = ContextPipeline(max_tokens=8192)
+
+@pipeline.async_step
+async def fetch_from_db(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Fetch relevant context from an async database."""
+    results = await my_async_db_search(query.query_str)  # your async function
+    new_items = [
+        ContextItem(content=r["text"], source=SourceType.RETRIEVAL, score=r["score"])
+        for r in results
+    ]
+    return items + new_items
+
+@pipeline.step
+def filter_results(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Sync steps and async steps can be mixed in the same pipeline."""
+    return [item for item in items if item.score > 0.5]
+
+# Use abuild() instead of build() to run the async pipeline
+result = asyncio.run(pipeline.abuild("What is context engineering?"))
+```
+
 ## Architecture
 
 ```
@@ -150,7 +211,7 @@ astro-context --help     # See all commands
 ## Development
 
 ```bash
-git clone https://github.com/artcgranja/astro-context.git
+git clone https://github.com/arthurgranja/astro-context.git
 cd astro-context
 uv sync           # Install all dependencies
 uv run pytest     # Run tests (188 tests, 89% coverage)
@@ -159,8 +220,8 @@ uv run ruff check src/ tests/  # Lint
 
 ## Roadmap
 
-- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters
-- **v0.2.0** -- Async pipeline, MCP Bridge, progressive summarization
+- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API
+- **v0.2.0** -- MCP Bridge, progressive summarization, persistent storage backends
 - **v0.3.0** -- GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
 - **v1.0.0** -- Production-grade APIs, plugin ecosystem
 

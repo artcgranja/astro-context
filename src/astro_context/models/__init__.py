@@ -1,8 +1,15 @@
 """Core data models for astro-context."""
 
-from .budget import BudgetAllocation, TokenBudget
-from .context import ContextItem, ContextResult, ContextWindow, SourceType
-from .memory import ConversationTurn, MemoryEntry
+from .budget import BudgetAllocation, OverflowStrategy, TokenBudget
+from .context import (
+    ContextItem,
+    ContextResult,
+    ContextWindow,
+    PipelineDiagnostics,
+    SourceType,
+    StepDiagnostic,
+)
+from .memory import ConversationTurn, MemoryEntry, Role
 from .query import QueryBundle
 
 __all__ = [
@@ -12,7 +19,11 @@ __all__ = [
     "ContextWindow",
     "ConversationTurn",
     "MemoryEntry",
+    "OverflowStrategy",
+    "PipelineDiagnostics",
     "QueryBundle",
+    "Role",
     "SourceType",
+    "StepDiagnostic",
     "TokenBudget",
 ]

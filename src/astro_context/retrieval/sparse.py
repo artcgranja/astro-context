@@ -5,11 +5,14 @@ Requires the 'bm25' extra: pip install astro-context[bm25]
 
 from __future__ import annotations
 
+import heapq
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from astro_context.exceptions import RetrieverError
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.query import QueryBundle
+from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
 if TYPE_CHECKING:
@@ -22,14 +25,23 @@ class SparseRetriever:
     Implements the Retriever protocol.
     """
 
+    __slots__ = ("_bm25", "_counter", "_items", "_tokenize_fn")
+
     def __init__(
         self,
         tokenize_fn: Callable[[str], list[str]] | None = None,
+        tokenizer: Tokenizer | None = None,
     ) -> None:
         self._tokenize_fn = tokenize_fn or self._default_tokenize
         self._bm25: BM25Okapi | None = None
         self._items: list[ContextItem] = []
-        self._counter = get_default_counter()
+        self._counter = tokenizer or get_default_counter()
+
+    def __repr__(self) -> str:
+        return (
+            f"SparseRetriever(indexed_items={len(self._items)}, "
+            f"bm25_ready={self._bm25 is not None})"
+        )
 
     @staticmethod
     def _default_tokenize(text: str) -> list[str]:
@@ -45,7 +57,7 @@ class SparseRetriever:
                 "rank-bm25 is required for SparseRetriever. "
                 "Install it with: pip install astro-context[bm25]"
             )
-            raise ImportError(msg) from e
+            raise RetrieverError(msg) from e
 
         self._items = list(items)
         tokenized_corpus = [self._tokenize_fn(item.content) for item in self._items]
@@ -56,30 +68,31 @@ class SparseRetriever:
         """Retrieve items using BM25 scoring."""
         if self._bm25 is None:
             msg = "Must call index() before retrieve()"
-            raise RuntimeError(msg)
+            raise RetrieverError(msg)
 
         tokenized_query = self._tokenize_fn(query.query_str)
         scores = self._bm25.get_scores(tokenized_query)
 
-        max_score = max(scores) if max(scores) > 0 else 1.0
-        scored_indices = [(i, float(s / max_score)) for i, s in enumerate(scores)]
-        scored_indices.sort(key=lambda x: x[1], reverse=True)
-        scored_indices = scored_indices[:top_k]
+        if len(scores) == 0:
+            return []
+
+        raw_max = max(scores)
+        max_score = raw_max if raw_max > 0 else 1.0
+
+        # Use heapq.nlargest for O(N log K) instead of full sort O(N log N)
+        scored_indices = [(float(s / max_score), i) for i, s in enumerate(scores)]
+        top_entries = heapq.nlargest(top_k, scored_indices)
 
         items: list[ContextItem] = []
-        for idx, score in scored_indices:
+        for score, idx in top_entries:
             if score <= 0:
                 continue
             item = self._items[idx]
-            scored_item = ContextItem(
-                id=item.id,
-                content=item.content,
-                source=SourceType.RETRIEVAL,
-                score=score,
-                priority=item.priority,
-                token_count=item.token_count or self._counter.count_tokens(item.content),
-                metadata={**item.metadata, "retrieval_method": "sparse_bm25"},
-                created_at=item.created_at,
-            )
+            scored_item = item.model_copy(update={
+                "source": SourceType.RETRIEVAL,
+                "score": score,
+                "token_count": item.token_count or self._counter.count_tokens(item.content),
+                "metadata": {**item.metadata, "retrieval_method": "sparse_bm25"},
+            })
             items.append(scored_item)
         return items

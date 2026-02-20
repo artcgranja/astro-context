@@ -88,11 +88,16 @@ print(f"Used {result.window.used_tokens}/{result.window.max_tokens} tokens")
 Combine dense and sparse retrieval with Reciprocal Rank Fusion:
 
 ```python
-from astro_context import DenseRetriever, SparseRetriever, HybridRetriever
+from astro_context import (
+    DenseRetriever, SparseRetriever, HybridRetriever,
+    InMemoryVectorStore, InMemoryContextStore,
+)
 from astro_context.pipeline import retriever_step
 
 # Create individual retrievers
-dense = DenseRetriever(vector_store=vs, context_store=cs, embed_fn=my_embed_fn)
+vector_store = InMemoryVectorStore()
+context_store = InMemoryContextStore()
+dense = DenseRetriever(vector_store=vector_store, context_store=context_store, embed_fn=my_embed_fn)
 sparse = SparseRetriever()
 
 # Index documents in both
@@ -141,4 +146,42 @@ print(result.diagnostics)
 #   "token_utilization": 0.87,
 # }
 print(f"Build time: {result.build_time_ms}ms")
+```
+
+## Decorator API for Pipeline Steps
+
+Instead of using `add_step()` with factory functions, you can register steps using the
+`@pipeline.step` decorator. This is especially convenient for custom post-processing logic:
+
+```python
+from astro_context import ContextPipeline, ContextItem, QueryBundle
+
+pipeline = ContextPipeline(max_tokens=8192)
+
+@pipeline.step
+def boost_recent(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Boost scores of recent items."""
+    return [
+        item.model_copy(update={"score": item.score * 1.5})
+        if item.metadata.get("recent") else item
+        for item in items
+    ]
+
+@pipeline.step(name="quality-filter")
+def remove_low_quality(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    """Filter out low-scoring items."""
+    return [item for item in items if item.score > 0.3]
+
+result = pipeline.build("How to sort in Python?")
+```
+
+For async steps (e.g., database lookups), use `@pipeline.async_step` and call `abuild()`:
+
+```python
+@pipeline.async_step
+async def fetch_from_db(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    results = await my_async_search(query.query_str)
+    return items + results
+
+result = await pipeline.abuild("How to sort in Python?")
 ```

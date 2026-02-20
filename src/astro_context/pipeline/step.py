@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from astro_context.exceptions import AstroContextError
 from astro_context.models.context import ContextItem
 from astro_context.models.query import QueryBundle
 from astro_context.protocols.postprocessor import AsyncPostProcessor, PostProcessor
@@ -17,7 +18,7 @@ AsyncStepFn = Callable[[list[ContextItem], QueryBundle], Awaitable[list[ContextI
 StepFn = SyncStepFn | AsyncStepFn
 
 
-@dataclass
+@dataclass(slots=True)
 class PipelineStep:
     """A single step in the context pipeline.
 
@@ -42,7 +43,13 @@ class PipelineStep:
                 "Use pipeline.abuild() or step.aexecute() instead."
             )
             raise TypeError(msg)
-        result = self.fn(items, query)
+        try:
+            result = self.fn(items, query)
+        except AstroContextError:
+            raise
+        except Exception as e:
+            msg = f"Step '{self.name}' failed during execution"
+            raise AstroContextError(msg) from e
         if not isinstance(result, list):
             msg = f"Step '{self.name}' must return a list of ContextItem"
             raise TypeError(msg)
@@ -56,9 +63,15 @@ class PipelineStep:
         Works for both sync and async step functions -- sync functions
         are called directly (they are typically fast in-memory operations).
         """
-        result = self.fn(items, query)
-        if inspect.isawaitable(result):
-            return await result
+        try:
+            result = self.fn(items, query)
+            if inspect.isawaitable(result):
+                result = await result
+        except AstroContextError:
+            raise
+        except Exception as e:
+            msg = f"Step '{self.name}' failed during execution"
+            raise AstroContextError(msg) from e
         if not isinstance(result, list):
             msg = f"Step '{self.name}' must return a list of ContextItem"
             raise TypeError(msg)

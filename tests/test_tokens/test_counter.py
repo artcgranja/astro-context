@@ -32,8 +32,7 @@ class _MockEncoding:
 
 def _make_counter() -> TiktokenCounter:
     """Create a TiktokenCounter with a mocked tiktoken encoding."""
-    with patch("astro_context.tokens.counter.tiktoken") as mock_tiktoken:
-        mock_tiktoken.get_encoding.return_value = _MockEncoding()
+    with patch("tiktoken.get_encoding", return_value=_MockEncoding()):
         counter = TiktokenCounter()
     return counter
 
@@ -113,27 +112,24 @@ class TestGetDefaultCounter:
     """get_default_counter singleton."""
 
     def test_returns_tiktoken_counter(self) -> None:
-        with patch("astro_context.tokens.counter.tiktoken") as mock_tiktoken:
-            mock_tiktoken.get_encoding.return_value = _MockEncoding()
-            # Reset the singleton
-            import astro_context.tokens.counter as mod
-            old_default = mod._default_counter
-            mod._default_counter = None
+        from astro_context.tokens.counter import get_default_counter
+
+        get_default_counter.cache_clear()
+        with patch("tiktoken.get_encoding", return_value=_MockEncoding()):
             try:
-                c = mod.get_default_counter()
+                c = get_default_counter()
                 assert isinstance(c, TiktokenCounter)
             finally:
-                mod._default_counter = old_default
+                get_default_counter.cache_clear()
 
     def test_returns_same_instance(self) -> None:
-        with patch("astro_context.tokens.counter.tiktoken") as mock_tiktoken:
-            mock_tiktoken.get_encoding.return_value = _MockEncoding()
-            import astro_context.tokens.counter as mod
-            old_default = mod._default_counter
-            mod._default_counter = None
+        from astro_context.tokens.counter import get_default_counter
+
+        get_default_counter.cache_clear()
+        with patch("tiktoken.get_encoding", return_value=_MockEncoding()):
             try:
-                c1 = mod.get_default_counter()
-                c2 = mod.get_default_counter()
+                c1 = get_default_counter()
+                c2 = get_default_counter()
                 assert c1 is c2
             finally:
-                mod._default_counter = old_default
+                get_default_counter.cache_clear()

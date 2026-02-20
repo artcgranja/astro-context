@@ -1,7 +1,7 @@
 site_name: astro-context
 site_description: Context engineering toolkit for AI applications
-repo_url: https://github.com/artcgranja/astro-context
-repo_name: artcgranja/astro-context
+repo_url: https://github.com/arthurgranja/astro-context
+repo_name: arthurgranja/astro-context
 
 theme:
   name: material
@@ -30,6 +30,6 @@ plugins:
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
-  - admonitions
+  - admonition
   - toc:
       permalink: true

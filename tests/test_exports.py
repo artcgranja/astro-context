@@ -32,8 +32,13 @@ class TestTopLevelExports:
             ContextResult,
             ContextWindow,
             ConversationTurn,
+            MemoryEntry,
+            OverflowStrategy,
+            PipelineDiagnostics,
             QueryBundle,
+            Role,
             SourceType,
+            StepDiagnostic,
             TokenBudget,
         )
 
@@ -45,6 +50,11 @@ class TestTopLevelExports:
         assert TokenBudget is not None
         assert BudgetAllocation is not None
         assert ConversationTurn is not None
+        assert MemoryEntry is not None
+        assert OverflowStrategy is not None
+        assert PipelineDiagnostics is not None
+        assert Role is not None
+        assert StepDiagnostic is not None
 
     def test_protocol_exports(self) -> None:
         from astro_context import (
@@ -52,6 +62,7 @@ class TestTopLevelExports:
             AsyncRetriever,
             BaseFormatter,
             ContextStore,
+            Formatter,
             PostProcessor,
             Retriever,
             Tokenizer,
@@ -61,6 +72,8 @@ class TestTopLevelExports:
         assert AsyncPostProcessor is not None
         assert AsyncRetriever is not None
         assert BaseFormatter is not None
+        assert Formatter is not None
+        assert BaseFormatter is Formatter  # backward-compat alias
         assert ContextStore is not None
         assert PostProcessor is not None
         assert Retriever is not None

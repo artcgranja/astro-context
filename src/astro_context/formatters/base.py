@@ -1,7 +1,8 @@
 """Formatter protocol definition.
 
-Any object with ``format_type`` and ``format()`` matching this interface
-can be used as a formatter -- no inheritance required (PEP 544 structural subtyping).
+Any object with ``format_type`` and ``format()`` matching the :class:`Formatter`
+protocol can be used as a formatter -- no inheritance required (PEP 544 structural
+subtyping).
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from astro_context.models.context import ContextWindow
 
 
 @runtime_checkable
-class BaseFormatter(Protocol):
+class Formatter(Protocol):
     """Protocol for context formatters.
 
     Formatters convert a ContextWindow into the format expected
@@ -31,3 +32,7 @@ class BaseFormatter(Protocol):
     def format(self, window: ContextWindow) -> str | dict[str, Any]:
         """Format the context window into the target format."""
         ...
+
+
+# Backward-compatible alias (deprecated, use Formatter instead)
+BaseFormatter = Formatter

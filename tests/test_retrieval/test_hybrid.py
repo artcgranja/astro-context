@@ -7,16 +7,7 @@ import pytest
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.query import QueryBundle
 from astro_context.retrieval.hybrid import HybridRetriever
-
-
-class FakeRetriever:
-    """Fake retriever that returns pre-configured results for testing."""
-
-    def __init__(self, results: list[ContextItem]) -> None:
-        self._results = results
-
-    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
-        return self._results[:top_k]
+from tests.conftest import FakeRetriever
 
 
 def _make_item(item_id: str, content: str, score: float = 0.5) -> ContextItem:

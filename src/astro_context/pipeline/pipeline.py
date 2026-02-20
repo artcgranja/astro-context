@@ -5,13 +5,19 @@ from __future__ import annotations
 import inspect
 import time
 from collections.abc import Callable
-from typing import Any, overload
+from typing import Any, cast, overload
 
-from astro_context.formatters.base import BaseFormatter
+from astro_context.exceptions import AstroContextError, FormatterError
+from astro_context.formatters.base import Formatter
 from astro_context.formatters.generic import GenericTextFormatter
 from astro_context.memory.manager import MemoryManager
-from astro_context.models.budget import TokenBudget
-from astro_context.models.context import ContextItem, ContextResult, ContextWindow, SourceType
+from astro_context.models.context import (
+    ContextItem,
+    ContextResult,
+    ContextWindow,
+    PipelineDiagnostics,
+    SourceType,
+)
 from astro_context.models.query import QueryBundle
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
@@ -49,16 +55,47 @@ class ContextPipeline:
     def __init__(
         self,
         max_tokens: int = 8192,
-        budget: TokenBudget | None = None,
         tokenizer: Tokenizer | None = None,
     ) -> None:
+        if max_tokens <= 0:
+            msg = "max_tokens must be a positive integer"
+            raise ValueError(msg)
         self._max_tokens = max_tokens
-        self._budget = budget
         self._tokenizer = tokenizer or get_default_counter()
         self._steps: list[PipelineStep] = []
         self._memory: MemoryManager | None = None
-        self._formatter: BaseFormatter = GenericTextFormatter()
+        self._formatter: Formatter = GenericTextFormatter()
         self._system_items: list[ContextItem] = []
+
+    # -- Read-only properties --
+
+    @property
+    def max_tokens(self) -> int:
+        """The maximum token budget for the context window."""
+        return self._max_tokens
+
+    @property
+    def formatter(self) -> Formatter:
+        """The current output formatter."""
+        return self._formatter
+
+    @property
+    def steps(self) -> list[PipelineStep]:
+        """A copy of the registered pipeline steps."""
+        return list(self._steps)
+
+    @property
+    def system_items(self) -> list[ContextItem]:
+        """A copy of the registered system items."""
+        return list(self._system_items)
+
+    def __repr__(self) -> str:
+        return (
+            f"ContextPipeline("
+            f"max_tokens={self._max_tokens}, "
+            f"steps={len(self._steps)}, "
+            f"formatter='{self._formatter.format_type}')"
+        )
 
     def add_step(self, step: PipelineStep) -> ContextPipeline:
         """Add a pipeline step. Returns self for chaining."""
@@ -66,11 +103,19 @@ class ContextPipeline:
         return self
 
     def with_memory(self, memory: MemoryManager) -> ContextPipeline:
-        """Attach a memory manager. Returns self for chaining."""
+        """Attach a memory manager. Returns self for chaining.
+
+        .. note::
+
+            A ``MemoryProvider`` protocol is being added to
+            ``astro_context.protocols``; once available the *memory*
+            parameter will accept any ``MemoryProvider`` implementation.
+        """
+        # TODO(protocols): accept MemoryProvider protocol in addition to MemoryManager
         self._memory = memory
         return self
 
-    def with_formatter(self, formatter: BaseFormatter) -> ContextPipeline:
+    def with_formatter(self, formatter: Formatter) -> ContextPipeline:
         """Set the output formatter. Returns self for chaining."""
         self._formatter = formatter
         return self
@@ -205,7 +250,14 @@ class ContextPipeline:
         window = ContextWindow(max_tokens=self._max_tokens)
         overflow = window.add_items_by_priority(counted_items)
 
-        formatted = self._formatter.format(window)
+        try:
+            formatted = self._formatter.format(window)
+        except Exception as e:
+            msg = (
+                f"Formatter '{self._formatter.format_type}' failed to format "
+                f"context window ({len(window.items)} items)"
+            )
+            raise FormatterError(msg) from e
 
         build_time = (time.monotonic() - start_time) * 1000
         diagnostics["total_items_considered"] = len(counted_items)
@@ -218,7 +270,7 @@ class ContextPipeline:
             formatted_output=formatted,
             format_type=self._formatter.format_type,
             overflow_items=overflow,
-            diagnostics=diagnostics,
+            diagnostics=cast(PipelineDiagnostics, diagnostics),
             build_time_ms=round(build_time, 2),
         )
 
@@ -233,7 +285,14 @@ class ContextPipeline:
 
         for step in self._steps:
             step_start = time.monotonic()
-            all_items = step.execute(all_items, query)
+            try:
+                all_items = step.execute(all_items, query)
+            except (AstroContextError, TypeError, ValueError):
+                raise
+            except Exception as e:
+                diagnostics["failed_step"] = step.name
+                msg = f"Pipeline failed at step '{step.name}'"
+                raise AstroContextError(msg) from e
             step_time = (time.monotonic() - step_start) * 1000
             diagnostics["steps"].append({
                 "name": step.name,
@@ -261,7 +320,14 @@ class ContextPipeline:
 
         for step in self._steps:
             step_start = time.monotonic()
-            all_items = await step.aexecute(all_items, query)
+            try:
+                all_items = await step.aexecute(all_items, query)
+            except (AstroContextError, TypeError, ValueError):
+                raise
+            except Exception as e:
+                diagnostics["failed_step"] = step.name
+                msg = f"Pipeline failed at step '{step.name}'"
+                raise AstroContextError(msg) from e
             step_time = (time.monotonic() - step_start) * 1000
             diagnostics["steps"].append({
                 "name": step.name,

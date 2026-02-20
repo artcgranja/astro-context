@@ -6,27 +6,8 @@ import pytest
 
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
 from tests.conftest import FakeTokenizer
-
-
-def _make_pipeline(max_tokens: int = 8192) -> ContextPipeline:
-    return ContextPipeline(max_tokens=max_tokens, tokenizer=FakeTokenizer())
-
-
-def _make_items(count: int = 3) -> list[ContextItem]:
-    tokenizer = FakeTokenizer()
-    return [
-        ContextItem(
-            id=f"item-{i}",
-            content=f"Document {i} content.",
-            source=SourceType.RETRIEVAL,
-            score=0.5 + i * 0.1,
-            priority=5,
-            token_count=tokenizer.count_tokens(f"Document {i} content."),
-        )
-        for i in range(count)
-    ]
+from tests.test_pipeline.conftest import make_pipeline
 
 
 class TestStepDecorator:
@@ -34,7 +15,7 @@ class TestStepDecorator:
 
     def test_bare_decorator(self) -> None:
         """@pipeline.step without arguments."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.step
         def my_filter(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -47,7 +28,7 @@ class TestStepDecorator:
 
     def test_decorator_with_name(self) -> None:
         """@pipeline.step(name="custom-name")."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.step(name="custom-name")
         def my_filter(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -57,7 +38,7 @@ class TestStepDecorator:
 
     def test_decorator_returns_original_function(self) -> None:
         """The decorator should return the original function unchanged."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.step
         def my_fn(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -69,7 +50,7 @@ class TestStepDecorator:
 
     def test_decorator_step_executes_in_pipeline(self) -> None:
         """Step registered via decorator should execute in build()."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("System prompt")
 
         @pipeline.step
@@ -91,7 +72,7 @@ class TestStepDecorator:
 
     def test_multiple_decorated_steps(self) -> None:
         """Multiple @pipeline.step decorators register steps in order."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.step
         def step_one(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -115,7 +96,7 @@ class TestAsyncStepDecorator:
     """@pipeline.async_step decorator for async functions."""
 
     def test_bare_async_decorator(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.async_step
         async def my_async_step(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -126,7 +107,7 @@ class TestAsyncStepDecorator:
         assert pipeline._steps[0].is_async is True
 
     def test_async_decorator_with_name(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.async_step(name="custom-async")
         async def my_async_step(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -137,7 +118,7 @@ class TestAsyncStepDecorator:
 
     def test_async_decorator_rejects_sync_function(self) -> None:
         """@pipeline.async_step should raise TypeError for sync functions."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         with pytest.raises(TypeError, match="async function"):
 
@@ -145,10 +126,10 @@ class TestAsyncStepDecorator:
             def not_async(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:  # type: ignore[type-var]
                 return items
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_async_step_executes_in_abuild(self) -> None:
         """Async step registered via decorator should execute in abuild()."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.async_step
         async def async_add(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -173,7 +154,7 @@ class TestMixedDecoratorAndExplicitSteps:
 
     def test_decorator_and_add_step_order(self) -> None:
         """Steps are registered in the order they appear (decorator or add_step)."""
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
 
         @pipeline.step
         def first(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:

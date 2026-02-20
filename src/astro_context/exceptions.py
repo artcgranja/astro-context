@@ -1,5 +1,13 @@
 """Custom exceptions for astro-context."""
 
+__all__ = [
+    "AstroContextError",
+    "FormatterError",
+    "RetrieverError",
+    "StorageError",
+    "TokenBudgetExceededError",
+]
+
 
 class AstroContextError(Exception):
     """Base exception for all astro-context errors."""

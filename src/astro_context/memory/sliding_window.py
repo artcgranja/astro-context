@@ -17,15 +17,26 @@ class SlidingWindowMemory:
     evicted first (FIFO). This is the simplest and most common memory strategy.
     """
 
+    __slots__ = ("_max_tokens", "_tokenizer", "_total_tokens", "_turns")
+
     def __init__(
         self,
         max_tokens: int = 4096,
         tokenizer: Tokenizer | None = None,
     ) -> None:
+        if max_tokens <= 0:
+            msg = "max_tokens must be a positive integer"
+            raise ValueError(msg)
         self._max_tokens = max_tokens
         self._tokenizer = tokenizer or get_default_counter()
         self._turns: deque[ConversationTurn] = deque()
         self._total_tokens: int = 0
+
+    def __repr__(self) -> str:
+        return (
+            f"SlidingWindowMemory(turns={len(self._turns)}, "
+            f"tokens={self._total_tokens}/{self._max_tokens})"
+        )
 
     @property
     def turns(self) -> list[ConversationTurn]:
@@ -52,10 +63,11 @@ class SlidingWindowMemory:
         # If this single turn exceeds the budget, truncate it
         if token_count > self._max_tokens:
             truncated = self._tokenizer.truncate_to_tokens(content, self._max_tokens)
-            token_count = self._tokenizer.count_tokens(truncated)
+            content = truncated
+            token_count = self._max_tokens
             turn = ConversationTurn(
                 role=role,
-                content=truncated,
+                content=content,
                 token_count=token_count,
                 metadata={**dict(metadata), "truncated": True},
             )
@@ -70,19 +82,25 @@ class SlidingWindowMemory:
         return turn
 
     def to_context_items(self, priority: int = 7) -> list[ContextItem]:
-        """Convert conversation turns to ContextItems for the pipeline."""
+        """Convert conversation turns to ContextItems for the pipeline.
+
+        The content is stored as-is without a role prefix. The role is
+        available in the item's metadata under the ``"role"`` key so that
+        downstream formatters (Anthropic, OpenAI) can set the role via
+        their own message structure and avoid the double-role bug
+        (e.g. ``{"role": "user", "content": "user: Hello"}``).
+        """
         items: list[ContextItem] = []
         num_turns = len(self._turns)
         for i, turn in enumerate(self._turns):
-            full_content = f"{turn.role}: {turn.content}"
             # Recency-weighted score: oldest=0.5, newest=1.0
             recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
             item = ContextItem(
-                content=full_content,
+                content=turn.content,
                 source=SourceType.MEMORY,
                 score=round(recency_score, 4),
                 priority=priority,
-                token_count=self._tokenizer.count_tokens(full_content),
+                token_count=turn.token_count,
                 metadata={"role": turn.role, **turn.metadata},
                 created_at=turn.timestamp,
             )

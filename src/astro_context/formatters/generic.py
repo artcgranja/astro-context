@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextWindow, SourceType
+from astro_context.models.context import ContextWindow
+
+from .utils import classify_window_items
 
 
 class GenericTextFormatter:
@@ -13,19 +15,18 @@ class GenericTextFormatter:
         return "generic"
 
     def format(self, window: ContextWindow) -> str:
-        sections: dict[str, list[str]] = {
-            "SYSTEM": [],
-            "MEMORY": [],
-            "CONTEXT": [],
-        }
+        """Format the context window as plain text with ``=== SECTION ===`` headers.
 
-        for item in window.items:
-            if item.source == SourceType.SYSTEM:
-                sections["SYSTEM"].append(item.content)
-            elif item.source == SourceType.MEMORY:
-                sections["MEMORY"].append(item.content)
-            else:
-                sections["CONTEXT"].append(item.content)
+        Produces up to three sections (SYSTEM, MEMORY, CONTEXT) separated by
+        blank lines.  Empty sections are omitted.
+        """
+        classified = classify_window_items(window)
+
+        sections: dict[str, list[str]] = {
+            "SYSTEM": classified.system_parts,
+            "MEMORY": [item.content for item in classified.memory_items],
+            "CONTEXT": classified.context_parts,
+        }
 
         parts: list[str] = []
         for section_name, items in sections.items():

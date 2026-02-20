@@ -16,7 +16,20 @@ from astro_context.models.query import QueryBundle
 class Retriever(Protocol):
     """Protocol for synchronous retrieval strategies."""
 
-    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]: ...
+    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
+        """Retrieve the most relevant context items for a query.
+
+        Parameters:
+            query: The query bundle containing the user's query text and
+                any associated metadata used for retrieval.
+            top_k: Maximum number of items to return.
+
+        Returns:
+            A list of ``ContextItem`` objects ranked by relevance
+            (most relevant first).  May return fewer than ``top_k``
+            items if the store contains fewer candidates.
+        """
+        ...
 
 
 @runtime_checkable
@@ -27,4 +40,21 @@ class AsyncRetriever(Protocol):
     non-blocking I/O during embedding lookups, database queries, etc.
     """
 
-    async def aretrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]: ...
+    async def aretrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
+        """Asynchronously retrieve the most relevant context items for a query.
+
+        This is the async counterpart of ``Retriever.retrieve``, intended
+        for use with ``ContextPipeline.abuild()`` to enable non-blocking
+        I/O during embedding lookups, database queries, or API calls.
+
+        Parameters:
+            query: The query bundle containing the user's query text and
+                any associated metadata used for retrieval.
+            top_k: Maximum number of items to return.
+
+        Returns:
+            A list of ``ContextItem`` objects ranked by relevance
+            (most relevant first).  May return fewer than ``top_k``
+            items if the store contains fewer candidates.
+        """
+        ...

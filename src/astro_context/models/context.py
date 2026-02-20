@@ -3,11 +3,32 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import TypedDict
+
+
+class StepDiagnostic(TypedDict):
+    """Diagnostics for a single pipeline step."""
+
+    name: str
+    items_after: int
+    time_ms: float
+
+
+class PipelineDiagnostics(TypedDict, total=False):
+    """Typed schema for the diagnostics dict produced by the context pipeline."""
+
+    steps: list[StepDiagnostic]
+    memory_items: int
+    total_items_considered: int
+    items_included: int
+    items_overflow: int
+    token_utilization: float
 
 
 class SourceType(StrEnum):
@@ -70,6 +91,13 @@ class ContextWindow(BaseModel):
         self.used_tokens += item.token_count
         return True
 
+    def __len__(self) -> int:
+        return len(self.items)
+
+    def iter_items(self) -> Iterator[ContextItem]:
+        """Iterate over context items in the window."""
+        return iter(self.items)
+
     def add_items_by_priority(self, items: list[ContextItem]) -> list[ContextItem]:
         """Add items sorted by priority (highest first), return items that didn't fit."""
         sorted_items = sorted(items, key=lambda x: (-x.priority, -x.score))
@@ -90,5 +118,5 @@ class ContextResult(BaseModel):
     formatted_output: str | dict[str, Any] = ""
     format_type: str = "generic"
     overflow_items: list[ContextItem] = Field(default_factory=list)
-    diagnostics: dict[str, Any] = Field(default_factory=dict)
+    diagnostics: PipelineDiagnostics = Field(default_factory=dict)  # type: ignore[assignment]
     build_time_ms: float = Field(default=0.0, ge=0.0)

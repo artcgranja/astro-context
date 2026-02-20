@@ -10,7 +10,7 @@ from typing import Any
 from unittest.mock import patch
 
 from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.formatters.base import BaseFormatter
+from astro_context.formatters.base import Formatter
 from astro_context.formatters.generic import GenericTextFormatter
 from astro_context.formatters.openai import OpenAIFormatter
 from astro_context.models.context import ContextItem, ContextWindow
@@ -117,19 +117,19 @@ class TestAsyncPostProcessorProtocol:
 
 
 class TestFormatterProtocol:
-    """Formatters satisfy BaseFormatter protocol via structural subtyping."""
+    """Formatters satisfy Formatter protocol via structural subtyping."""
 
     def test_anthropic_formatter_is_base_formatter(self) -> None:
-        assert isinstance(AnthropicFormatter(), BaseFormatter)
+        assert isinstance(AnthropicFormatter(), Formatter)
 
     def test_openai_formatter_is_base_formatter(self) -> None:
-        assert isinstance(OpenAIFormatter(), BaseFormatter)
+        assert isinstance(OpenAIFormatter(), Formatter)
 
     def test_generic_formatter_is_base_formatter(self) -> None:
-        assert isinstance(GenericTextFormatter(), BaseFormatter)
+        assert isinstance(GenericTextFormatter(), Formatter)
 
     def test_custom_formatter_structural_subtyping(self) -> None:
-        """A plain class with matching interface satisfies BaseFormatter."""
+        """A plain class with matching interface satisfies Formatter."""
 
         class MyFormatter:
             @property
@@ -140,7 +140,7 @@ class TestFormatterProtocol:
                 return "formatted"
 
         fmt = MyFormatter()
-        assert isinstance(fmt, BaseFormatter)
+        assert isinstance(fmt, Formatter)
 
     def test_custom_formatter_works_in_pipeline(self) -> None:
         """A custom formatter (no inheritance) works in the pipeline."""

@@ -4,45 +4,25 @@ from __future__ import annotations
 
 from astro_context.formatters.anthropic import AnthropicFormatter
 from astro_context.formatters.generic import GenericTextFormatter
-from astro_context.memory.manager import MemoryManager
 from astro_context.models.context import ContextItem, ContextResult, SourceType
 from astro_context.models.query import QueryBundle
 from astro_context.pipeline.pipeline import ContextPipeline
 from astro_context.pipeline.step import PipelineStep, retriever_step
-from tests.conftest import FakeTokenizer
-
-
-class FakeRetriever:
-    """Fake retriever for pipeline testing."""
-
-    def __init__(self, items: list[ContextItem]) -> None:
-        self._items = items
-
-    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
-        return self._items[:top_k]
-
-
-def _make_pipeline(max_tokens: int = 8192) -> ContextPipeline:
-    """Create a ContextPipeline with a FakeTokenizer."""
-    return ContextPipeline(max_tokens=max_tokens, tokenizer=FakeTokenizer())
-
-
-def _make_memory(conversation_tokens: int = 2000) -> MemoryManager:
-    """Create a MemoryManager with FakeTokenizer."""
-    return MemoryManager(conversation_tokens=conversation_tokens, tokenizer=FakeTokenizer())
+from tests.conftest import FakeRetriever, FakeTokenizer, make_memory_manager
+from tests.test_pipeline.conftest import make_pipeline
 
 
 class TestPipelineEmpty:
     """Empty pipeline with just system prompt."""
 
     def test_empty_pipeline_returns_context_result(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         result = pipeline.build(QueryBundle(query_str="test"))
         assert isinstance(result, ContextResult)
         assert len(result.window.items) == 0
 
     def test_pipeline_with_system_prompt_only(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("You are a helpful assistant.")
         result = pipeline.build(QueryBundle(query_str="test"))
         assert len(result.window.items) == 1
@@ -50,13 +30,13 @@ class TestPipelineEmpty:
         assert result.window.items[0].content == "You are a helpful assistant."
 
     def test_system_prompt_has_high_priority(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("System prompt", priority=10)
         result = pipeline.build(QueryBundle(query_str="test"))
         assert result.window.items[0].priority == 10
 
     def test_system_prompt_has_token_count(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("You are a helpful assistant.")
         result = pipeline.build(QueryBundle(query_str="test"))
         assert result.window.items[0].token_count > 0
@@ -78,7 +58,7 @@ class TestPipelineWithRetriever:
             ),
         ]
         retriever = FakeRetriever(retrieval_items)
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_step(retriever_step("search", retriever, top_k=5))
 
         result = pipeline.build(QueryBundle(query_str="Python"))
@@ -87,7 +67,7 @@ class TestPipelineWithRetriever:
 
     def test_diagnostics_include_step_info(self) -> None:
         retriever = FakeRetriever([])
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_step(retriever_step("search", retriever))
 
         result = pipeline.build(QueryBundle(query_str="test"))
@@ -100,11 +80,11 @@ class TestPipelineWithMemory:
     """Pipeline with memory manager."""
 
     def test_memory_items_included(self) -> None:
-        memory = _make_memory()
+        memory = make_memory_manager()
         memory.add_user_message("Hello")
         memory.add_assistant_message("Hi there!")
 
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.with_memory(memory)
 
         result = pipeline.build(QueryBundle(query_str="test"))
@@ -112,10 +92,10 @@ class TestPipelineWithMemory:
         assert result.diagnostics.get("memory_items") == 2
 
     def test_memory_items_have_memory_source(self) -> None:
-        memory = _make_memory()
+        memory = make_memory_manager()
         memory.add_user_message("Hello")
 
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.with_memory(memory)
 
         result = pipeline.build(QueryBundle(query_str="test"))
@@ -126,14 +106,14 @@ class TestPipelineWithFormatter:
     """Pipeline with formatter."""
 
     def test_generic_formatter_default(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("System message.")
         result = pipeline.build(QueryBundle(query_str="test"))
         assert result.format_type == "generic"
         assert isinstance(result.formatted_output, str)
 
     def test_anthropic_formatter(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.with_formatter(AnthropicFormatter())
         pipeline.add_system_prompt("System message.")
 
@@ -148,12 +128,12 @@ class TestPipelineBuild:
     """build() returns ContextResult with diagnostics."""
 
     def test_build_returns_context_result(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         result = pipeline.build(QueryBundle(query_str="test"))
         assert isinstance(result, ContextResult)
 
     def test_build_time_is_positive(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_system_prompt("Hello")
         result = pipeline.build(QueryBundle(query_str="test"))
         assert result.build_time_ms >= 0.0
@@ -170,11 +150,11 @@ class TestPipelineBuild:
                 token_count=tokenizer.count_tokens("doc1"),
             ),
         ]
-        memory = _make_memory()
+        memory = make_memory_manager()
         memory.add_user_message("Hello")
 
         pipeline = (
-            _make_pipeline()
+            make_pipeline()
             .add_system_prompt("System")
             .with_memory(memory)
             .add_step(retriever_step("search", FakeRetriever(retrieval_items)))
@@ -205,7 +185,7 @@ class TestPipelineBuild:
             for i in range(5)
         ]
         retriever = FakeRetriever(items)
-        pipeline = _make_pipeline(max_tokens=200)
+        pipeline = make_pipeline(max_tokens=200)
         pipeline.add_step(retriever_step("search", retriever, top_k=5))
 
         result = pipeline.build(QueryBundle(query_str="test"))
@@ -224,7 +204,7 @@ class TestPipelineBuild:
             ),
         ]
         retriever = FakeRetriever(items)
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         pipeline.add_step(retriever_step("search", retriever))
 
         result = pipeline.build(QueryBundle(query_str="test"))
@@ -248,11 +228,11 @@ class TestPipelinePriorityOrdering:
             ),
         ]
 
-        memory = _make_memory()
+        memory = make_memory_manager()
         memory.add_user_message("memory msg")
 
         pipeline = (
-            _make_pipeline()
+            make_pipeline()
             .add_system_prompt("system prompt", priority=10)
             .with_memory(memory)
             .add_step(retriever_step("search", FakeRetriever(retrieval_items)))
@@ -271,31 +251,31 @@ class TestPipelineMethodChaining:
     """Method chaining returns self."""
 
     def test_add_step_returns_self(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         step = PipelineStep(name="noop", fn=lambda items, q: items)
         result = pipeline.add_step(step)
         assert result is pipeline
 
     def test_with_memory_returns_self(self) -> None:
-        pipeline = _make_pipeline()
-        result = pipeline.with_memory(_make_memory())
+        pipeline = make_pipeline()
+        result = pipeline.with_memory(make_memory_manager())
         assert result is pipeline
 
     def test_with_formatter_returns_self(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         result = pipeline.with_formatter(GenericTextFormatter())
         assert result is pipeline
 
     def test_add_system_prompt_returns_self(self) -> None:
-        pipeline = _make_pipeline()
+        pipeline = make_pipeline()
         result = pipeline.add_system_prompt("Hello")
         assert result is pipeline
 
     def test_full_chain(self) -> None:
         pipeline = (
-            _make_pipeline()
+            make_pipeline()
             .add_system_prompt("System")
-            .with_memory(_make_memory())
+            .with_memory(make_memory_manager())
             .with_formatter(GenericTextFormatter())
             .add_step(PipelineStep(name="noop", fn=lambda items, q: items))
         )

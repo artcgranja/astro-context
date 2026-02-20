@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Self, TypeAlias
 
 from pydantic import BaseModel, Field, model_validator
 
 from .context import SourceType
 
-OverflowStrategy = Literal["truncate", "drop"]
+OverflowStrategy: TypeAlias = Literal["truncate", "drop"]
 
 
 class BudgetAllocation(BaseModel):
@@ -32,7 +32,7 @@ class TokenBudget(BaseModel):
     reserve_tokens: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
-    def validate_allocations(self) -> TokenBudget:
+    def validate_allocations(self) -> Self:
         allocated = sum(a.max_tokens for a in self.allocations) + self.reserve_tokens
         if allocated > self.total_tokens:
             msg = f"Allocated tokens ({allocated}) exceed total budget ({self.total_tokens})"

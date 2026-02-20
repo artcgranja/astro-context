@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field
 
-Role = Literal["user", "assistant", "system", "tool"]
+Role: TypeAlias = Literal["user", "assistant", "system", "tool"]
 
 
 class ConversationTurn(BaseModel):

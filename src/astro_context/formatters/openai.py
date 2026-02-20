@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from astro_context.models.context import ContextWindow, SourceType
+from astro_context.models.context import ContextWindow
+
+from .utils import classify_window_items, get_message_role
 
 
 class OpenAIFormatter:
@@ -19,30 +21,27 @@ class OpenAIFormatter:
         return "openai"
 
     def format(self, window: ContextWindow) -> dict[str, Any]:
+        """Format the context window for the OpenAI Chat Completions API.
+
+        Returns a dict with a ``"messages"`` list.  System prompts and
+        retrieval context are emitted as ``system`` messages, followed by the
+        conversation history from memory items.
+        """
+        classified = classify_window_items(window)
+
         messages: list[dict[str, str]] = []
-        system_parts: list[str] = []
-        context_parts: list[str] = []
-        conversation: list[dict[str, str]] = []
 
-        for item in window.items:
-            if item.source == SourceType.SYSTEM:
-                system_parts.append(item.content)
-            elif item.source == SourceType.MEMORY:
-                allowed_roles = {"user", "assistant", "system"}
-                role = item.metadata.get("role", "user")
-                if role not in allowed_roles:
-                    role = "user"
-                conversation.append({"role": role, "content": item.content})
-            else:
-                context_parts.append(item.content)
+        if classified.system_parts:
+            messages.append({"role": "system", "content": "\n\n".join(classified.system_parts)})
 
-        if system_parts:
-            messages.append({"role": "system", "content": "\n\n".join(system_parts)})
-
-        if context_parts:
-            context_block = "Relevant context:\n\n" + "\n\n---\n\n".join(context_parts)
+        if classified.context_parts:
+            context_block = "Relevant context:\n\n" + "\n\n---\n\n".join(
+                classified.context_parts
+            )
             messages.append({"role": "system", "content": context_block})
 
-        messages.extend(conversation)
+        for item in classified.memory_items:
+            role = get_message_role(item)
+            messages.append({"role": role, "content": item.content})
 
         return {"messages": messages}
