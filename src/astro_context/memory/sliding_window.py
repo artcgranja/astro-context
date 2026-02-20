@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import ConversationTurn, Role
@@ -17,18 +18,20 @@ class SlidingWindowMemory:
     evicted first (FIFO). This is the simplest and most common memory strategy.
     """
 
-    __slots__ = ("_max_tokens", "_tokenizer", "_total_tokens", "_turns")
+    __slots__ = ("_max_tokens", "_on_evict", "_tokenizer", "_total_tokens", "_turns")
 
     def __init__(
         self,
         max_tokens: int = 4096,
         tokenizer: Tokenizer | None = None,
+        on_evict: Callable[[list[ConversationTurn]], None] | None = None,
     ) -> None:
         if max_tokens <= 0:
             msg = "max_tokens must be a positive integer"
             raise ValueError(msg)
         self._max_tokens = max_tokens
         self._tokenizer = tokenizer or get_default_counter()
+        self._on_evict = on_evict
         self._turns: deque[ConversationTurn] = deque()
         self._total_tokens: int = 0
 
@@ -73,9 +76,14 @@ class SlidingWindowMemory:
             )
 
         # Evict oldest turns until the new turn fits
+        evicted_turns: list[ConversationTurn] = []
         while self._turns and (self._total_tokens + turn.token_count > self._max_tokens):
             evicted = self._turns.popleft()
             self._total_tokens -= evicted.token_count
+            evicted_turns.append(evicted)
+
+        if evicted_turns and self._on_evict is not None:
+            self._on_evict(evicted_turns)
 
         self._turns.append(turn)
         self._total_tokens += turn.token_count

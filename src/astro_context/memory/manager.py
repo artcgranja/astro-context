@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from astro_context.models.context import ContextItem
+from astro_context.models.memory import ConversationTurn
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
@@ -24,6 +27,7 @@ class MemoryManager:
         self,
         conversation_tokens: int = 4096,
         tokenizer: Tokenizer | None = None,
+        on_evict: Callable[[list[ConversationTurn]], None] | None = None,
     ) -> None:
         if conversation_tokens <= 0:
             msg = "conversation_tokens must be a positive integer"
@@ -32,6 +36,7 @@ class MemoryManager:
         self._conversation = SlidingWindowMemory(
             max_tokens=conversation_tokens,
             tokenizer=self._tokenizer,
+            on_evict=on_evict,
         )
 
     def __repr__(self) -> str:
