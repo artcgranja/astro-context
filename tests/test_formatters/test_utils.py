@@ -36,15 +36,15 @@ class TestGetMessageRole:
         )
         assert get_message_role(item) == "system"
 
-    def test_role_tool_falls_back_to_user(self) -> None:
-        """'tool' is not in _ALLOWED_ROLES so it should fall back to 'user'."""
+    def test_role_tool_is_allowed(self) -> None:
+        """'tool' is in _ALLOWED_ROLES and should be returned as-is."""
         item = ContextItem(
             content="Tool output",
             source=SourceType.TOOL,
             token_count=1,
             metadata={"role": "tool"},
         )
-        assert get_message_role(item) == "user"
+        assert get_message_role(item) == "tool"
 
     def test_bogus_role_falls_back_to_user(self) -> None:
         item = ContextItem(

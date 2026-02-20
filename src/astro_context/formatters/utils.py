@@ -11,7 +11,7 @@ from typing import NamedTuple
 
 from astro_context.models.context import ContextItem, ContextWindow, SourceType
 
-_ALLOWED_ROLES: frozenset[str] = frozenset({"user", "assistant", "system"})
+_ALLOWED_ROLES: frozenset[str] = frozenset({"user", "assistant", "system", "tool"})
 """Roles accepted by the Anthropic and OpenAI message APIs."""
 
 
@@ -56,4 +56,5 @@ def classify_window_items(window: ContextWindow) -> ClassifiedItems:
         else:
             context_parts.append(item.content)
 
+    memory_items.sort(key=lambda item: item.created_at)
     return ClassifiedItems(system_parts, memory_items, context_parts)
