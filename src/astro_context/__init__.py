@@ -1,7 +1,7 @@
 """astro-context: Context engineering toolkit for AI applications.
 
 Agent:
-    Agent, AgentTool, memory_tools, rag_tools
+    Agent, AgentTool, tool, memory_tools, rag_tools
 
 Core Pipeline:
     ContextPipeline, ContextResult, PipelineStep, PipelineCallback,
@@ -63,6 +63,7 @@ from astro_context.agent import (
     memory_tools,
     rag_skill,
     rag_tools,
+    tool,
 )
 from astro_context.exceptions import (
     AstroContextError,
@@ -285,4 +286,5 @@ __all__ = [
     "rag_skill",
     "rag_tools",
     "retriever_step",
+    "tool",
 ]

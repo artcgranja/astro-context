@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from astro_context.agent.models import AgentTool
+from astro_context.agent.tool_decorator import tool
 
 if TYPE_CHECKING:
     from astro_context.agent.skills.registry import SkillRegistry
@@ -18,7 +19,19 @@ def _make_activate_skill_tool(registry: SkillRegistry) -> AgentTool:
     agent knows what it can call in subsequent rounds.
     """
 
+    @tool(
+        name="activate_skill",
+        description=(
+            "Activate an on-demand skill to make its tools available. "
+            "Call this with the skill name from the available skills list."
+        ),
+    )
     def activate_skill(skill_name: str) -> str:
+        """Activate an on-demand skill.
+
+        Args:
+            skill_name: Name of the skill to activate.
+        """
         try:
             skill = registry.activate(skill_name)
         except KeyError:
@@ -35,21 +48,4 @@ def _make_activate_skill_tool(registry: SkillRegistry) -> AgentTool:
         parts.append(f"\nNew tools available: {', '.join(tool_names)}")
         return "\n".join(parts)
 
-    return AgentTool(
-        name="activate_skill",
-        description=(
-            "Activate an on-demand skill to make its tools available. "
-            "Call this with the skill name from the available skills list."
-        ),
-        input_schema={
-            "type": "object",
-            "properties": {
-                "skill_name": {
-                    "type": "string",
-                    "description": "Name of the skill to activate.",
-                },
-            },
-            "required": ["skill_name"],
-        },
-        fn=activate_skill,
-    )
+    return activate_skill

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from astro_context.agent.models import AgentTool
+from astro_context.agent.tool_decorator import tool
 from astro_context.models.query import QueryBundle
 
 
@@ -27,7 +28,18 @@ def rag_tools(
         embeddings in the QueryBundle, provide this.
     """
 
+    @tool(
+        description=(
+            "Search documentation for relevant information. Use when the user "
+            "asks about features, APIs, concepts, or anything that might be in the docs."
+        ),
+    )
     def search_docs(query: str) -> str:
+        """Search documentation for relevant information.
+
+        Args:
+            query: Search query for finding relevant documentation.
+        """
         q = QueryBundle(query_str=query)
         if embed_fn is not None:
             q = q.model_copy(update={"embedding": embed_fn(query)})
@@ -41,23 +53,4 @@ def rag_tools(
             parts.append(f"{prefix}{item.content[:500]}")
         return "\n\n---\n\n".join(parts)
 
-    return [
-        AgentTool(
-            name="search_docs",
-            description=(
-                "Search documentation for relevant information. Use when the user "
-                "asks about features, APIs, concepts, or anything that might be in the docs."
-            ),
-            input_schema={
-                "type": "object",
-                "properties": {
-                    "query": {
-                        "type": "string",
-                        "description": "Search query for finding relevant documentation.",
-                    }
-                },
-                "required": ["query"],
-            },
-            fn=search_docs,
-        ),
-    ]
+    return [search_docs]
