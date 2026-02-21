@@ -6,11 +6,12 @@ import math
 
 from astro_context.memory.consolidator import SimilarityConsolidator
 from astro_context.models.memory import MemoryEntry
+from astro_context.protocols.memory import MemoryOperation
 
 
 def _fake_embed(text: str) -> list[float]:
     """Deterministic embedding: hash-based 8-dim vector for testing."""
-    seed = hash(text) % 10000
+    seed = sum(ord(c) * (i + 1) for i, c in enumerate(text)) % 10000
     raw = [math.sin(seed * 1000 + i) for i in range(8)]
     norm = math.sqrt(sum(x * x for x in raw))
     if norm == 0:
@@ -23,11 +24,16 @@ def _identical_embed(_text: str) -> list[float]:
     return [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 
+# Assign sequential one-hot indices to unique texts for guaranteed orthogonality
+_orthogonal_index: dict[str, int] = {}
+
+
 def _orthogonal_embed(text: str) -> list[float]:
     """Returns orthogonal vectors for different inputs -- nothing is similar."""
-    dim = 64
-    # Each unique text gets a one-hot-like vector at a different index
-    idx = abs(hash(text)) % dim
+    dim = 128
+    if text not in _orthogonal_index:
+        _orthogonal_index[text] = len(_orthogonal_index)
+    idx = _orthogonal_index[text] % dim
     vec = [0.0] * dim
     vec[idx] = 1.0
     return vec
@@ -46,7 +52,7 @@ class TestSimilarityConsolidatorDedup:
         results = consolidator.consolidate([new_entry], [existing])
         assert len(results) == 1
         action, entry = results[0]
-        assert action == "none"
+        assert action == MemoryOperation.NONE
         assert entry is None
 
     def test_different_content_not_deduped(self) -> None:
@@ -60,7 +66,7 @@ class TestSimilarityConsolidatorDedup:
         results = consolidator.consolidate([new_entry], [existing])
         assert len(results) == 1
         action, _entry = results[0]
-        assert action != "none"
+        assert action != MemoryOperation.NONE
 
 
 class TestSimilarityConsolidatorUpdate:
@@ -87,7 +93,7 @@ class TestSimilarityConsolidatorUpdate:
         results = consolidator.consolidate([new_entry], [existing])
         assert len(results) == 1
         action, merged = results[0]
-        assert action == "update"
+        assert action == MemoryOperation.UPDATE
         assert merged is not None
 
     def test_merged_entry_preserves_longer_content(self) -> None:
@@ -100,7 +106,7 @@ class TestSimilarityConsolidatorUpdate:
 
         results = consolidator.consolidate([new_entry], [existing])
         action, merged = results[0]
-        assert action == "update"
+        assert action == MemoryOperation.UPDATE
         assert merged is not None
         assert merged.content == "this is a longer content string"
 
@@ -114,7 +120,7 @@ class TestSimilarityConsolidatorUpdate:
 
         results = consolidator.consolidate([new_entry], [existing])
         action, merged = results[0]
-        assert action == "update"
+        assert action == MemoryOperation.UPDATE
         assert merged is not None
         assert merged.content == "existing content that is much longer"
 
@@ -177,7 +183,7 @@ class TestSimilarityConsolidatorAdd:
         results = consolidator.consolidate([new_entry], [existing])
         assert len(results) == 1
         action, entry = results[0]
-        assert action == "add"
+        assert action == MemoryOperation.ADD
         assert entry is new_entry
 
     def test_empty_existing_all_entries_are_add(self) -> None:
@@ -191,7 +197,7 @@ class TestSimilarityConsolidatorAdd:
         results = consolidator.consolidate(new_entries, existing=[])
         assert len(results) == 3
         for action, entry in results:
-            assert action == "add"
+            assert action == MemoryOperation.ADD
             assert entry is not None
 
 
@@ -210,9 +216,9 @@ class TestSimilarityConsolidatorMultiple:
         results = consolidator.consolidate([duplicate, similar], [existing])
         assert len(results) == 2
         # First entry is exact duplicate -> none
-        assert results[0][0] == "none"
+        assert results[0][0] == MemoryOperation.NONE
         # Second entry has same embedding (identical_embed) -> update
-        assert results[1][0] == "update"
+        assert results[1][0] == MemoryOperation.UPDATE
 
     def test_empty_new_entries(self) -> None:
         consolidator = SimilarityConsolidator(embed_fn=_fake_embed)

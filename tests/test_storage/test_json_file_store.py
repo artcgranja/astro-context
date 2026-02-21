@@ -7,44 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.models.memory import MemoryEntry, MemoryType
+from astro_context.models.memory import MemoryType
 from astro_context.storage.json_file_store import JsonFileMemoryStore
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_entry(
-    *,
-    entry_id: str = "e1",
-    content: str = "some memory content",
-    relevance_score: float = 0.5,
-    user_id: str | None = None,
-    session_id: str | None = None,
-    memory_type: MemoryType = MemoryType.SEMANTIC,
-    tags: list[str] | None = None,
-    created_at: datetime | None = None,
-    expires_at: datetime | None = None,
-) -> MemoryEntry:
-    """Build a MemoryEntry with sensible test defaults."""
-    kwargs: dict = {
-        "id": entry_id,
-        "content": content,
-        "relevance_score": relevance_score,
-        "memory_type": memory_type,
-    }
-    if user_id is not None:
-        kwargs["user_id"] = user_id
-    if session_id is not None:
-        kwargs["session_id"] = session_id
-    if tags is not None:
-        kwargs["tags"] = tags
-    if created_at is not None:
-        kwargs["created_at"] = created_at
-    if expires_at is not None:
-        kwargs["expires_at"] = expires_at
-    return MemoryEntry(**kwargs)
+from tests.conftest import make_memory_entry as _make_entry
 
 
 @pytest.fixture

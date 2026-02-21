@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import math
+from datetime import datetime
 
 import pytest
 
 from astro_context.memory.manager import MemoryManager
 from astro_context.models.context import ContextItem, SourceType
+from astro_context.models.memory import MemoryEntry, MemoryType
 from astro_context.models.query import QueryBundle
 from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 
@@ -69,6 +71,45 @@ def make_memory_manager(conversation_tokens: int = 2000) -> MemoryManager:
     Shared helper for both pipeline and memory manager tests.
     """
     return MemoryManager(conversation_tokens=conversation_tokens, tokenizer=FakeTokenizer())
+
+
+def make_memory_entry(
+    *,
+    entry_id: str = "e1",
+    content: str = "some memory content",
+    relevance_score: float = 0.5,
+    user_id: str | None = None,
+    session_id: str | None = None,
+    memory_type: MemoryType = MemoryType.SEMANTIC,
+    tags: list[str] | None = None,
+    last_accessed: datetime | None = None,
+    created_at: datetime | None = None,
+    expires_at: datetime | None = None,
+) -> MemoryEntry:
+    """Build a MemoryEntry with sensible test defaults.
+
+    Shared helper extracted from test_entry_store, test_json_file_store,
+    and test_memory_retriever to avoid duplication.
+    """
+    kwargs: dict = {
+        "id": entry_id,
+        "content": content,
+        "relevance_score": relevance_score,
+        "memory_type": memory_type,
+    }
+    if user_id is not None:
+        kwargs["user_id"] = user_id
+    if session_id is not None:
+        kwargs["session_id"] = session_id
+    if tags is not None:
+        kwargs["tags"] = tags
+    if last_accessed is not None:
+        kwargs["last_accessed"] = last_accessed
+    if created_at is not None:
+        kwargs["created_at"] = created_at
+    if expires_at is not None:
+        kwargs["expires_at"] = expires_at
+    return MemoryEntry(**kwargs)
 
 
 @pytest.fixture
