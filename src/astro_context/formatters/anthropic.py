@@ -6,7 +6,7 @@ from typing import Any
 
 from astro_context.models.context import ContextWindow
 
-from .utils import classify_window_items, get_message_role
+from .utils import classify_window_items, ensure_alternating_roles, get_message_role
 
 
 class AnthropicFormatter:
@@ -74,6 +74,12 @@ class AnthropicFormatter:
             if self._enable_caching:
                 context_msg["cache_control"] = {"type": "ephemeral"}
             messages.insert(0, context_msg)
+
+        # Enforce strict user/assistant alternation required by the
+        # Anthropic Messages API.  The context block above is always
+        # role="user"; if the first memory item is also role="user",
+        # the two consecutive user messages would be rejected.
+        messages = ensure_alternating_roles(messages)
 
         return {
             "system": system_blocks,

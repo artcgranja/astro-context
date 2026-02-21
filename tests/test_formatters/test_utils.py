@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from astro_context.formatters.utils import ClassifiedItems, classify_window_items, get_message_role
+from astro_context.formatters.utils import (
+    ClassifiedItems,
+    classify_window_items,
+    ensure_alternating_roles,
+    get_message_role,
+)
 from astro_context.models.context import ContextItem, ContextWindow, SourceType
 
 
@@ -219,3 +224,117 @@ class TestClassifyWindowItems:
         assert classified.score == 0.8
         assert classified.priority == 7
         assert classified.metadata == {"role": "user", "turn": 1}
+
+
+class TestEnsureAlternatingRoles:
+    """ensure_alternating_roles() merges consecutive same-role messages."""
+
+    def test_empty_list_returns_empty(self) -> None:
+        assert ensure_alternating_roles([]) == []
+
+    def test_single_message_unchanged(self) -> None:
+        messages = [{"role": "user", "content": "Hello"}]
+        result = ensure_alternating_roles(messages)
+        assert result == [{"role": "user", "content": "Hello"}]
+
+    def test_normal_alternation_unchanged(self) -> None:
+        """user -> assistant -> user should pass through without changes."""
+        messages = [
+            {"role": "user", "content": "Hi"},
+            {"role": "assistant", "content": "Hello!"},
+            {"role": "user", "content": "How are you?"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert result == messages
+
+    def test_consecutive_user_messages_merged(self) -> None:
+        """user -> user should merge into a single user message."""
+        messages = [
+            {"role": "user", "content": "Context info"},
+            {"role": "user", "content": "My question"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 1
+        assert result[0]["role"] == "user"
+        assert result[0]["content"] == "Context info\n\nMy question"
+
+    def test_user_user_assistant_becomes_user_assistant(self) -> None:
+        """user -> user -> assistant should become user -> assistant."""
+        messages = [
+            {"role": "user", "content": "Context"},
+            {"role": "user", "content": "Question"},
+            {"role": "assistant", "content": "Answer"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 2
+        assert result[0]["role"] == "user"
+        assert result[0]["content"] == "Context\n\nQuestion"
+        assert result[1]["role"] == "assistant"
+        assert result[1]["content"] == "Answer"
+
+    def test_three_consecutive_same_role_merged(self) -> None:
+        """Three consecutive user messages merge into one."""
+        messages = [
+            {"role": "user", "content": "A"},
+            {"role": "user", "content": "B"},
+            {"role": "user", "content": "C"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 1
+        assert result[0]["content"] == "A\n\nB\n\nC"
+
+    def test_system_messages_never_merged(self) -> None:
+        """System messages are passed through without merging."""
+        messages = [
+            {"role": "system", "content": "Instruction A"},
+            {"role": "system", "content": "Instruction B"},
+            {"role": "user", "content": "Hello"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 3
+        assert result[0] == {"role": "system", "content": "Instruction A"}
+        assert result[1] == {"role": "system", "content": "Instruction B"}
+        assert result[2] == {"role": "user", "content": "Hello"}
+
+    def test_system_between_users_prevents_merge(self) -> None:
+        """A system message between two user messages keeps them separate."""
+        messages = [
+            {"role": "user", "content": "First user"},
+            {"role": "system", "content": "System note"},
+            {"role": "user", "content": "Second user"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 3
+
+    def test_extra_keys_preserved_from_first_message(self) -> None:
+        """Extra keys (e.g. cache_control) from the first message in a
+        merged group are preserved."""
+        messages = [
+            {"role": "user", "content": "Context", "cache_control": {"type": "ephemeral"}},
+            {"role": "user", "content": "Question"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 1
+        assert result[0]["cache_control"] == {"type": "ephemeral"}
+        assert result[0]["content"] == "Context\n\nQuestion"
+
+    def test_all_same_role_merged(self) -> None:
+        """All messages with the same non-system role collapse to one."""
+        messages = [
+            {"role": "assistant", "content": "Part 1"},
+            {"role": "assistant", "content": "Part 2"},
+            {"role": "assistant", "content": "Part 3"},
+        ]
+        result = ensure_alternating_roles(messages)
+        assert len(result) == 1
+        assert result[0]["content"] == "Part 1\n\nPart 2\n\nPart 3"
+
+    def test_does_not_mutate_input(self) -> None:
+        """The original list and dicts are not modified."""
+        original = [
+            {"role": "user", "content": "A"},
+            {"role": "user", "content": "B"},
+        ]
+        original_copy = [dict(m) for m in original]
+        ensure_alternating_roles(original)
+        assert original == original_copy

@@ -6,7 +6,7 @@ from typing import Any
 
 from astro_context.models.context import ContextWindow
 
-from .utils import classify_window_items, get_message_role
+from .utils import classify_window_items, ensure_alternating_roles, get_message_role
 
 
 class OpenAIFormatter:
@@ -54,5 +54,11 @@ class OpenAIFormatter:
         for item in classified.memory_items:
             role = get_message_role(item)
             messages.append({"role": role, "content": item.content})
+
+        # Enforce strict user/assistant alternation.  The context block
+        # above is role="user"; if the first memory item is also
+        # role="user", consecutive user messages would be invalid.
+        # System messages are excluded from merging.
+        messages = ensure_alternating_roles(messages)
 
         return {"messages": messages}

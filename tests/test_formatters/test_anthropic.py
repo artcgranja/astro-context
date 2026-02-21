@@ -76,7 +76,9 @@ class TestAnthropicFormatter:
         assert "Here is relevant context:" in output["messages"][0]["content"]
         assert "doc about Python" in output["messages"][0]["content"]
 
-    def test_context_message_inserted_before_memory(self) -> None:
+    def test_context_message_merged_with_first_user_memory(self) -> None:
+        """Context block (user) + first memory (user) are merged to avoid
+        consecutive user messages that the Anthropic API would reject."""
         window = ContextWindow(max_tokens=10000)
         window.add_item(
             ContextItem(
@@ -91,9 +93,33 @@ class TestAnthropicFormatter:
         )
         formatter = AnthropicFormatter()
         output = formatter.format(window)
-        # Context message should be inserted at index 0
+        # Both user messages merged into one
+        assert len(output["messages"]) == 1
+        assert output["messages"][0]["role"] == "user"
+        assert "Here is relevant context:" in output["messages"][0]["content"]
+        assert "user msg" in output["messages"][0]["content"]
+
+    def test_context_before_assistant_memory_stays_separate(self) -> None:
+        """Context block (user) + first memory (assistant) remain separate
+        since they have different roles."""
+        window = ContextWindow(max_tokens=10000)
+        window.add_item(
+            ContextItem(
+                content="assistant reply",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "assistant"},
+            )
+        )
+        window.add_item(
+            ContextItem(content="doc", source=SourceType.RETRIEVAL, token_count=5)
+        )
+        formatter = AnthropicFormatter()
+        output = formatter.format(window)
+        assert len(output["messages"]) == 2
+        assert output["messages"][0]["role"] == "user"
         assert output["messages"][0]["content"].startswith("Here is relevant context:")
-        assert output["messages"][1]["content"] == "user msg"
+        assert output["messages"][1]["role"] == "assistant"
 
     def test_empty_window(self) -> None:
         window = ContextWindow(max_tokens=10000)
@@ -135,10 +161,11 @@ class TestAnthropicFormatter:
         output = formatter.format(window)
 
         assert output["system"] == [{"type": "text", "text": "System prompt"}]
-        assert len(output["messages"]) == 2
-        # Context block first, then conversation
+        # Context block and user memory merged (both role="user")
+        assert len(output["messages"]) == 1
+        assert output["messages"][0]["role"] == "user"
         assert "Here is relevant context:" in output["messages"][0]["content"]
-        assert output["messages"][1]["content"] == "User says hi"
+        assert "User says hi" in output["messages"][0]["content"]
 
 
 class TestAnthropicFormatterCaching:
@@ -202,10 +229,12 @@ class TestAnthropicFormatterCaching:
 
         # System block has cache_control
         assert output["system"][0]["cache_control"] == {"type": "ephemeral"}
-        # Context message has cache_control
+        # Context and user memory merged into one message (both user role);
+        # cache_control preserved from the context message (first in group).
+        assert len(output["messages"]) == 1
         assert output["messages"][0]["cache_control"] == {"type": "ephemeral"}
-        # Regular user message does NOT have cache_control
-        assert "cache_control" not in output["messages"][1]
+        assert "Here is relevant context:" in output["messages"][0]["content"]
+        assert "User says hi" in output["messages"][0]["content"]
 
     def test_caching_empty_window(self) -> None:
         window = ContextWindow(max_tokens=10000)
@@ -232,3 +261,106 @@ class TestAnthropicFormatterCaching:
         assert output["system"][0]["cache_control"] == {"type": "ephemeral"}
         # User message does NOT have cache_control (it's not a context message)
         assert "cache_control" not in output["messages"][0]
+
+
+class TestAnthropicFormatterRoleAlternation:
+    """AnthropicFormatter enforces strict user/assistant alternation."""
+
+    def test_context_block_and_user_memory_merged(self) -> None:
+        """Context block (user) + first user memory message are merged."""
+        window = ContextWindow(max_tokens=10000)
+        window.add_item(
+            ContextItem(
+                content="Hello",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "user"},
+            )
+        )
+        window.add_item(
+            ContextItem(content="doc", source=SourceType.RETRIEVAL, token_count=5)
+        )
+        formatter = AnthropicFormatter()
+        output = formatter.format(window)
+
+        assert len(output["messages"]) == 1
+        assert output["messages"][0]["role"] == "user"
+        assert "Here is relevant context:" in output["messages"][0]["content"]
+        assert "Hello" in output["messages"][0]["content"]
+
+    def test_consecutive_user_memory_items_merged(self) -> None:
+        """Two user memory items without an assistant in between are merged."""
+        window = ContextWindow(max_tokens=10000)
+        window.add_item(
+            ContextItem(
+                content="First question",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "user"},
+            )
+        )
+        window.add_item(
+            ContextItem(
+                content="Follow up",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "user"},
+            )
+        )
+        window.add_item(
+            ContextItem(
+                content="Answer",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "assistant"},
+            )
+        )
+        formatter = AnthropicFormatter()
+        output = formatter.format(window)
+
+        assert len(output["messages"]) == 2
+        assert output["messages"][0]["role"] == "user"
+        assert "First question" in output["messages"][0]["content"]
+        assert "Follow up" in output["messages"][0]["content"]
+        assert output["messages"][1]["role"] == "assistant"
+
+    def test_proper_alternation_unchanged(self) -> None:
+        """user -> assistant -> user passes through without merging."""
+        window = ContextWindow(max_tokens=10000)
+        window.add_item(
+            ContextItem(
+                content="Hello",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "user"},
+            )
+        )
+        window.add_item(
+            ContextItem(
+                content="Hi!",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "assistant"},
+            )
+        )
+        window.add_item(
+            ContextItem(
+                content="How are you?",
+                source=SourceType.MEMORY,
+                token_count=5,
+                metadata={"role": "user"},
+            )
+        )
+        formatter = AnthropicFormatter()
+        output = formatter.format(window)
+
+        assert len(output["messages"]) == 3
+        assert output["messages"][0]["role"] == "user"
+        assert output["messages"][1]["role"] == "assistant"
+        assert output["messages"][2]["role"] == "user"
+
+    def test_empty_window_returns_empty_messages(self) -> None:
+        window = ContextWindow(max_tokens=10000)
+        formatter = AnthropicFormatter()
+        output = formatter.format(window)
+        assert output["messages"] == []

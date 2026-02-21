@@ -7,7 +7,7 @@ outside this package.
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from astro_context.models.context import ContextItem, ContextWindow, SourceType
 
@@ -93,3 +93,52 @@ def classify_window_items(window: ContextWindow) -> ClassifiedItems:
 
     memory_items.sort(key=lambda item: item.created_at)
     return ClassifiedItems(system_parts, memory_items, context_parts)
+
+
+def ensure_alternating_roles(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge consecutive same-role messages to enforce role alternation.
+
+    LLM APIs (Anthropic, OpenAI) require that ``user`` and ``assistant``
+    messages strictly alternate.  When a context block (``role="user"``)
+    is prepended before conversation history that also starts with a
+    ``user`` message, the result is two consecutive ``user`` messages
+    which the API rejects.
+
+    This function merges consecutive messages that share the same role
+    by joining their ``content`` fields with ``"\\n\\n"``.  Messages with
+    the ``"system"`` role are never merged -- they are passed through
+    unchanged because system messages do not participate in the
+    user/assistant alternation requirement.
+
+    Parameters
+    ----------
+    messages:
+        List of message dicts, each with at least ``"role"`` and
+        ``"content"`` keys.  May contain additional keys (e.g.
+        ``"cache_control"``); extra keys from the *first* message in a
+        merged group are preserved.
+
+    Returns
+    -------
+    list[dict[str, Any]]
+        A new list with consecutive same-role non-system messages merged.
+    """
+    if len(messages) <= 1:
+        return list(messages)
+
+    merged: list[dict[str, Any]] = []
+    for msg in messages:
+        if (
+            merged
+            and msg["role"] != "system"
+            and merged[-1]["role"] == msg["role"]
+        ):
+            # Merge into the previous message, preserving extra keys
+            # from the first message in the group.
+            merged[-1] = {
+                **merged[-1],
+                "content": merged[-1]["content"] + "\n\n" + msg["content"],
+            }
+        else:
+            merged.append(dict(msg))
+    return merged
