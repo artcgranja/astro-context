@@ -106,15 +106,105 @@ def test_memory_tools_search_facts_empty():
     assert "No relevant facts found" in result
 
 
-def test_memory_tools_returns_two_tools():
+def test_memory_tools_save_fact_dedup():
+    """Saving the same fact twice returns the existing entry (no duplicate)."""
     memory = MemoryManager(
         conversation_tokens=1000, tokenizer=_Tok(),
         persistent_store=InMemoryEntryStore(),
     )
     tools = memory_tools(memory)
-    assert len(tools) == 2
+    save_tool = next(t for t in tools if t.name == "save_fact")
+
+    result1 = save_tool.fn(fact="User's name is Arthur")
+    result2 = save_tool.fn(fact="User's name is Arthur")
+
+    # Both should succeed, but only one fact should exist
+    assert "Saved" in result1
+    assert "Saved" in result2
+    facts = memory.get_all_facts()
+    assert len(facts) == 1
+
+
+def test_memory_tools_search_facts_returns_ids():
+    """search_facts returns fact IDs for use with update/delete."""
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    entry = memory.add_fact("User's name is Arthur")
+    tools = memory_tools(memory)
+    search_tool = next(t for t in tools if t.name == "search_facts")
+
+    result = search_tool.fn(query="name")
+    assert entry.id[:8] in result
+
+
+def test_memory_tools_update_fact():
+    """update_fact changes content of an existing fact."""
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    entry = memory.add_fact("User is 23 years old")
+    tools = memory_tools(memory)
+    update_tool = next(t for t in tools if t.name == "update_fact")
+
+    result = update_tool.fn(fact_id=entry.id, content="User is 24 years old")
+    assert "Updated" in result
+
+    facts = memory.get_all_facts()
+    assert len(facts) == 1
+    assert "24" in facts[0].content
+
+
+def test_memory_tools_update_fact_not_found():
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    tools = memory_tools(memory)
+    update_tool = next(t for t in tools if t.name == "update_fact")
+
+    result = update_tool.fn(fact_id="nonexistent-id", content="new content")
+    assert "not found" in result
+
+
+def test_memory_tools_delete_fact():
+    """delete_fact removes an existing fact."""
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    entry = memory.add_fact("User's name is Arthur")
+    tools = memory_tools(memory)
+    delete_tool = next(t for t in tools if t.name == "delete_fact")
+
+    result = delete_tool.fn(fact_id=entry.id)
+    assert "Deleted" in result
+    assert len(memory.get_all_facts()) == 0
+
+
+def test_memory_tools_delete_fact_not_found():
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    tools = memory_tools(memory)
+    delete_tool = next(t for t in tools if t.name == "delete_fact")
+
+    result = delete_tool.fn(fact_id="nonexistent-id")
+    assert "not found" in result
+
+
+def test_memory_tools_returns_four_tools():
+    memory = MemoryManager(
+        conversation_tokens=1000, tokenizer=_Tok(),
+        persistent_store=InMemoryEntryStore(),
+    )
+    tools = memory_tools(memory)
+    assert len(tools) == 4
     names = {t.name for t in tools}
-    assert names == {"save_fact", "search_facts"}
+    assert names == {"save_fact", "search_facts", "update_fact", "delete_fact"}
 
 
 # -- rag_tools --
