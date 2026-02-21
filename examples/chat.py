@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
-"""Interactive chat loop with Claude using astro-context.
+"""Interactive chat -- short-term memory, long-term facts, and agentic RAG.
 
-Demonstrates the full pipeline: system prompts, sliding window memory,
-Anthropic-formatted output, and token budget management.
+Demonstrates the Agent class combining all three context engineering pillars:
+  1. Short-term memory  -- SlidingWindowMemory keeps recent conversation turns
+  2. Long-term memory   -- model saves facts via tools (agentic memory)
+  3. Agentic RAG        -- model decides when to search documentation
 
 Requirements:
-    pip install astro-context[anthropic]
+    pip install astro-context[agents]
     pip install rich  # optional, for pretty output
     export ANTHROPIC_API_KEY=sk-ant-...
 """
 
 from __future__ import annotations
 
+import math
 import os
+import re
 import sys
+from collections import Counter
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -21,15 +27,6 @@ try:
     load_dotenv()
 except ImportError:
     pass
-
-try:
-    import anthropic
-except ImportError:
-    print(
-        "anthropic is not installed. Install with: pip install astro-context[anthropic]",
-        file=sys.stderr,
-    )
-    sys.exit(1)
 
 try:
     from rich.console import Console
@@ -42,24 +39,25 @@ try:
 except ImportError:
     HAS_RICH = False
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.memory.manager import MemoryManager
-from astro_context.pipeline.pipeline import ContextPipeline
-
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-MODEL = "claude-haiku-4-5-20251001"
-MAX_PIPELINE_TOKENS = 8192
-CONVERSATION_TOKENS = 6144
-SYSTEM_PROMPT = (
-    "You are a helpful, concise assistant. "
-    "Answer questions clearly and keep responses focused."
+from astro_context import (
+    Agent,
+    ContextItem,
+    DenseRetriever,
+    MemoryManager,
+    SourceType,
+    memory_tools,
+    rag_tools,
 )
+from astro_context.storage import InMemoryContextStore, InMemoryEntryStore, InMemoryVectorStore
+
+MODEL = "claude-haiku-4-5-20251001"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+# -- Display helpers --
 
 
 def _print(text: str, *, style: str = "") -> None:
-    """Print helper that uses rich when available."""
     if HAS_RICH:
         console.print(text, style=style)
     else:
@@ -67,7 +65,6 @@ def _print(text: str, *, style: str = "") -> None:
 
 
 def _print_markdown(text: str) -> None:
-    """Render markdown when rich is available, plain text otherwise."""
     if HAS_RICH:
         console.print(Markdown(text))
     else:
@@ -75,31 +72,166 @@ def _print_markdown(text: str) -> None:
 
 
 def _get_input(prompt: str) -> str:
-    """Read user input via rich or builtins."""
     if HAS_RICH:
         return console.input(prompt)
     return input(prompt)
 
 
-def _print_diagnostics(result) -> None:
+def _print_diagnostics(agent: Agent, memory: MemoryManager) -> None:
     """Display pipeline diagnostics after each turn."""
+    result = agent.last_result
+    if result is None:
+        return
     d = result.diagnostics
     tokens_used = result.window.used_tokens
     tokens_max = result.window.max_tokens
     utilization = d.get("token_utilization", 0) * 100
-    items = d.get("items_included", 0)
+    items_count = d.get("items_included", 0)
     build_ms = result.build_time_ms
 
+    sources: dict[str, int] = {}
+    for item in result.window.items:
+        key = item.source.value
+        sources[key] = sources.get(key, 0) + 1
+
+    fact_count = len(memory.get_all_facts())
+    src_str = " ".join(f"{k}={v}" for k, v in sorted(sources.items()))
+
     _print(
-        f"  [{items} items | {tokens_used}/{tokens_max} tokens "
-        f"({utilization:.0f}%) | {build_ms:.0f}ms]",
+        f"  [{items_count} items | {tokens_used}/{tokens_max} tokens "
+        f"({utilization:.0f}%) | {build_ms:.0f}ms | {src_str} | facts: {fact_count}]",
         style="info",
     )
 
 
+# -- Whitespace tokenizer (avoids tiktoken network dependency) --
+
+
+class _Tokenizer:
+    def count_tokens(self, text: str) -> int:
+        return len(text.split()) if text.strip() else 0
+
+    def truncate_to_tokens(self, text: str, max_tokens: int) -> str:
+        return " ".join(text.split()[:max_tokens])
+
+
+# -- TF-IDF embedder (zero external dependencies) --
+
+
+class TfidfEmbedder:
+    """Lightweight TF-IDF embedder for demos. Replace with a real embedder in production."""
+
+    __slots__ = ("_idf", "_vocab")
+
+    def __init__(self) -> None:
+        self._vocab: dict[str, int] = {}
+        self._idf: list[float] = []
+
+    def fit(self, docs: list[str]) -> None:
+        n = len(docs)
+        df: Counter[str] = Counter()
+        for d in docs:
+            df.update(set(re.findall(r"[a-z0-9_]+", d.lower())))
+        self._vocab = {t: i for i, t in enumerate(sorted(df))}
+        self._idf = [math.log(n / (1 + df[t])) for t in sorted(df)]
+
+    def embed(self, text: str) -> list[float]:
+        tf: Counter[str] = Counter(re.findall(r"[a-z0-9_]+", text.lower()))
+        dim = len(self._vocab)
+        if dim == 0:
+            return [0.0]
+        vec = [0.0] * dim
+        for term, count in tf.items():
+            if (idx := self._vocab.get(term)) is not None:
+                vec[idx] = count * self._idf[idx]
+        norm = math.sqrt(sum(x * x for x in vec))
+        return [x / norm for x in vec] if norm > 0 else vec
+
+
+# -- Load and chunk project documentation --
+
+
+def load_docs(tok: _Tokenizer) -> list[ContextItem]:
+    items: list[ContextItem] = []
+    for fp in [REPO_ROOT / "README.md", REPO_ROOT / "CHANGELOG.md"]:
+        if not fp.exists():
+            continue
+        for section in re.split(r"(?m)^## ", fp.read_text(encoding="utf-8")):
+            section = section.strip()
+            if not section:
+                continue
+            label = f"{fp.name} > {section.split(chr(10), 1)[0]}"
+            items.append(ContextItem(
+                content=section, source=SourceType.RETRIEVAL, score=0.0,
+                priority=5, token_count=tok.count_tokens(section),
+                metadata={"section": label},
+            ))
+    return items
+
+
+# -- Setup --
+
+
+def _build_agent() -> tuple[Agent, MemoryManager]:
+    """Initialize agent with retriever, memory, and tools."""
+    tok = _Tokenizer()
+    doc_items = load_docs(tok)
+    embedder = TfidfEmbedder()
+    embedder.fit([i.content for i in doc_items])
+
+    retriever = DenseRetriever(
+        vector_store=InMemoryVectorStore(), context_store=InMemoryContextStore(),
+        embed_fn=embedder.embed, tokenizer=tok,
+    )
+    retriever.index(doc_items)
+    _print(f"  Indexed {len(doc_items)} doc chunks for RAG", style="info")
+
+    memory = MemoryManager(
+        conversation_tokens=8192, tokenizer=tok, persistent_store=InMemoryEntryStore(),
+    )
+
+    agent = (
+        Agent(model=MODEL)
+        .with_system_prompt(
+            "You are a helpful assistant for the astro-context library. "
+            "Save important user facts with save_fact. Search docs with search_docs when needed."
+        )
+        .with_memory(memory)
+        .with_tools(memory_tools(memory))
+        .with_tools(rag_tools(retriever, embed_fn=embedder.embed))
+    )
+    return agent, memory
+
+
+def _handle_command(user_input: str, memory: MemoryManager) -> bool:
+    """Handle slash commands. Returns True if input was a command."""
+    if user_input == "/help":
+        _print("  /facts           -- list saved facts", style="info")
+        _print("  /remember <text> -- save a fact manually", style="info")
+        _print("  /help            -- show this help", style="info")
+        _print("  quit             -- exit", style="info")
+        return True
+    if user_input == "/facts":
+        facts = memory.get_all_facts()
+        for f in facts:
+            _print(f"  {f.id[:8]}  {f.content}", style="info")
+        if not facts:
+            _print("  No facts saved yet.", style="info")
+        return True
+    if user_input.startswith("/remember "):
+        fact = user_input[10:].strip()
+        if fact:
+            entry = memory.add_fact(fact, tags=["user"])
+            _print(f'  Saved: "{fact}" (id: {entry.id[:8]})', style="info")
+        return True
+    return False
+
+
+# -- Main --
+
+
 def main() -> None:
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
+    if not os.environ.get("ANTHROPIC_API_KEY"):
         _print(
             "Set ANTHROPIC_API_KEY environment variable to use this example.\n"
             "  export ANTHROPIC_API_KEY=sk-ant-...",
@@ -107,21 +239,11 @@ def main() -> None:
         )
         sys.exit(1)
 
-    # -- Pipeline setup -------------------------------------------------------
-    memory = MemoryManager(conversation_tokens=CONVERSATION_TOKENS)
-    pipeline = (
-        ContextPipeline(max_tokens=MAX_PIPELINE_TOKENS)
-        .with_memory(memory)
-        .with_formatter(AnthropicFormatter())
-        .add_system_prompt(SYSTEM_PROMPT)
-    )
-    client = anthropic.Anthropic(api_key=api_key)
+    agent, memory = _build_agent()
+    _print("astro-context agent chat", style="bold")
+    _print(f"  Model: {MODEL}", style="info")
+    _print('  Type /help for commands, "quit" to exit.\n', style="info")
 
-    _print("astro-context chat example", style="bold")
-    _print(f"Model: {MODEL} | Budget: {MAX_PIPELINE_TOKENS} tokens", style="info")
-    _print('Type "quit" or "exit" to end the session.\n', style="info")
-
-    # -- Chat loop ------------------------------------------------------------
     while True:
         try:
             user_input = _get_input("[bold green]You:[/] " if HAS_RICH else "You: ")
@@ -135,44 +257,16 @@ def main() -> None:
         if user_input.lower() in {"quit", "exit"}:
             _print("Goodbye!", style="bold")
             break
+        if _handle_command(user_input, memory):
+            print()
+            continue
 
-        # 1. Record user message
-        memory.add_user_message(user_input)
-
-        # 2. Build context through pipeline
-        result = pipeline.build(user_input)
-        formatted = result.formatted_output
-
-        # 3. Stream response from Claude
         _print("Assistant:", style="bold blue")
         response_text = ""
-        try:
-            with client.messages.stream(
-                model=MODEL,
-                max_tokens=1024,
-                system=formatted["system"],
-                messages=formatted["messages"],
-            ) as stream:
-                for text in stream.text_stream:
-                    response_text += text
-        except anthropic.APIError as exc:
-            _print(f"API error: {exc}", style="danger")
-            memory.add_assistant_message("[error: API call failed]")
-            continue
-        except KeyboardInterrupt:
-            _print("\n[interrupted]", style="warning")
-            if response_text:
-                memory.add_assistant_message(response_text + " [interrupted]")
-            continue
-
-        # 4. Display response and record it
+        for chunk in agent.chat(user_input):
+            response_text += chunk
         _print_markdown(response_text)
-
-        # 5. Feed response back into memory
-        memory.add_assistant_message(response_text)
-
-        # 6. Show diagnostics
-        _print_diagnostics(result)
+        _print_diagnostics(agent, memory)
         print()
 
 
