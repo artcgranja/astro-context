@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from astro_context.exceptions import StorageError
 from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType, Role
+from astro_context.models.memory import (
+    ConversationTurn,
+    MemoryEntry,
+    MemoryType,
+    Role,
+    _compute_content_hash,
+)
 from astro_context.protocols.memory import ConversationMemory
 from astro_context.protocols.storage import MemoryEntryStore
 from astro_context.protocols.tokenizer import Tokenizer
@@ -126,6 +133,10 @@ class MemoryManager:
     ) -> MemoryEntry:
         """Create and store a persistent memory entry.
 
+        Performs content-hash deduplication: if an entry with the same
+        content already exists, the existing entry is returned instead
+        of creating a duplicate.
+
         Parameters:
             content: The textual content of the memory.
             tags: Optional classification tags.
@@ -133,7 +144,8 @@ class MemoryManager:
             metadata: Arbitrary key-value metadata.
 
         Returns:
-            The newly created ``MemoryEntry``.
+            The newly created ``MemoryEntry``, or the existing one if
+            a duplicate was detected.
 
         Raises:
             StorageError: If no persistent store has been configured.
@@ -141,6 +153,13 @@ class MemoryManager:
         if self._persistent_store is None:
             msg = "No persistent_store configured. Pass a MemoryEntryStore to MemoryManager."
             raise StorageError(msg)
+
+        # Content-hash deduplication: check for existing entry with same content
+        content_hash = _compute_content_hash(content)
+        for existing in self._persistent_store.list_all():
+            if existing.content_hash == content_hash:
+                return existing
+
         entry = MemoryEntry(
             content=content,
             tags=tags or [],
@@ -177,6 +196,36 @@ class MemoryManager:
         if self._persistent_store is None:
             return False
         return self._persistent_store.delete(entry_id)
+
+    def update_fact(self, entry_id: str, content: str) -> MemoryEntry | None:
+        """Update the content of an existing persistent memory entry.
+
+        Parameters:
+            entry_id: The id of the entry to update.
+            content: The new content text.
+
+        Returns:
+            The updated ``MemoryEntry``, or ``None`` if the entry was
+            not found or no persistent store is configured.
+        """
+        if self._persistent_store is None:
+            return None
+        existing: MemoryEntry | None = None
+        for entry in self._persistent_store.list_all():
+            if entry.id == entry_id:
+                existing = entry
+                break
+        if existing is None:
+            return None
+        updated = existing.model_copy(
+            update={
+                "content": content,
+                "content_hash": _compute_content_hash(content),
+                "updated_at": datetime.now(UTC),
+            }
+        )
+        self._persistent_store.add(updated)
+        return updated
 
     # ---- Context assembly ----
 
