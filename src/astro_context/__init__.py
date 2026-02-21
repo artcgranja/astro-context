@@ -1,5 +1,8 @@
 """astro-context: Context engineering toolkit for AI applications.
 
+Agent:
+    Agent, AgentTool, memory_tools, rag_tools
+
 Core Pipeline:
     ContextPipeline, ContextResult, PipelineStep, PipelineCallback,
     PipelineDiagnostics, StepDiagnostic, PipelineExecutionError,
@@ -51,6 +54,7 @@ Tokens:
 
 from importlib.metadata import PackageNotFoundError, version
 
+from astro_context.agent import Agent, AgentTool, memory_tools, rag_tools
 from astro_context.exceptions import (
     AstroContextError,
     FormatterError,
@@ -169,6 +173,8 @@ except PackageNotFoundError:
     __version__ = "0.0.0-dev"
 
 __all__ = [
+    "Agent",
+    "AgentTool",
     "AnthropicFormatter",
     "AstroContextError",
     "AsyncCompactionStrategy",
@@ -262,6 +268,8 @@ __all__ = [
     "default_rag_budget",
     "filter_step",
     "graph_retrieval_step",
+    "memory_tools",
     "postprocessor_step",
+    "rag_tools",
     "retriever_step",
 ]
