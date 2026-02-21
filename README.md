@@ -128,10 +128,12 @@ pipeline = ContextPipeline(max_tokens=8192)
 @pipeline.step
 def boost_recent(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
     """Boost the score of recent items."""
-    for item in items:
-        if item.metadata.get("recent"):
-            item = item.model_copy(update={"score": item.score * 1.5})
-    return items
+    return [
+        item.model_copy(update={"score": min(1.0, item.score * 1.5)})
+        if item.metadata.get("recent")
+        else item
+        for item in items
+    ]
 
 @pipeline.step(name="quality-filter")
 def filter_low_quality(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
@@ -214,7 +216,7 @@ astro-context --help     # See all commands
 git clone https://github.com/arthurgranja/astro-context.git
 cd astro-context
 uv sync           # Install all dependencies
-uv run pytest     # Run tests (188 tests, 89% coverage)
+uv run pytest     # Run tests (961 tests, 94% coverage)
 uv run ruff check src/ tests/  # Lint
 ```
 

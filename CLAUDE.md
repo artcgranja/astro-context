@@ -12,7 +12,7 @@ The library provides hybrid RAG pipelines, token-aware memory, provider-agnostic
 
 ```bash
 uv sync                                    # Install all dependencies
-uv run pytest                              # Run all tests (318 tests)
+uv run pytest                              # Run all tests (961 tests)
 uv run pytest tests/test_pipeline/ -x -q   # Run one test directory
 uv run pytest tests/test_pipeline/test_pipeline.py::test_name -x  # Run single test
 uv run ruff check src/ tests/ examples/    # Lint
