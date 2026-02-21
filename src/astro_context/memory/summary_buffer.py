@@ -18,6 +18,7 @@ constructor parameters:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -29,6 +30,8 @@ from .sliding_window import SlidingWindowMemory
 
 if TYPE_CHECKING:
     from astro_context.protocols.tokenizer import Tokenizer
+
+logger = logging.getLogger(__name__)
 
 
 class SummaryBufferMemory:
@@ -101,10 +104,19 @@ class SummaryBufferMemory:
 
     def _handle_eviction(self, evicted_turns: list[ConversationTurn]) -> None:
         """Callback invoked by the sliding window when turns are evicted."""
-        if self._progressive_compact_fn is not None:
-            self._summary = self._progressive_compact_fn(evicted_turns, self._summary)
-        elif self._compact_fn is not None:
-            self._summary = self._compact_fn(evicted_turns)
+        try:
+            if self._progressive_compact_fn is not None:
+                self._summary = self._progressive_compact_fn(evicted_turns, self._summary)
+            elif self._compact_fn is not None:
+                self._summary = self._compact_fn(evicted_turns)
+        except Exception:
+            # Fallback: preserve raw content so evicted data is not lost
+            fallback = "; ".join(f"{t.role}: {t.content}" for t in evicted_turns)
+            if self._summary:
+                self._summary = f"{self._summary}\n{fallback}"
+            else:
+                self._summary = fallback
+            logger.exception("Compaction failed; using raw turn content as fallback summary")
 
         if self._summary is not None:
             self._summary_tokens = self._tokenizer.count_tokens(self._summary)

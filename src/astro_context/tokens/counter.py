@@ -18,12 +18,15 @@ class TiktokenCounter:
     :class:`~astro_context.protocols.tokenizer.Tokenizer` implementation.
     """
 
-    __slots__ = ("_cache", "_encoding")
+    __slots__ = ("_cache", "_encoding", "_max_cache_size")
 
-    def __init__(self, encoding_name: str = "cl100k_base") -> None:
+    def __init__(
+        self, encoding_name: str = "cl100k_base", max_cache_size: int = 10_000
+    ) -> None:
         import tiktoken
 
         self._encoding = tiktoken.get_encoding(encoding_name)
+        self._max_cache_size = max_cache_size
         self._cache: dict[str, int] = {}
 
     def count_tokens(self, text: str) -> int:
@@ -33,6 +36,8 @@ class TiktokenCounter:
         count = len(self._encoding.encode(text))
         # Only cache strings under 10k chars to avoid memory bloat
         if len(text) < 10_000:
+            if len(self._cache) >= self._max_cache_size:
+                self._cache.clear()
             self._cache[text] = count
         return count
 

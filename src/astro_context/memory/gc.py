@@ -13,33 +13,16 @@ garbage collector can identify and delete them.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING
 
 from astro_context.memory.callbacks import MemoryCallback, _fire_memory_callback
+from astro_context.protocols.storage import GarbageCollectableStore
 
 if TYPE_CHECKING:
     from astro_context.models.memory import MemoryEntry
     from astro_context.protocols.memory import MemoryDecay
 
 logger = logging.getLogger(__name__)
-
-
-@runtime_checkable
-class GarbageCollectableStore(Protocol):
-    """A memory entry store that supports garbage collection.
-
-    Extends the base ``MemoryEntryStore`` contract with
-    ``list_all_unfiltered`` so that expired entries can be discovered
-    and deleted.
-    """
-
-    def list_all_unfiltered(self) -> list[MemoryEntry]:
-        """Return *all* entries including expired ones."""
-        ...
-
-    def delete(self, entry_id: str) -> bool:
-        """Delete an entry by id. Returns ``True`` if found and deleted."""
-        ...
 
 
 class GCStats:
@@ -145,9 +128,10 @@ class MemoryGarbageCollector:
         Returns:
             A ``GCStats`` instance summarising what was (or would be) pruned.
         """
-        expired = self.collect_expired(dry_run=dry_run)
+        all_entries = self._store.list_all_unfiltered()
+        expired = self.collect_expired(dry_run=dry_run, _entries=all_entries)
         decayed = self.collect_decayed(
-            retention_threshold=retention_threshold, dry_run=dry_run
+            retention_threshold=retention_threshold, dry_run=dry_run, _entries=all_entries
         ) if self._decay is not None else []
 
         total_remaining = len(self._store.list_all_unfiltered())
@@ -158,16 +142,21 @@ class MemoryGarbageCollector:
             dry_run=dry_run,
         )
 
-    def collect_expired(self, dry_run: bool = False) -> list[MemoryEntry]:
+    def collect_expired(
+        self,
+        dry_run: bool = False,
+        _entries: list[MemoryEntry] | None = None,
+    ) -> list[MemoryEntry]:
         """Remove only expired entries (simpler, no decay scoring).
 
         Parameters:
             dry_run: If ``True``, identify but do not delete entries.
+            _entries: Pre-fetched entries list (internal optimisation).
 
         Returns:
             The list of entries that were (or would be) pruned.
         """
-        all_entries = self._store.list_all_unfiltered()
+        all_entries = _entries if _entries is not None else self._store.list_all_unfiltered()
         expired = [e for e in all_entries if e.is_expired]
 
         if expired and not dry_run:
@@ -185,6 +174,7 @@ class MemoryGarbageCollector:
         self,
         retention_threshold: float = 0.1,
         dry_run: bool = False,
+        _entries: list[MemoryEntry] | None = None,
     ) -> list[MemoryEntry]:
         """Remove only decayed entries (requires decay function).
 
@@ -192,6 +182,7 @@ class MemoryGarbageCollector:
             retention_threshold: Retention score below which entries are
                 pruned.
             dry_run: If ``True``, identify but do not delete entries.
+            _entries: Pre-fetched entries list (internal optimisation).
 
         Returns:
             The list of entries that were (or would be) pruned.
@@ -203,7 +194,7 @@ class MemoryGarbageCollector:
             msg = "Cannot collect decayed entries without a decay function"
             raise ValueError(msg)
 
-        all_entries = self._store.list_all_unfiltered()
+        all_entries = _entries if _entries is not None else self._store.list_all_unfiltered()
         # Only consider non-expired entries for decay scoring
         candidates = [e for e in all_entries if not e.is_expired]
 

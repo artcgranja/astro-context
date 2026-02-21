@@ -61,7 +61,8 @@ class CallbackExtractor:
         raw_results = self._extract_fn(turns)
         entries: list[MemoryEntry] = []
 
-        for raw in raw_results:
+        for raw_original in raw_results:
+            raw = dict(raw_original)  # defensive copy
             if "content" not in raw:
                 msg = "extraction result must contain a 'content' key"
                 raise ValueError(msg)

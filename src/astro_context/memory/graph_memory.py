@@ -36,12 +36,20 @@ class SimpleGraphMemory:
         memory_ids = graph.get_related_memory_ids("alice", max_depth=2)
     """
 
-    __slots__ = ("_edges", "_entity_to_memories", "_nodes")
+    __slots__ = (
+        "_adjacency",
+        "_adjacency_dirty",
+        "_edges",
+        "_entity_to_memories",
+        "_nodes",
+    )
 
     def __init__(self) -> None:
         self._nodes: dict[str, dict[str, Any]] = {}
         self._edges: list[tuple[str, str, str]] = []
         self._entity_to_memories: dict[str, list[str]] = {}
+        self._adjacency: dict[str, set[str]] = {}
+        self._adjacency_dirty: bool = True
 
     def add_entity(self, entity_id: str, metadata: dict[str, Any] | None = None) -> None:
         """Add an entity node to the graph.
@@ -74,6 +82,7 @@ class SimpleGraphMemory:
         if target not in self._nodes:
             self._nodes[target] = {}
         self._edges.append((source, relation, target))
+        self._adjacency_dirty = True
 
     def link_memory(self, entity_id: str, memory_id: str) -> None:
         """Link a memory entry ID to an entity.
@@ -89,6 +98,14 @@ class SimpleGraphMemory:
             msg = f"Entity '{entity_id}' does not exist in the graph"
             raise ValueError(msg)
         self._entity_to_memories.setdefault(entity_id, []).append(memory_id)
+
+    def _rebuild_adjacency(self) -> None:
+        """Rebuild the cached adjacency index from edges."""
+        self._adjacency = {}
+        for src, _rel, tgt in self._edges:
+            self._adjacency.setdefault(src, set()).add(tgt)
+            self._adjacency.setdefault(tgt, set()).add(src)
+        self._adjacency_dirty = False
 
     def get_related_entities(self, entity_id: str, max_depth: int = 2) -> list[str]:
         """Find entities related to *entity_id* via BFS traversal.
@@ -107,21 +124,18 @@ class SimpleGraphMemory:
         if entity_id not in self._nodes:
             return []
 
+        if self._adjacency_dirty:
+            self._rebuild_adjacency()
+
         visited: set[str] = {entity_id}
         queue: deque[tuple[str, int]] = deque([(entity_id, 0)])
         result: list[str] = []
-
-        # Build adjacency index for fast lookup (both directions)
-        adjacency: dict[str, set[str]] = {}
-        for src, _rel, tgt in self._edges:
-            adjacency.setdefault(src, set()).add(tgt)
-            adjacency.setdefault(tgt, set()).add(src)
 
         while queue:
             current, depth = queue.popleft()
             if depth >= max_depth:
                 continue
-            for neighbor in adjacency.get(current, set()):
+            for neighbor in self._adjacency.get(current, set()):
                 if neighbor not in visited:
                     visited.add(neighbor)
                     result.append(neighbor)
@@ -178,12 +192,14 @@ class SimpleGraphMemory:
             (s, r, t) for s, r, t in self._edges if s != entity_id and t != entity_id
         ]
         self._entity_to_memories.pop(entity_id, None)
+        self._adjacency_dirty = True
 
     def clear(self) -> None:
         """Remove all entities, relationships, and memory linkages."""
         self._nodes.clear()
         self._edges.clear()
         self._entity_to_memories.clear()
+        self._adjacency_dirty = True
 
     @property
     def entities(self) -> list[str]:

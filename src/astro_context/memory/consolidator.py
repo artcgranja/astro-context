@@ -7,26 +7,15 @@ deduplication and cosine similarity of embeddings.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from astro_context._math import cosine_similarity as _cosine_similarity
+from astro_context.protocols.memory import MemoryOperation
+
 if TYPE_CHECKING:
     from astro_context.models.memory import MemoryEntry
-
-
-def _cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Compute cosine similarity between two vectors without numpy."""
-    if len(a) != len(b):
-        msg = "vectors must have the same dimensionality"
-        raise ValueError(msg)
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(x * x for x in b))
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return dot / (norm_a * norm_b)
 
 
 class SimilarityConsolidator:
@@ -46,23 +35,27 @@ class SimilarityConsolidator:
     handles all embedding logic.
     """
 
-    __slots__ = ("_embed_fn", "_embedding_cache", "_similarity_threshold")
+    __slots__ = ("_embed_fn", "_embedding_cache", "_max_cache_size", "_similarity_threshold")
 
     def __init__(
         self,
         embed_fn: Callable[[str], list[float]],
         similarity_threshold: float = 0.85,
+        max_cache_size: int = 1000,
     ) -> None:
         if not 0.0 <= similarity_threshold <= 1.0:
             msg = "similarity_threshold must be in [0.0, 1.0]"
             raise ValueError(msg)
         self._embed_fn = embed_fn
         self._similarity_threshold = similarity_threshold
+        self._max_cache_size = max_cache_size
         self._embedding_cache: dict[str, list[float]] = {}
 
     def _get_embedding(self, entry: MemoryEntry) -> list[float]:
         """Return a cached embedding for the entry, computing if necessary."""
         if entry.id not in self._embedding_cache:
+            if len(self._embedding_cache) >= self._max_cache_size:
+                self._embedding_cache.clear()
             self._embedding_cache[entry.id] = self._embed_fn(entry.content)
         return self._embedding_cache[entry.id]
 
@@ -100,7 +93,7 @@ class SimilarityConsolidator:
         self,
         new_entries: list[MemoryEntry],
         existing: list[MemoryEntry],
-    ) -> list[tuple[str, MemoryEntry | None]]:
+    ) -> list[tuple[MemoryOperation, MemoryEntry | None]]:
         """Determine how each new entry relates to the existing memory store.
 
         Parameters:
@@ -110,20 +103,20 @@ class SimilarityConsolidator:
         Returns:
             A list of ``(action, entry)`` tuples where *action* is one of:
 
-            - ``"add"``  -- entry is new, append to store.
-            - ``"update"`` -- entry is similar to an existing one, replace with
-              the merged result.
-            - ``"none"`` -- exact duplicate, skip.
+            - ``MemoryOperation.ADD``  -- entry is new, append to store.
+            - ``MemoryOperation.UPDATE`` -- entry is similar to an existing one,
+              replace with the merged result.
+            - ``MemoryOperation.NONE`` -- exact duplicate, skip.
         """
         existing_hashes = {e.content_hash for e in existing}
         existing_embeddings = [(e, self._get_embedding(e)) for e in existing]
 
-        results: list[tuple[str, MemoryEntry | None]] = []
+        results: list[tuple[MemoryOperation, MemoryEntry | None]] = []
 
         for new_entry in new_entries:
             # 1. Exact content-hash deduplication
             if new_entry.content_hash in existing_hashes:
-                results.append(("none", None))
+                results.append((MemoryOperation.NONE, None))
                 continue
 
             # 2. Semantic similarity check
@@ -140,8 +133,8 @@ class SimilarityConsolidator:
             # 3. Merge or add
             if best_sim >= self._similarity_threshold and best_existing is not None:
                 merged = self._merge_entries(new_entry, best_existing)
-                results.append(("update", merged))
+                results.append((MemoryOperation.UPDATE, merged))
             else:
-                results.append(("add", new_entry))
+                results.append((MemoryOperation.ADD, new_entry))
 
         return results
