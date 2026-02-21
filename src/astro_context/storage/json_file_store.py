@@ -3,14 +3,26 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+import logging
+import os
+import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from astro_context.models.memory import MemoryType
 
+from astro_context.exceptions import StorageError
 from astro_context.models.memory import MemoryEntry
+from astro_context.storage._filters import (
+    list_all_entries,
+    matches_filters,
+    search_entries,
+    search_filtered_entries,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class JsonFileMemoryStore:
@@ -22,9 +34,9 @@ class JsonFileMemoryStore:
     Suitable for development and single-process applications.
     Not suitable for concurrent multi-process access.
 
-    Auto-saves to disk on every mutation (``add``, ``delete``, ``clear``).
-    Call ``save()`` explicitly after bulk operations or direct ``_entries``
-    manipulation if needed.
+    By default (``auto_save=True``), mutations (``add``, ``delete``, ``clear``)
+    are persisted to disk immediately.  Set ``auto_save=False`` for batch
+    operations and call ``save()`` explicitly when ready.
 
     Example::
 
@@ -33,12 +45,13 @@ class JsonFileMemoryStore:
         entries = store.search("hello")
     """
 
-    __slots__ = ("_dirty", "_entries", "_file_path")
+    __slots__ = ("_auto_save", "_dirty", "_entries", "_file_path")
 
-    def __init__(self, file_path: str | Path) -> None:
-        self._file_path = Path(file_path)
+    def __init__(self, file_path: str | Path, *, auto_save: bool = True) -> None:
+        self._file_path = Path(file_path).resolve()
         self._entries: dict[str, MemoryEntry] = {}
         self._dirty: bool = False
+        self._auto_save: bool = auto_save
         if self._file_path.exists():
             self.load()
 
@@ -47,61 +60,72 @@ class JsonFileMemoryStore:
     # ------------------------------------------------------------------
 
     def add(self, entry: MemoryEntry) -> None:
-        """Add or overwrite a memory entry and persist to disk."""
+        """Add or overwrite a memory entry and optionally persist to disk."""
         self._entries[entry.id] = entry
         self._dirty = True
-        self.save()
+        if self._auto_save:
+            self._maybe_save()
 
     def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]:
         """Search entries by substring match, excluding expired entries.
 
         Results are sorted by relevance_score (descending).
         """
-        query_lower = query.lower()
-        now = datetime.now(UTC)
-        results: list[MemoryEntry] = []
-        for entry in self._entries.values():
-            if entry.expires_at is not None and entry.expires_at <= now:
-                continue
-            if query_lower in entry.content.lower():
-                results.append(entry)
-        results.sort(key=lambda e: e.relevance_score, reverse=True)
-        return results[:top_k]
+        return search_entries(self._entries, query, top_k)
 
     def list_all(self) -> list[MemoryEntry]:
         """Return all non-expired entries."""
-        now = datetime.now(UTC)
-        return [
-            e for e in self._entries.values()
-            if e.expires_at is None or e.expires_at > now
-        ]
+        return list_all_entries(self._entries)
 
     def delete(self, entry_id: str) -> bool:
         """Delete an entry by id, persist to disk. Returns True if found."""
         removed = self._entries.pop(entry_id, None) is not None
         if removed:
             self._dirty = True
-            self.save()
+            if self._auto_save:
+                self._maybe_save()
         return removed
 
     def clear(self) -> None:
         """Remove all entries and persist the empty state to disk."""
         self._entries.clear()
         self._dirty = True
-        self.save()
+        if self._auto_save:
+            self._maybe_save()
 
     # ------------------------------------------------------------------
     # Persistence methods
     # ------------------------------------------------------------------
 
     def save(self) -> None:
-        """Flush all entries to the JSON file on disk."""
+        """Flush all entries to the JSON file on disk.
+
+        Uses atomic write (temp file + rename) to prevent corruption.
+        Always writes when called explicitly; use internal ``_maybe_save()``
+        for dirty-flag-aware auto-saving.
+        """
         data: list[dict[str, Any]] = [
             entry.model_dump(mode="json") for entry in self._entries.values()
         ]
         self._file_path.parent.mkdir(parents=True, exist_ok=True)
-        self._file_path.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
+
+        content = json.dumps(data, indent=2, default=str)
+
+        fd, tmp_path = tempfile.mkstemp(dir=self._file_path.parent, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            Path(tmp_path).replace(self._file_path)
+        except BaseException:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
+
         self._dirty = False
+
+    def _maybe_save(self) -> None:
+        """Write to disk only if in-memory state has changed since the last save."""
+        if self._dirty:
+            self.save()
 
     def load(self) -> None:
         """Reload entries from the JSON file on disk."""
@@ -116,10 +140,23 @@ class JsonFileMemoryStore:
             self._dirty = False
             return
 
-        raw_list: list[dict[str, Any]] = json.loads(text)
+        try:
+            raw_list: list[dict[str, Any]] = json.loads(text)
+        except json.JSONDecodeError as e:
+            msg = f"Failed to load memory store from {self._file_path}: invalid JSON"
+            raise StorageError(msg) from e
+
         self._entries.clear()
         for raw in raw_list:
-            entry = MemoryEntry.model_validate(raw)
+            try:
+                entry = MemoryEntry.model_validate(raw)
+            except Exception:
+                logger.warning(
+                    "Skipping malformed entry in %s: %s",
+                    self._file_path,
+                    raw.get("id", "<unknown>"),
+                )
+                continue
             self._entries[entry.id] = entry
         self._dirty = False
 
@@ -131,6 +168,10 @@ class JsonFileMemoryStore:
         """Retrieve a single entry by id, or None if not found."""
         return self._entries.get(entry_id)
 
+    def list_all_unfiltered(self) -> list[MemoryEntry]:
+        """Return all entries including expired ones."""
+        return list(self._entries.values())
+
     def delete_by_user(self, user_id: str) -> int:
         """Delete all entries belonging to a user. Returns count deleted."""
         to_delete = [
@@ -141,7 +182,8 @@ class JsonFileMemoryStore:
             del self._entries[eid]
         if to_delete:
             self._dirty = True
-            self.save()
+            if self._auto_save:
+                self._maybe_save()
         return len(to_delete)
 
     def export_user_entries(self, user_id: str) -> list[MemoryEntry]:
@@ -182,30 +224,17 @@ class JsonFileMemoryStore:
         Returns:
             Matching entries sorted by relevance_score descending.
         """
-        query_lower = query.lower()
-        now = datetime.now(UTC)
-        memory_type_str = str(memory_type) if memory_type is not None else None
-
-        results: list[MemoryEntry] = []
-        for entry in self._entries.values():
-            if entry.expires_at is not None and entry.expires_at <= now:
-                continue
-            if query_lower and query_lower not in entry.content.lower():
-                continue
-            if not self._matches_filters(
-                entry,
-                user_id=user_id,
-                session_id=session_id,
-                memory_type_str=memory_type_str,
-                tags=tags,
-                created_after=created_after,
-                created_before=created_before,
-            ):
-                continue
-            results.append(entry)
-
-        results.sort(key=lambda e: e.relevance_score, reverse=True)
-        return results[:top_k]
+        return search_filtered_entries(
+            self._entries,
+            query,
+            top_k,
+            user_id=user_id,
+            session_id=session_id,
+            memory_type=memory_type,
+            tags=tags,
+            created_after=created_after,
+            created_before=created_before,
+        )
 
     @staticmethod
     def _matches_filters(
@@ -218,18 +247,20 @@ class JsonFileMemoryStore:
         created_after: datetime | None,
         created_before: datetime | None,
     ) -> bool:
-        """Check whether an entry passes all provided filters."""
-        if user_id is not None and entry.user_id != user_id:
-            return False
-        if session_id is not None and entry.session_id != session_id:
-            return False
-        if memory_type_str is not None and str(entry.memory_type) != memory_type_str:
-            return False
-        if tags is not None and not all(t in entry.tags for t in tags):
-            return False
-        if created_after is not None and entry.created_at <= created_after:
-            return False
-        return not (created_before is not None and entry.created_at >= created_before)
+        """Check whether an entry passes all provided filters.
+
+        Delegates to :func:`astro_context.storage._filters.matches_filters`.
+        Kept for backwards compatibility.
+        """
+        return matches_filters(
+            entry,
+            user_id=user_id,
+            session_id=session_id,
+            memory_type_str=memory_type_str,
+            tags=tags,
+            created_after=created_after,
+            created_before=created_before,
+        )
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(file={self._file_path!s}, entries={len(self._entries)})"

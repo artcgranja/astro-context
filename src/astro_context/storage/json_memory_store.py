@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from astro_context.models.memory import MemoryType
 
 from astro_context.models.memory import MemoryEntry
+from astro_context.storage._filters import (
+    list_all_entries,
+    matches_filters,
+    search_entries,
+    search_filtered_entries,
+)
 
 
 class InMemoryEntryStore:
@@ -39,24 +45,11 @@ class InMemoryEntryStore:
 
         Results are sorted by relevance_score (descending) as a tiebreaker.
         """
-        query_lower = query.lower()
-        now = datetime.now(UTC)
-        scored: list[MemoryEntry] = []
-        for entry in self._entries.values():
-            if entry.expires_at is not None and entry.expires_at <= now:
-                continue
-            if query_lower in entry.content.lower():
-                scored.append(entry)
-        scored.sort(key=lambda e: e.relevance_score, reverse=True)
-        return scored[:top_k]
+        return search_entries(self._entries, query, top_k)
 
     def list_all(self) -> list[MemoryEntry]:
         """Return all non-expired entries."""
-        now = datetime.now(UTC)
-        return [
-            e for e in self._entries.values()
-            if e.expires_at is None or e.expires_at > now
-        ]
+        return list_all_entries(self._entries)
 
     def delete(self, entry_id: str) -> bool:
         """Delete an entry by id. Returns True if found and deleted."""
@@ -73,6 +66,10 @@ class InMemoryEntryStore:
     def get(self, entry_id: str) -> MemoryEntry | None:
         """Retrieve a single entry by id, or None if not found."""
         return self._entries.get(entry_id)
+
+    def list_all_unfiltered(self) -> list[MemoryEntry]:
+        """Return all entries including expired ones."""
+        return list(self._entries.values())
 
     def delete_by_user(self, user_id: str) -> int:
         """Delete all entries belonging to a user. Returns count deleted."""
@@ -111,30 +108,17 @@ class InMemoryEntryStore:
         Returns:
             Matching entries sorted by relevance_score descending.
         """
-        query_lower = query.lower()
-        now = datetime.now(UTC)
-        memory_type_str = str(memory_type) if memory_type is not None else None
-
-        results: list[MemoryEntry] = []
-        for entry in self._entries.values():
-            if entry.expires_at is not None and entry.expires_at <= now:
-                continue
-            if query_lower and query_lower not in entry.content.lower():
-                continue
-            if not self._matches_filters(
-                entry,
-                user_id=user_id,
-                session_id=session_id,
-                memory_type_str=memory_type_str,
-                tags=tags,
-                created_after=created_after,
-                created_before=created_before,
-            ):
-                continue
-            results.append(entry)
-
-        results.sort(key=lambda e: e.relevance_score, reverse=True)
-        return results[:top_k]
+        return search_filtered_entries(
+            self._entries,
+            query,
+            top_k,
+            user_id=user_id,
+            session_id=session_id,
+            memory_type=memory_type,
+            tags=tags,
+            created_after=created_after,
+            created_before=created_before,
+        )
 
     @staticmethod
     def _matches_filters(
@@ -147,18 +131,20 @@ class InMemoryEntryStore:
         created_after: datetime | None,
         created_before: datetime | None,
     ) -> bool:
-        """Check whether an entry passes all provided filters."""
-        if user_id is not None and entry.user_id != user_id:
-            return False
-        if session_id is not None and entry.session_id != session_id:
-            return False
-        if memory_type_str is not None and str(entry.memory_type) != memory_type_str:
-            return False
-        if tags is not None and not all(t in entry.tags for t in tags):
-            return False
-        if created_after is not None and entry.created_at <= created_after:
-            return False
-        return not (created_before is not None and entry.created_at >= created_before)
+        """Check whether an entry passes all provided filters.
+
+        Delegates to :func:`astro_context.storage._filters.matches_filters`.
+        Kept for backwards compatibility.
+        """
+        return matches_filters(
+            entry,
+            user_id=user_id,
+            session_id=session_id,
+            memory_type_str=memory_type_str,
+            tags=tags,
+            created_after=created_after,
+            created_before=created_before,
+        )
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(entries={len(self._entries)})"

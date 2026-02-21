@@ -10,6 +10,7 @@ from __future__ import annotations
 import heapq
 from typing import Any
 
+from astro_context._math import cosine_similarity
 from astro_context.models.context import ContextItem
 
 
@@ -67,7 +68,7 @@ class InMemoryVectorStore:
             return []
         results: list[tuple[str, float]] = []
         for item_id, emb in self._embeddings.items():
-            score = self._cosine_similarity(query_embedding, emb)
+            score = cosine_similarity(query_embedding, emb)
             results.append((item_id, score))
         return heapq.nlargest(top_k, results, key=lambda x: x[1])
 
@@ -78,14 +79,12 @@ class InMemoryVectorStore:
 
     @staticmethod
     def _cosine_similarity(a: list[float], b: list[float]) -> float:
-        """Compute cosine similarity between two vectors without numpy."""
-        dot = sum((x * y for x, y in zip(a, b, strict=True)), 0.0)
-        norm_a = sum((x * x for x in a), 0.0) ** 0.5
-        norm_b = sum((x * x for x in b), 0.0) ** 0.5
-        if norm_a == 0 or norm_b == 0:
-            return 0.0
-        similarity: float = dot / (norm_a * norm_b)
-        return max(-1.0, min(1.0, similarity))
+        """Compute cosine similarity between two vectors without numpy.
+
+        Delegates to :func:`astro_context._math.cosine_similarity`.
+        Kept for backwards compatibility with code that calls this static method.
+        """
+        return cosine_similarity(a, b)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(embeddings={len(self._embeddings)})"
