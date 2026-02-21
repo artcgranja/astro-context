@@ -8,10 +8,10 @@ import time
 from collections.abc import Callable
 from typing import Any, Literal, cast, overload
 
+from astro_context._callbacks import fire_callbacks
 from astro_context.exceptions import AstroContextError, FormatterError, PipelineExecutionError
 from astro_context.formatters.base import Formatter
 from astro_context.formatters.generic import GenericTextFormatter
-from astro_context.memory.manager import MemoryManager
 from astro_context.models.budget import TokenBudget
 from astro_context.models.context import (
     ContextItem,
@@ -21,6 +21,7 @@ from astro_context.models.context import (
     SourceType,
 )
 from astro_context.models.query import QueryBundle
+from astro_context.protocols.memory import MemoryProvider
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
 
@@ -70,7 +71,7 @@ class ContextPipeline:
         self._max_tokens = max_tokens
         self._tokenizer = tokenizer or get_default_counter()
         self._steps: list[PipelineStep] = []
-        self._memory: MemoryManager | None = None
+        self._memory: MemoryProvider | None = None
         self._formatter: Formatter = GenericTextFormatter()
         self._system_items: list[ContextItem] = []
         self._budget: TokenBudget | None = budget
@@ -117,16 +118,13 @@ class ContextPipeline:
         self._steps.append(step)
         return self
 
-    def with_memory(self, memory: MemoryManager) -> ContextPipeline:
-        """Attach a memory manager. Returns self for chaining.
+    def with_memory(self, memory: MemoryProvider) -> ContextPipeline:
+        """Attach a memory provider. Returns self for chaining.
 
-        .. note::
-
-            A ``MemoryProvider`` protocol is being added to
-            ``astro_context.protocols``; once available the *memory*
-            parameter will accept any ``MemoryProvider`` implementation.
+        Any object satisfying the ``MemoryProvider`` protocol (i.e. having a
+        ``get_context_items(priority: int) -> list[ContextItem]`` method) is
+        accepted.  ``MemoryManager`` is the canonical implementation.
         """
-        # TODO(protocols): accept MemoryProvider protocol in addition to MemoryManager
         self._memory = memory
         return self
 
@@ -173,11 +171,9 @@ class ContextPipeline:
 
     def _fire(self, method: str, *args: Any) -> None:
         """Invoke a callback method on all registered callbacks, swallowing errors."""
-        for cb in self._callbacks:
-            try:
-                getattr(cb, method)(*args)
-            except Exception:
-                logger.debug("Callback %r.%s failed", cb, method, exc_info=True)
+        fire_callbacks(
+            self._callbacks, method, *args, logger=logger, log_level=logging.WARNING,
+        )
 
     # -- Decorator-based step registration (inspired by @agent.tool from Pydantic AI) --
 
@@ -445,15 +441,16 @@ class ContextPipeline:
         diagnostics: dict[str, Any],
         *,
         is_known: bool,
-    ) -> list[ContextItem] | None:
+    ) -> list[ContextItem]:
         """Handle an exception raised during step execution.
 
         *is_known* is ``True`` when the exception is an expected type
         (``AstroContextError``, ``TypeError``, ``ValueError``) that should
         be re-raised as-is if the step policy is ``"raise"``.
 
-        Returns the rollback item list when the step is skipped, or ``None``
-        to signal that the caller should re-raise.
+        Returns the rollback item list when the step is skipped.  When the
+        step policy is ``"raise"`` this method always raises and never
+        returns.
         """
         self._fire("on_step_error", step.name, exc)
         if step.on_error == "skip":
@@ -507,16 +504,14 @@ class ContextPipeline:
             try:
                 all_items = step.execute(all_items, resolved_query)
             except (AstroContextError, TypeError, ValueError) as exc:
-                rollback = self._handle_step_error(
+                all_items = self._handle_step_error(
                     step, exc, items_before, diagnostics, is_known=True,
                 )
-                all_items = rollback  # type: ignore[assignment]  # rollback is never None here
                 continue
             except Exception as e:
-                rollback = self._handle_step_error(
+                all_items = self._handle_step_error(
                     step, e, items_before, diagnostics, is_known=False,
                 )
-                all_items = rollback  # type: ignore[assignment]
                 continue
             self._record_step_success(step, all_items, step_start, diagnostics)
 
@@ -539,16 +534,14 @@ class ContextPipeline:
             try:
                 all_items = await step.aexecute(all_items, resolved_query)
             except (AstroContextError, TypeError, ValueError) as exc:
-                rollback = self._handle_step_error(
+                all_items = self._handle_step_error(
                     step, exc, items_before, diagnostics, is_known=True,
                 )
-                all_items = rollback  # type: ignore[assignment]
                 continue
             except Exception as e:
-                rollback = self._handle_step_error(
+                all_items = self._handle_step_error(
                     step, e, items_before, diagnostics, is_known=False,
                 )
-                all_items = rollback  # type: ignore[assignment]
                 continue
             self._record_step_success(step, all_items, step_start, diagnostics)
 

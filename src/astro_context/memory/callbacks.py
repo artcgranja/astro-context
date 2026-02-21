@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
+from astro_context._callbacks import fire_callbacks
+
 if TYPE_CHECKING:
     from astro_context.models.memory import ConversationTurn, MemoryEntry
 
@@ -119,10 +121,4 @@ def _fire_memory_callback(
         *args: Positional arguments forwarded to the callback method.
         **kwargs: Keyword arguments forwarded to the callback method.
     """
-    for cb in callbacks:
-        try:
-            getattr(cb, method)(*args, **kwargs)
-        except Exception:
-            logger.exception(
-                "Memory callback %s.%s failed", type(cb).__name__, method
-            )
+    fire_callbacks(callbacks, method, *args, logger=logger, log_level=logging.WARNING, **kwargs)

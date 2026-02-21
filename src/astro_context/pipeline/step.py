@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from astro_context.exceptions import AstroContextError
 from astro_context.models.context import ContextItem
@@ -36,6 +36,13 @@ class PipelineStep:
     on_error: Literal["raise", "skip"] = "raise"
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    def _validate_result(self, result: Any) -> list[ContextItem]:
+        """Validate that a step returned a list and return it typed."""
+        if not isinstance(result, list):
+            msg = f"Step '{self.name}' must return a list of ContextItem"
+            raise TypeError(msg)
+        return cast(list[ContextItem], result)
+
     def execute(self, items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
         """Execute this step synchronously."""
         if self.is_async:
@@ -51,10 +58,7 @@ class PipelineStep:
         except Exception as e:
             msg = f"Step '{self.name}' failed during execution"
             raise AstroContextError(msg) from e
-        if not isinstance(result, list):
-            msg = f"Step '{self.name}' must return a list of ContextItem"
-            raise TypeError(msg)
-        return result
+        return self._validate_result(result)
 
     async def aexecute(
         self, items: list[ContextItem], query: QueryBundle
@@ -73,10 +77,7 @@ class PipelineStep:
         except Exception as e:
             msg = f"Step '{self.name}' failed during execution"
             raise AstroContextError(msg) from e
-        if not isinstance(result, list):
-            msg = f"Step '{self.name}' must return a list of ContextItem"
-            raise TypeError(msg)
-        return result
+        return self._validate_result(result)
 
 
 def retriever_step(name: str, retriever: Retriever, top_k: int = 10) -> PipelineStep:

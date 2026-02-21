@@ -11,6 +11,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from astro_context.models.context import ContextItem
     from astro_context.models.memory import ConversationTurn, MemoryEntry
 
 
@@ -191,7 +192,7 @@ class MemoryDecay(Protocol):
 
 
 @runtime_checkable
-class QueryEnricher(Protocol):
+class MemoryQueryEnricher(Protocol):
     """Enriches a query with memory context before retrieval."""
 
     def enrich(self, query: str, memory_items: list[MemoryEntry]) -> str:
@@ -211,6 +212,9 @@ class QueryEnricher(Protocol):
             returned unchanged.
         """
         ...
+
+
+QueryEnricher = MemoryQueryEnricher  # Deprecated: use MemoryQueryEnricher
 
 
 @runtime_checkable
@@ -235,3 +239,34 @@ class RecencyScorer(Protocol):
             etc.) is implementation-defined.
         """
         ...
+
+
+@runtime_checkable
+class ConversationMemory(Protocol):
+    """Protocol for conversation memory implementations.
+
+    Both ``SlidingWindowMemory`` and ``SummaryBufferMemory`` satisfy this
+    protocol.  Use this type instead of concrete classes when only read-side
+    access to conversation memory is needed.
+    """
+
+    @property
+    def turns(self) -> list[ConversationTurn]: ...
+
+    @property
+    def total_tokens(self) -> int: ...
+
+    def to_context_items(self, priority: int = 7) -> list[ContextItem]: ...
+
+    def clear(self) -> None: ...
+
+
+@runtime_checkable
+class MemoryProvider(Protocol):
+    """Protocol for objects that provide context items from memory.
+
+    ``ContextPipeline.with_memory()`` accepts any object satisfying this
+    protocol.  ``MemoryManager`` is the canonical implementation.
+    """
+
+    def get_context_items(self, priority: int = 7) -> list[ContextItem]: ...

@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from astro_context.exceptions import StorageError
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType, Role
+from astro_context.protocols.memory import ConversationMemory
 from astro_context.protocols.storage import MemoryEntryStore
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
@@ -36,13 +38,11 @@ class MemoryManager:
         tokenizer: Tokenizer | None = None,
         on_evict: Callable[[list[ConversationTurn]], None] | None = None,
         persistent_store: MemoryEntryStore | None = None,
-        conversation_memory: SlidingWindowMemory | SummaryBufferMemory | None = None,
+        conversation_memory: ConversationMemory | None = None,
     ) -> None:
         self._tokenizer = tokenizer or get_default_counter()
         if conversation_memory is not None:
-            self._conversation: SlidingWindowMemory | SummaryBufferMemory = (
-                conversation_memory
-            )
+            self._conversation: ConversationMemory = conversation_memory
         else:
             if conversation_tokens <= 0:
                 msg = "conversation_tokens must be a positive integer"
@@ -62,7 +62,7 @@ class MemoryManager:
         )
 
     @property
-    def conversation(self) -> SlidingWindowMemory | SummaryBufferMemory:
+    def conversation(self) -> ConversationMemory:
         """Access the underlying conversation memory."""
         return self._conversation
 
@@ -70,11 +70,14 @@ class MemoryManager:
     def conversation_type(self) -> str:
         """Return the type of the underlying conversation memory.
 
-        Returns ``"sliding_window"`` or ``"summary_buffer"``.
+        Returns ``"sliding_window"``, ``"summary_buffer"``, or the class name
+        for custom ``ConversationMemory`` implementations.
         """
         if isinstance(self._conversation, SummaryBufferMemory):
             return "summary_buffer"
-        return "sliding_window"
+        if isinstance(self._conversation, SlidingWindowMemory):
+            return "sliding_window"
+        return type(self._conversation).__name__
 
     @property
     def persistent_store(self) -> MemoryEntryStore | None:
@@ -87,8 +90,14 @@ class MemoryManager:
         """Add a message to the conversation backend (works with both types)."""
         if isinstance(self._conversation, SummaryBufferMemory):
             self._conversation.add_message(role, content)
-        else:
+        elif isinstance(self._conversation, SlidingWindowMemory):
             self._conversation.add_turn(role, content)
+        else:
+            msg = (
+                f"ConversationMemory implementation {type(self._conversation).__name__!r} "
+                "does not support add_turn() or add_message()"
+            )
+            raise TypeError(msg)
 
     def add_user_message(self, content: str) -> None:
         """Add a user message to the conversation history."""
@@ -127,11 +136,11 @@ class MemoryManager:
             The newly created ``MemoryEntry``.
 
         Raises:
-            RuntimeError: If no persistent store has been configured.
+            StorageError: If no persistent store has been configured.
         """
         if self._persistent_store is None:
-            msg = "No persistent_store configured on this MemoryManager"
-            raise RuntimeError(msg)
+            msg = "No persistent_store configured. Pass a MemoryEntryStore to MemoryManager."
+            raise StorageError(msg)
         entry = MemoryEntry(
             content=content,
             tags=tags or [],

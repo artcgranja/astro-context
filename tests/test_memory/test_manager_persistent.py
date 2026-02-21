@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from astro_context.exceptions import StorageError
 from astro_context.memory.manager import MemoryManager
 from astro_context.models.context import SourceType
 from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType
@@ -110,7 +111,7 @@ class TestMemoryManagerAddFact:
 
     def test_add_fact_raises_without_persistent_store(self) -> None:
         mgr = _make_manager()
-        with pytest.raises(RuntimeError, match="No persistent_store"):
+        with pytest.raises(StorageError, match="No persistent_store"):
             mgr.add_fact("some fact")
 
 
