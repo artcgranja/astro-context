@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
-if TYPE_CHECKING:
-    from astro_context.agent.models import AgentTool
+from pydantic import BaseModel, ConfigDict
+
+from astro_context.agent.models import AgentTool
 
 
-@dataclass(frozen=True, slots=True)
-class Skill:
+class Skill(BaseModel):
     """A named group of tools with optional on-demand activation.
 
     Skills organise :class:`AgentTool` instances into discoverable units.
@@ -36,9 +35,11 @@ class Skill:
         Optional tags for filtering or grouping skills.
     """
 
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
     name: str
     description: str
     instructions: str = ""
     tools: tuple[AgentTool, ...] = ()
     activation: Literal["always", "on_demand"] = "always"
-    tags: tuple[str, ...] = field(default_factory=tuple)
+    tags: tuple[str, ...] = ()
