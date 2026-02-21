@@ -189,3 +189,79 @@ def test_rag_tools_includes_section_label():
     tools = rag_tools(retriever, embed_fn=_fake_embed)
     result = tools[0].fn(query="token budgets")
     assert "Token Budgets" in result
+
+
+# -- validate_input --
+
+
+def test_validate_input_valid():
+    """Correct input passes validation."""
+    tool = AgentTool(
+        name="greet",
+        description="Say hello",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer"},
+            },
+            "required": ["name"],
+        },
+        fn=lambda name, age=0: f"Hello {name}",
+    )
+    valid, err = tool.validate_input({"name": "Alice", "age": 30})
+    assert valid is True
+    assert err == ""
+
+
+def test_validate_input_missing_required():
+    """Missing required field is detected."""
+    tool = AgentTool(
+        name="greet",
+        description="Say hello",
+        input_schema={
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        },
+        fn=lambda name: f"Hello {name}",
+    )
+    valid, err = tool.validate_input({})
+    assert valid is False
+    assert "name" in err
+    assert "Missing required field" in err
+
+
+def test_validate_input_wrong_type():
+    """Type mismatch is detected."""
+    tool = AgentTool(
+        name="calc",
+        description="Calculate",
+        input_schema={
+            "type": "object",
+            "properties": {"x": {"type": "integer"}},
+            "required": ["x"],
+        },
+        fn=lambda x: str(x),
+    )
+    valid, err = tool.validate_input({"x": "not_a_number"})
+    assert valid is False
+    assert "integer" in err
+    assert "str" in err
+
+
+def test_validate_input_extra_fields():
+    """Extra fields are allowed (lenient mode)."""
+    tool = AgentTool(
+        name="greet",
+        description="Say hello",
+        input_schema={
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        },
+        fn=lambda name, **kw: f"Hello {name}",
+    )
+    valid, err = tool.validate_input({"name": "Alice", "extra": "ignored"})
+    assert valid is True
+    assert err == ""
