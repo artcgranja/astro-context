@@ -595,7 +595,9 @@ def _ensure_mock_anthropic() -> types.ModuleType:
 
 def test_retry_on_rate_limit():
     """Agent retries on RateLimitError with exponential backoff."""
-    mock_anthropic = _ensure_mock_anthropic()
+
+    class _TransientError(Exception):
+        """Lightweight stand-in for a transient API error."""
 
     call_count = [0]
     responses = [
@@ -612,7 +614,7 @@ def test_retry_on_rate_limit():
     def flaky_stream(**kwargs: Any) -> FakeStream:
         call_count[0] += 1
         if call_count[0] <= 2:
-            raise mock_anthropic.RateLimitError("rate limited")  # type: ignore[attr-defined]
+            raise _TransientError("rate limited")
         return original_stream(**kwargs)
 
     client.messages.stream = flaky_stream  # type: ignore[assignment]
@@ -620,7 +622,11 @@ def test_retry_on_rate_limit():
     agent = Agent(model="test-model", client=client, max_retries=3)
     agent.with_system_prompt("You are helpful.")
 
-    with patch("astro_context.agent.agent.time.sleep") as mock_sleep:
+    # Patch _retryable_errors to catch our lightweight error class
+    with (
+        patch.object(Agent, "_retryable_errors", return_value=(_TransientError,)),
+        patch("astro_context.agent.agent.time.sleep") as mock_sleep,
+    ):
         chunks = list(agent.chat("Hi"))
 
     assert "".join(chunks) == "Success!"

@@ -238,7 +238,7 @@ class Agent:
         for attempt in range(self._max_retries):
             try:
                 return self._client.messages.stream(**kwargs)
-            except retryable as exc:  # type: ignore[misc]
+            except retryable as exc:
                 last_exc = exc
                 delay = 2**attempt  # 1, 2, 4, ...
                 logger.warning(
@@ -260,7 +260,7 @@ class Agent:
         for attempt in range(self._max_retries):
             try:
                 return self._client.messages.stream(**kwargs)
-            except retryable as exc:  # type: ignore[misc]
+            except retryable as exc:
                 last_exc = exc
                 delay = 2**attempt
                 logger.warning(
