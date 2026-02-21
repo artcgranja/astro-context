@@ -54,7 +54,16 @@ Tokens:
 
 from importlib.metadata import PackageNotFoundError, version
 
-from astro_context.agent import Agent, AgentTool, memory_tools, rag_tools
+from astro_context.agent import (
+    Agent,
+    AgentTool,
+    Skill,
+    SkillRegistry,
+    memory_skill,
+    memory_tools,
+    rag_skill,
+    rag_tools,
+)
 from astro_context.exceptions import (
     AstroContextError,
     FormatterError,
@@ -245,6 +254,8 @@ __all__ = [
     "ScoredMemoryRetriever",
     "SimilarityConsolidator",
     "SimpleGraphMemory",
+    "Skill",
+    "SkillRegistry",
     "SlidingWindowMemory",
     "SourceType",
     "SparseRetriever",
@@ -268,8 +279,10 @@ __all__ = [
     "default_rag_budget",
     "filter_step",
     "graph_retrieval_step",
+    "memory_skill",
     "memory_tools",
     "postprocessor_step",
+    "rag_skill",
     "rag_tools",
     "retriever_step",
 ]
