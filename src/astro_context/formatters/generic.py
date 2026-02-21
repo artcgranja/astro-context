@@ -8,7 +8,15 @@ from .utils import classify_window_items
 
 
 class GenericTextFormatter:
-    """Formats context as structured plain text with section headers."""
+    """Formats context as structured plain text with section headers.
+
+    Security Note:
+        Content from memory and retrieval items is inserted verbatim into
+        the formatted output without sanitization.  If these items originate
+        from untrusted sources (e.g. user-supplied documents, web scrapes),
+        they may contain prompt injection payloads.  Callers should implement
+        content validation or filtering *before* items enter the pipeline.
+    """
 
     @property
     def format_type(self) -> str:

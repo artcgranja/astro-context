@@ -14,16 +14,48 @@ from astro_context.models.context import ContextItem, ContextWindow, SourceType
 _ALLOWED_ROLES: frozenset[str] = frozenset({"user", "assistant", "system", "tool"})
 """Roles accepted by the Anthropic and OpenAI message APIs."""
 
+_SAFE_CONVERSATION_ROLES: frozenset[str] = frozenset({"user", "assistant"})
+"""Roles that untrusted sources (CONVERSATION, MEMORY, RETRIEVAL) may use.
+
+Allowing ``"system"`` or ``"tool"`` for these source types would let an
+attacker who controls a memory entry or retrieved document escalate to
+system-level authority in the formatted prompt.
+"""
+
 
 def get_message_role(item: ContextItem) -> str:
     """Return the validated chat role for a context item.
 
     Falls back to ``"user"`` when the metadata key is missing or
     contains a value outside :data:`_ALLOWED_ROLES`.
+
+    **Security:** Roles are further restricted based on the item's
+    :class:`SourceType` to prevent privilege escalation:
+
+    * ``SourceType.SYSTEM`` -- may use ``"system"`` (plus ``"user"``/``"assistant"``).
+    * ``SourceType.TOOL`` -- may use ``"tool"`` (plus ``"user"``/``"assistant"``).
+    * All other sources (``CONVERSATION``, ``MEMORY``, ``RETRIEVAL``, ``USER``)
+      -- restricted to ``"user"`` and ``"assistant"`` only.
+
+    Disallowed roles are silently downgraded to ``"user"``.
     """
     role: str = str(item.metadata.get("role", "user"))
     if role not in _ALLOWED_ROLES:
-        role = "user"
+        return "user"
+
+    # Restrict roles based on source type to prevent escalation.
+    if item.source == SourceType.SYSTEM:
+        # System items may legitimately carry the "system" role.
+        return role
+    if item.source == SourceType.TOOL:
+        # Tool items may carry the "tool" role.
+        if role in (_SAFE_CONVERSATION_ROLES | {"tool"}):
+            return role
+        return "user"
+
+    # For CONVERSATION, MEMORY, RETRIEVAL, USER sources: only safe roles.
+    if role not in _SAFE_CONVERSATION_ROLES:
+        return "user"
     return role
 
 

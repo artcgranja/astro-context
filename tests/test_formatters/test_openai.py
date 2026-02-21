@@ -40,17 +40,18 @@ class TestOpenAIFormatter:
         assert output["messages"][0]["role"] == "system"
         assert output["messages"][0]["content"] == "Be helpful.\n\nBe concise."
 
-    def test_retrieval_items_as_system_context(self) -> None:
+    def test_retrieval_items_as_user_context(self) -> None:
         window = ContextWindow(max_tokens=10000)
         window.add_item(
             ContextItem(content="doc about Python", source=SourceType.RETRIEVAL, token_count=5)
         )
         formatter = OpenAIFormatter()
         output = formatter.format(window)
-        # Should be a system message with context
+        # Retrieval content uses 'user' role (not 'system') to prevent
+        # privilege escalation from untrusted retrieved documents.
         assert len(output["messages"]) == 1
         msg = output["messages"][0]
-        assert msg["role"] == "system"
+        assert msg["role"] == "user"
         assert "Relevant context:" in msg["content"]
         assert "doc about Python" in msg["content"]
 
@@ -79,7 +80,7 @@ class TestOpenAIFormatter:
         assert output["messages"][1]["role"] == "assistant"
 
     def test_full_structure_ordering(self) -> None:
-        """System messages come first, then context, then conversation."""
+        """System messages come first, then retrieval context (user), then conversation."""
         window = ContextWindow(max_tokens=10000)
         window.add_item(
             ContextItem(content="System prompt", source=SourceType.SYSTEM, token_count=5)
@@ -99,10 +100,10 @@ class TestOpenAIFormatter:
         output = formatter.format(window)
         messages = output["messages"]
 
-        # Should be: system prompt, context system msg, then conversation
+        # Should be: system prompt, retrieval context (user role), then conversation
         assert messages[0]["role"] == "system"
         assert messages[0]["content"] == "System prompt"
-        assert messages[1]["role"] == "system"
+        assert messages[1]["role"] == "user"
         assert "Relevant context:" in messages[1]["content"]
         assert messages[2]["role"] == "user"
         assert messages[2]["content"] == "User hello"
@@ -137,9 +138,9 @@ class TestOpenAIFormatter:
         )
         formatter = OpenAIFormatter()
         output = formatter.format(window)
-        # Both docs should appear in one system context message
+        # Both docs should appear in one user context message
         context_msg = output["messages"][0]
-        assert context_msg["role"] == "system"
+        assert context_msg["role"] == "user"
         assert "doc one" in context_msg["content"]
         assert "doc two" in context_msg["content"]
         assert "---" in context_msg["content"]  # Separator

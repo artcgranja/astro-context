@@ -23,6 +23,13 @@ class AnthropicFormatter:
         last system content block and the last retrieval/context message.  This
         enables Anthropic prompt caching to reduce latency and cost for
         repeated prefixes.
+
+    Security Note:
+        Content from memory and retrieval items is inserted verbatim into
+        the formatted output without sanitization.  If these items originate
+        from untrusted sources (e.g. user-supplied documents, web scrapes),
+        they may contain prompt injection payloads.  Callers should implement
+        content validation or filtering *before* items enter the pipeline.
     """
 
     def __init__(self, *, enable_caching: bool = False) -> None:

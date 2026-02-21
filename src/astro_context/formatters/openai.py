@@ -14,6 +14,13 @@ class OpenAIFormatter:
 
     Produces a dict with:
     - "messages": list of message dicts with role and content
+
+    Security Note:
+        Content from memory and retrieval items is inserted verbatim into
+        the formatted output without sanitization.  If these items originate
+        from untrusted sources (e.g. user-supplied documents, web scrapes),
+        they may contain prompt injection payloads.  Callers should implement
+        content validation or filtering *before* items enter the pipeline.
     """
 
     @property
@@ -23,9 +30,10 @@ class OpenAIFormatter:
     def format(self, window: ContextWindow) -> dict[str, Any]:
         """Format the context window for the OpenAI Chat Completions API.
 
-        Returns a dict with a ``"messages"`` list.  System prompts and
-        retrieval context are emitted as ``system`` messages, followed by the
-        conversation history from memory items.
+        Returns a dict with a ``"messages"`` list.  System prompts are emitted
+        as ``system`` messages.  Retrieval context is emitted as a ``user``
+        message to prevent privilege escalation from untrusted content,
+        followed by the conversation history from memory items.
         """
         classified = classify_window_items(window)
 
@@ -38,7 +46,10 @@ class OpenAIFormatter:
             context_block = "Relevant context:\n\n" + "\n\n---\n\n".join(
                 classified.context_parts
             )
-            messages.append({"role": "system", "content": context_block})
+            # Security: retrieval content is untrusted and must NOT use the
+            # "system" role.  Placing it in a "user" message prevents an
+            # attacker-controlled document from gaining system-level authority.
+            messages.append({"role": "user", "content": context_block})
 
         for item in classified.memory_items:
             role = get_message_role(item)
