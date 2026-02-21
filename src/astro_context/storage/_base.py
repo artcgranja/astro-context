@@ -4,12 +4,13 @@ Provides shared query, filtering, and lookup methods so that
 :class:`InMemoryEntryStore` and :class:`JsonFileMemoryStore` need only
 implement mutation + persistence logic.
 
-Subclasses must define ``self._entries: dict[str, MemoryEntry]`` before
-calling any mixin method.
+Subclasses must define ``self._entries: dict[str, MemoryEntry]`` and
+``self._lock: threading.Lock`` before calling any mixin method.
 """
 
 from __future__ import annotations
 
+import threading
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -28,16 +29,20 @@ class BaseEntryStoreMixin:
     """Mixin providing shared read/query/delete-by-user methods.
 
     Concrete stores inherit from this and implement ``add()``, ``delete()``,
-    ``clear()``, ``__init__()`` (to create ``self._entries``), and optionally
-    override ``_after_mutation()`` to persist changes.
+    ``clear()``, ``__init__()`` (to create ``self._entries`` and ``self._lock``),
+    and optionally override ``_after_mutation()`` to persist changes.
 
     The ``_after_mutation()`` hook is called after any mixin method that
     modifies ``self._entries`` (currently ``delete_by_user``).  The default
     implementation is a no-op; file-backed stores override it to flush to disk.
+
+    Subclasses **must** initialise ``self._lock = threading.Lock()`` in their
+    ``__init__`` so that mixin methods can synchronise access.
     """
 
-    # Declared here for type-checkers; concrete classes actually create it.
+    # Declared here for type-checkers; concrete classes actually create them.
     _entries: dict[str, MemoryEntry]
+    _lock: threading.Lock
 
     # ------------------------------------------------------------------
     # Mutation hook
@@ -59,19 +64,23 @@ class BaseEntryStoreMixin:
 
         Results are sorted by relevance_score (descending) as a tiebreaker.
         """
-        return search_entries(self._entries, query, top_k)
+        with self._lock:
+            return search_entries(self._entries, query, top_k)
 
     def list_all(self) -> list[MemoryEntry]:
         """Return all non-expired entries."""
-        return list_all_entries(self._entries)
+        with self._lock:
+            return list_all_entries(self._entries)
 
     def get(self, entry_id: str) -> MemoryEntry | None:
         """Retrieve a single entry by id, or ``None`` if not found."""
-        return self._entries.get(entry_id)
+        with self._lock:
+            return self._entries.get(entry_id)
 
     def list_all_unfiltered(self) -> list[MemoryEntry]:
         """Return all entries including expired ones."""
-        return list(self._entries.values())
+        with self._lock:
+            return list(self._entries.values())
 
     def search_filtered(
         self,
@@ -100,17 +109,18 @@ class BaseEntryStoreMixin:
         Returns:
             Matching entries sorted by relevance_score descending.
         """
-        return search_filtered_entries(
-            self._entries,
-            query,
-            top_k,
-            user_id=user_id,
-            session_id=session_id,
-            memory_type=memory_type,
-            tags=tags,
-            created_after=created_after,
-            created_before=created_before,
-        )
+        with self._lock:
+            return search_filtered_entries(
+                self._entries,
+                query,
+                top_k,
+                user_id=user_id,
+                session_id=session_id,
+                memory_type=memory_type,
+                tags=tags,
+                created_after=created_after,
+                created_before=created_before,
+            )
 
     # ------------------------------------------------------------------
     # Mutation methods delegated from concrete stores
@@ -118,15 +128,16 @@ class BaseEntryStoreMixin:
 
     def delete_by_user(self, user_id: str) -> int:
         """Delete all entries belonging to a user. Returns count deleted."""
-        to_delete = [
-            eid for eid, entry in self._entries.items()
-            if entry.user_id == user_id
-        ]
-        for eid in to_delete:
-            del self._entries[eid]
-        if to_delete:
-            self._after_mutation()
-        return len(to_delete)
+        with self._lock:
+            to_delete = [
+                eid for eid, entry in self._entries.items()
+                if entry.user_id == user_id
+            ]
+            for eid in to_delete:
+                del self._entries[eid]
+            if to_delete:
+                self._after_mutation()
+            return len(to_delete)
 
     # ------------------------------------------------------------------
     # Static helpers (kept for backwards compatibility)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import threading
+
 from astro_context.models.memory import MemoryEntry
 from astro_context.storage._base import BaseEntryStoreMixin
 
@@ -16,10 +18,11 @@ class InMemoryEntryStore(BaseEntryStoreMixin):
     For persistence across sessions, use ``JsonFileMemoryStore``.
     """
 
-    __slots__ = ("_entries",)
+    __slots__ = ("_entries", "_lock")
 
     def __init__(self) -> None:
         self._entries: dict[str, MemoryEntry] = {}
+        self._lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # MemoryEntryStore protocol methods
@@ -27,15 +30,18 @@ class InMemoryEntryStore(BaseEntryStoreMixin):
 
     def add(self, entry: MemoryEntry) -> None:
         """Add or overwrite a memory entry."""
-        self._entries[entry.id] = entry
+        with self._lock:
+            self._entries[entry.id] = entry
 
     def delete(self, entry_id: str) -> bool:
         """Delete an entry by id. Returns True if found and deleted."""
-        return self._entries.pop(entry_id, None) is not None
+        with self._lock:
+            return self._entries.pop(entry_id, None) is not None
 
     def clear(self) -> None:
         """Remove all entries."""
-        self._entries.clear()
+        with self._lock:
+            self._entries.clear()
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(entries={len(self._entries)})"
