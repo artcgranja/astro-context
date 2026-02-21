@@ -33,6 +33,8 @@ class PipelineDiagnostics(TypedDict, total=False):
     query_enriched: bool
     skipped_steps: list[str]
     failed_step: str
+    budget_overflow_by_source: dict[str, int]
+    shared_pool_usage: int
 
 
 class SourceType(StrEnum):
