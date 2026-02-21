@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -36,13 +37,14 @@ class JsonFileMemoryStore(BaseEntryStoreMixin):
         entries = store.search("hello")
     """
 
-    __slots__ = ("_auto_save", "_dirty", "_entries", "_file_path")
+    __slots__ = ("_auto_save", "_dirty", "_entries", "_file_path", "_lock")
 
     def __init__(self, file_path: str | Path, *, auto_save: bool = True) -> None:
         self._file_path = Path(file_path).resolve()
         self._entries: dict[str, MemoryEntry] = {}
         self._dirty: bool = False
         self._auto_save: bool = auto_save
+        self._lock = threading.Lock()
         if self._file_path.exists():
             self.load()
 
@@ -62,26 +64,29 @@ class JsonFileMemoryStore(BaseEntryStoreMixin):
 
     def add(self, entry: MemoryEntry) -> None:
         """Add or overwrite a memory entry and optionally persist to disk."""
-        self._entries[entry.id] = entry
-        self._dirty = True
-        if self._auto_save:
-            self._maybe_save()
-
-    def delete(self, entry_id: str) -> bool:
-        """Delete an entry by id, persist to disk. Returns True if found."""
-        removed = self._entries.pop(entry_id, None) is not None
-        if removed:
+        with self._lock:
+            self._entries[entry.id] = entry
             self._dirty = True
             if self._auto_save:
                 self._maybe_save()
-        return removed
+
+    def delete(self, entry_id: str) -> bool:
+        """Delete an entry by id, persist to disk. Returns True if found."""
+        with self._lock:
+            removed = self._entries.pop(entry_id, None) is not None
+            if removed:
+                self._dirty = True
+                if self._auto_save:
+                    self._maybe_save()
+            return removed
 
     def clear(self) -> None:
         """Remove all entries and persist the empty state to disk."""
-        self._entries.clear()
-        self._dirty = True
-        if self._auto_save:
-            self._maybe_save()
+        with self._lock:
+            self._entries.clear()
+            self._dirty = True
+            if self._auto_save:
+                self._maybe_save()
 
     # ------------------------------------------------------------------
     # Persistence methods
@@ -93,7 +98,15 @@ class JsonFileMemoryStore(BaseEntryStoreMixin):
         Uses atomic write (temp file + rename) to prevent corruption.
         Always writes when called explicitly; use internal ``_maybe_save()``
         for dirty-flag-aware auto-saving.
+
+        Acquires the lock when called directly. Internal callers that already
+        hold the lock should use ``_maybe_save()`` instead.
         """
+        with self._lock:
+            self._save_unlocked()
+
+    def _save_unlocked(self) -> None:
+        """Write entries to disk without acquiring the lock (caller must hold it)."""
         data: list[dict[str, Any]] = [
             entry.model_dump(mode="json") for entry in self._entries.values()
         ]
@@ -113,12 +126,20 @@ class JsonFileMemoryStore(BaseEntryStoreMixin):
         self._dirty = False
 
     def _maybe_save(self) -> None:
-        """Write to disk only if in-memory state has changed since the last save."""
+        """Write to disk only if in-memory state has changed since the last save.
+
+        Must be called while holding ``self._lock``.
+        """
         if self._dirty:
-            self.save()
+            self._save_unlocked()
 
     def load(self) -> None:
         """Reload entries from the JSON file on disk."""
+        with self._lock:
+            self._load_unlocked()
+
+    def _load_unlocked(self) -> None:
+        """Load entries from disk without acquiring the lock (caller must hold it)."""
         if not self._file_path.exists():
             self._entries.clear()
             self._dirty = False
@@ -160,10 +181,11 @@ class JsonFileMemoryStore(BaseEntryStoreMixin):
         Returns a list of all entries with the given user_id, including
         expired entries (for completeness of the data export).
         """
-        return [
-            entry for entry in self._entries.values()
-            if entry.user_id == user_id
-        ]
+        with self._lock:
+            return [
+                entry for entry in self._entries.values()
+                if entry.user_id == user_id
+            ]
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(file={self._file_path!s}, entries={len(self._entries)})"
