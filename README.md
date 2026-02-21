@@ -61,32 +61,45 @@ print(result.diagnostics)        # Token usage, timing, overflow info
 ## Hybrid Retrieval
 
 ```python
+import math
 from astro_context import (
-    ContextPipeline, QueryBundle, DenseRetriever, SparseRetriever,
-    HybridRetriever, InMemoryContextStore, InMemoryVectorStore,
+    ContextPipeline, ContextItem, QueryBundle, SourceType,
+    DenseRetriever, HybridRetriever,
+    InMemoryContextStore, InMemoryVectorStore,
+    retriever_step,
 )
-from astro_context.pipeline import retriever_step
 
-# Dense + BM25 with Reciprocal Rank Fusion
+# You provide the embedding function (any model or API)
+def my_embed_fn(text: str) -> list[float]:
+    """Simple deterministic embedding for demonstration."""
+    seed = sum(ord(c) for c in text) % 10000
+    raw = [math.sin(seed * 1000 + i) for i in range(64)]
+    norm = math.sqrt(sum(x * x for x in raw))
+    return [x / norm for x in raw] if norm else raw
+
+# Create retriever with in-memory stores
 dense = DenseRetriever(
     vector_store=InMemoryVectorStore(),
     context_store=InMemoryContextStore(),
-    embed_fn=my_embed_fn,  # you provide this
+    embed_fn=my_embed_fn,
 )
-sparse = SparseRetriever()
+
+# Create ContextItem objects for your documents
+items = [
+    ContextItem(content="Python is great for data science.", source=SourceType.RETRIEVAL),
+    ContextItem(content="RAG combines retrieval with generation.", source=SourceType.RETRIEVAL),
+]
 
 # Index your documents
 dense.index(items)
-sparse.index(items)
 
-# Fuse with weighted RRF
-hybrid = HybridRetriever(retrievers=[dense, sparse], weights=[0.6, 0.4])
-
+# Build the pipeline (also supports SparseRetriever + HybridRetriever with RRF)
 pipeline = (
     ContextPipeline(max_tokens=8192)
-    .add_step(retriever_step("search", hybrid, top_k=10))
+    .add_step(retriever_step("search", dense, top_k=5))
 )
-result = pipeline.build(QueryBundle(query_str="How to optimize queries?"))
+query = QueryBundle(query_str="How does RAG work?", embedding=my_embed_fn("How does RAG work?"))
+result = pipeline.build(query)
 ```
 
 ## Memory Management
@@ -194,6 +207,40 @@ Formatter (Anthropic / OpenAI / Generic)
 ContextResult (formatted output + diagnostics)
 ```
 
+## Priority System
+
+Every `ContextItem` has a `priority` field (1--10) that controls placement order in the context window. Higher priority items are placed first and are never evicted in favor of lower priority items.
+
+| Priority | Source | Usage |
+|----------|--------|-------|
+| 10 | System prompts | Instructions, persona, rules |
+| 8 | Persistent memory | Long-term facts from `MemoryManager.add_fact()` |
+| 7 | Conversation memory | Recent chat turns from `SlidingWindowMemory` |
+| 5 | Retrieval (default) | RAG results from retrievers |
+| 1--4 | Custom | Low-priority supplementary context |
+
+When the total context exceeds `max_tokens`, the pipeline fills from highest priority down. Items that do not fit are tracked in `result.overflow_items`.
+
+## Token Budgets
+
+For fine-grained control over how tokens are allocated across sources, use `TokenBudget`:
+
+```python
+from astro_context import ContextPipeline, TokenBudget, default_chat_budget
+
+# Use a preset budget (allocates tokens across system, memory, retrieval, etc.)
+budget = default_chat_budget(max_tokens=8192)
+pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
+```
+
+Three preset factories are available:
+
+- `default_chat_budget(max_tokens)` -- Optimized for conversational apps (60% conversation)
+- `default_rag_budget(max_tokens)` -- Optimized for RAG-heavy apps (40% retrieval)
+- `default_agent_budget(max_tokens)` -- Optimized for agentic apps (balanced allocation)
+
+Each budget supports `reserve_tokens` to guarantee room for the LLM response, and per-source overflow strategies (`"truncate"` or `"drop"`).
+
 ## Optional Dependencies
 
 ```bash
@@ -216,7 +263,7 @@ astro-context --help     # See all commands
 git clone https://github.com/arthurgranja/astro-context.git
 cd astro-context
 uv sync           # Install all dependencies
-uv run pytest     # Run tests (961 tests, 94% coverage)
+uv run pytest     # Run tests (1088 tests, 94% coverage)
 uv run ruff check src/ tests/  # Lint
 ```
 
