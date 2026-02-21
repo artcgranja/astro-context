@@ -19,6 +19,7 @@ constructor parameters:
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -54,6 +55,7 @@ class SummaryBufferMemory:
 
     __slots__ = (
         "_compact_fn",
+        "_lock",
         "_progressive_compact_fn",
         "_summary",
         "_summary_priority",
@@ -88,6 +90,7 @@ class SummaryBufferMemory:
         self._summary_priority = summary_priority
         self._summary: str | None = None
         self._summary_tokens: int = 0
+        self._lock = threading.Lock()
         self._window = SlidingWindowMemory(
             max_tokens=max_tokens,
             tokenizer=self._tokenizer,
@@ -133,11 +136,12 @@ class SummaryBufferMemory:
         Parameters:
             turn: A ``ConversationTurn`` to append.
         """
-        self._window.add_turn(
-            role=turn.role,
-            content=turn.content,
-            **turn.metadata,
-        )
+        with self._lock:
+            self._window.add_turn(
+                role=turn.role,
+                content=turn.content,
+                **turn.metadata,
+            )
 
     def add_message(self, role: Role, content: str, **metadata: object) -> ConversationTurn:
         """Add a message by role and content, returning the created turn.
@@ -153,7 +157,8 @@ class SummaryBufferMemory:
             The ``ConversationTurn`` that was actually stored (may be
             truncated if it exceeds the window budget).
         """
-        return self._window.add_turn(role, content, **metadata)
+        with self._lock:
+            return self._window.add_turn(role, content, **metadata)
 
     def to_context_items(self, priority: int = 7) -> list[ContextItem]:
         """Convert the summary and live window into context items.
@@ -168,21 +173,22 @@ class SummaryBufferMemory:
         Returns:
             A list of ``ContextItem`` instances ready for the pipeline.
         """
-        items: list[ContextItem] = []
+        with self._lock:
+            items: list[ContextItem] = []
 
-        if self._summary is not None:
-            summary_item = ContextItem(
-                content=self._summary,
-                source=SourceType.CONVERSATION,
-                score=0.5,
-                priority=self._summary_priority,
-                token_count=self._summary_tokens,
-                metadata={"role": "system", "summary": True},
-            )
-            items.append(summary_item)
+            if self._summary is not None:
+                summary_item = ContextItem(
+                    content=self._summary,
+                    source=SourceType.CONVERSATION,
+                    score=0.5,
+                    priority=self._summary_priority,
+                    token_count=self._summary_tokens,
+                    metadata={"role": "system", "summary": True},
+                )
+                items.append(summary_item)
 
-        items.extend(self._window.to_context_items(priority=priority))
-        return items
+            items.extend(self._window.to_context_items(priority=priority))
+            return items
 
     @property
     def summary(self) -> str | None:
