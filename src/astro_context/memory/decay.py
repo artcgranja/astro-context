@@ -63,7 +63,7 @@ class LinearDecay:
 
     __slots__ = ("_half_life_hours",)
 
-    def __init__(self, half_life_hours: float = 168.0) -> None:
+    def __init__(self, half_life_hours: float = 168.0) -> None:  # 7 days
         if half_life_hours <= 0:
             msg = "half_life_hours must be positive"
             raise ValueError(msg)

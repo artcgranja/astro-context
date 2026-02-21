@@ -92,11 +92,11 @@ class SimpleGraphMemory:
             memory_id: The ``MemoryEntry.id`` to associate.
 
         Raises:
-            ValueError: If the entity does not exist in the graph.
+            KeyError: If the entity does not exist in the graph.
         """
         if entity_id not in self._nodes:
             msg = f"Entity '{entity_id}' does not exist in the graph"
-            raise ValueError(msg)
+            raise KeyError(msg)
         self._entity_to_memories.setdefault(entity_id, []).append(memory_id)
 
     def _rebuild_adjacency(self) -> None:

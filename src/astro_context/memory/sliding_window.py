@@ -58,7 +58,7 @@ class SlidingWindowMemory:
 
     def __repr__(self) -> str:
         return (
-            f"SlidingWindowMemory(turns={len(self._turns)}, "
+            f"{type(self).__name__}(turns={len(self._turns)}, "
             f"tokens={self._total_tokens}/{self._max_tokens})"
         )
 

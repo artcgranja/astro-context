@@ -21,7 +21,7 @@ class DenseRetriever:
     Implements the Retriever protocol.
     """
 
-    __slots__ = ("_context_store", "_counter", "_embed_fn", "_vector_store")
+    __slots__ = ("_context_store", "_embed_fn", "_tokenizer", "_vector_store")
 
     def __init__(
         self,
@@ -33,7 +33,7 @@ class DenseRetriever:
         self._vector_store = vector_store
         self._context_store = context_store
         self._embed_fn = embed_fn
-        self._counter = tokenizer or get_default_counter()
+        self._tokenizer = tokenizer or get_default_counter()
 
     def __repr__(self) -> str:
         return (
@@ -71,7 +71,7 @@ class DenseRetriever:
                 scored_item = item.model_copy(update={
                     "source": SourceType.RETRIEVAL,
                     "score": min(1.0, max(0.0, score)),
-                    "token_count": item.token_count or self._counter.count_tokens(item.content),
+                    "token_count": item.token_count or self._tokenizer.count_tokens(item.content),
                     "metadata": {**item.metadata, "retrieval_method": "dense"},
                 })
                 items.append(scored_item)

@@ -15,6 +15,8 @@ from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import MemoryEntry
 from astro_context.models.query import QueryBundle
 
+_DEFAULT_HALF_LIFE_SECONDS = 7 * 86400.0
+
 
 class ScoredMemoryRetriever:
     """Multi-signal memory retriever combining recency, relevance, and importance.
@@ -168,9 +170,8 @@ class ScoredMemoryRetriever:
             return self._decay.compute_retention(entry)
 
         # Exponential decay: score = exp(-lambda * age_seconds)
-        # Half-life of 7 days: lambda = ln(2) / (7 * 86400)
-        half_life_seconds = 7 * 86400.0
-        decay_lambda = math.log(2) / half_life_seconds
+        # Half-life of 7 days: lambda = ln(2) / half_life_seconds
+        decay_lambda = math.log(2) / _DEFAULT_HALF_LIFE_SECONDS
 
         now = datetime.now(UTC)
         last_accessed = entry.last_accessed

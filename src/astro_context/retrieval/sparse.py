@@ -25,7 +25,7 @@ class SparseRetriever:
     Implements the Retriever protocol.
     """
 
-    __slots__ = ("_bm25", "_counter", "_items", "_tokenize_fn")
+    __slots__ = ("_bm25", "_items", "_tokenize_fn", "_tokenizer")
 
     def __init__(
         self,
@@ -35,7 +35,7 @@ class SparseRetriever:
         self._tokenize_fn = tokenize_fn or self._default_tokenize
         self._bm25: BM25Okapi | None = None
         self._items: list[ContextItem] = []
-        self._counter = tokenizer or get_default_counter()
+        self._tokenizer = tokenizer or get_default_counter()
 
     def __repr__(self) -> str:
         return (
@@ -91,7 +91,7 @@ class SparseRetriever:
             scored_item = item.model_copy(update={
                 "source": SourceType.RETRIEVAL,
                 "score": score,
-                "token_count": item.token_count or self._counter.count_tokens(item.content),
+                "token_count": item.token_count or self._tokenizer.count_tokens(item.content),
                 "metadata": {**item.metadata, "retrieval_method": "sparse_bm25"},
             })
             items.append(scored_item)

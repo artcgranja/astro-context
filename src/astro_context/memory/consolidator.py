@@ -121,6 +121,7 @@ class SimilarityConsolidator:
 
             # 2. Semantic similarity check
             new_emb = self._embed_fn(new_entry.content)
+            self._embedding_cache[new_entry.id] = new_emb  # Cache for future consolidation rounds
             best_sim = 0.0
             best_existing: MemoryEntry | None = None
 

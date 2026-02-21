@@ -25,6 +25,8 @@ class ScoreReranker:
         reranked_items = reranker.process(items, query)
     """
 
+    __slots__ = ("_score_fn", "_top_k")
+
     def __init__(
         self,
         score_fn: Callable[[str, str], float],
@@ -32,6 +34,9 @@ class ScoreReranker:
     ) -> None:
         self._score_fn = score_fn
         self._top_k = top_k
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(top_k={self._top_k})"
 
     def process(
         self, items: list[ContextItem], query: QueryBundle | None = None

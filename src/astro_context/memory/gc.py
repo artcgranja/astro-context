@@ -134,7 +134,9 @@ class MemoryGarbageCollector:
             retention_threshold=retention_threshold, dry_run=dry_run, _entries=all_entries
         ) if self._decay is not None else []
 
-        total_remaining = len(self._store.list_all_unfiltered())
+        expired_ids = {e.id for e in expired}
+        decayed_ids = {e.id for e in decayed}
+        total_remaining = len(all_entries) - len(expired_ids) - len(decayed_ids)
         return GCStats(
             expired_pruned=len(expired),
             decayed_pruned=len(decayed),
