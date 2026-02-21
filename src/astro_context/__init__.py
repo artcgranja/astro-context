@@ -1,4 +1,53 @@
-"""astro-context: Context engineering toolkit for AI applications."""
+"""astro-context: Context engineering toolkit for AI applications.
+
+Core Pipeline:
+    ContextPipeline, ContextResult, PipelineStep, PipelineCallback,
+    PipelineDiagnostics, StepDiagnostic, PipelineExecutionError,
+    retriever_step, filter_step, postprocessor_step, async_retriever_step,
+    async_postprocessor_step, auto_promotion_step, graph_retrieval_step,
+    create_eviction_promoter
+
+Memory Management:
+    MemoryManager, SlidingWindowMemory, SummaryBufferMemory, SimpleGraphMemory,
+    MemoryGarbageCollector, GCStats, MemoryCallback, CallbackExtractor,
+    MemoryContextEnricher, ContextQueryEnricher,
+    FIFOEviction, ImportanceEviction, PairedEviction,
+    SimilarityConsolidator, ExponentialRecencyScorer, LinearRecencyScorer,
+    EbbinghausDecay, LinearDecay
+
+Retrieval:
+    DenseRetriever, SparseRetriever, HybridRetriever, ScoreReranker,
+    ScoredMemoryRetriever, MemoryRetrieverAdapter
+
+Formatting:
+    AnthropicFormatter, OpenAIFormatter, GenericTextFormatter, BaseFormatter
+
+Protocols (extension points):
+    Retriever, AsyncRetriever, PostProcessor, AsyncPostProcessor,
+    Tokenizer, Formatter, QueryEnricher, MemoryQueryEnricher, RecencyScorer,
+    EvictionPolicy, CompactionStrategy, AsyncCompactionStrategy,
+    MemoryExtractor, AsyncMemoryExtractor, MemoryConsolidator, MemoryDecay,
+    ContextStore, DocumentStore, VectorStore, MemoryEntryStore,
+    GarbageCollectableStore, ConversationMemory, MemoryProvider
+
+Storage:
+    InMemoryContextStore, InMemoryDocumentStore, InMemoryVectorStore,
+    InMemoryEntryStore, JsonFileMemoryStore
+
+Models & Types:
+    ContextItem, ContextWindow, QueryBundle, TokenBudget, BudgetAllocation,
+    ConversationTurn, MemoryEntry, MemoryType, MemoryOperation,
+    SourceType, OverflowStrategy, Role,
+    StreamDelta, StreamResult, StreamUsage,
+    default_chat_budget, default_rag_budget, default_agent_budget
+
+Exceptions:
+    AstroContextError, FormatterError, RetrieverError, StorageError,
+    TokenBudgetExceededError
+
+Tokens:
+    TiktokenCounter
+"""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -79,6 +128,7 @@ from astro_context.protocols import (
     AsyncRetriever,
     CompactionStrategy,
     ContextStore,
+    ConversationMemory,
     DocumentStore,
     EvictionPolicy,
     GarbageCollectableStore,
@@ -87,6 +137,8 @@ from astro_context.protocols import (
     MemoryEntryStore,
     MemoryExtractor,
     MemoryOperation,
+    MemoryProvider,
+    MemoryQueryEnricher,
     PostProcessor,
     QueryEnricher,
     RecencyScorer,
@@ -133,6 +185,7 @@ __all__ = [
     "ContextResult",
     "ContextStore",
     "ContextWindow",
+    "ConversationMemory",
     "ConversationTurn",
     "DenseRetriever",
     "DocumentStore",
@@ -164,6 +217,8 @@ __all__ = [
     "MemoryGarbageCollector",
     "MemoryManager",
     "MemoryOperation",
+    "MemoryProvider",
+    "MemoryQueryEnricher",
     "MemoryRetrieverAdapter",
     "MemoryType",
     "OpenAIFormatter",

@@ -23,7 +23,15 @@ class TiktokenCounter:
     def __init__(
         self, encoding_name: str = "cl100k_base", max_cache_size: int = 10_000
     ) -> None:
-        import tiktoken
+        try:
+            import tiktoken
+        except ImportError:
+            msg = (
+                "tiktoken is required for the default tokenizer. "
+                "Install it with: pip install astro-context[tiktoken] "
+                "or pip install tiktoken"
+            )
+            raise ImportError(msg) from None
 
         self._encoding = tiktoken.get_encoding(encoding_name)
         self._max_cache_size = max_cache_size
@@ -61,5 +69,16 @@ def get_default_counter() -> TiktokenCounter:
 
     Call ``get_default_counter.cache_clear()`` to reset the singleton
     (useful in tests).
+
+    Raises:
+        ImportError: If tiktoken is not installed.
     """
-    return TiktokenCounter()
+    try:
+        return TiktokenCounter()
+    except ImportError:
+        msg = (
+            "tiktoken is required for the default tokenizer. "
+            "Install it with: pip install astro-context[tiktoken] "
+            "or pip install tiktoken"
+        )
+        raise ImportError(msg) from None

@@ -58,7 +58,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
-    { name = "tiktoken" },
 ]
 
 [package.optional-dependencies]
@@ -66,6 +65,7 @@ all = [
     { name = "anthropic" },
     { name = "rank-bm25" },
     { name = "rich" },
+    { name = "tiktoken" },
     { name = "typer" },
 ]
 anthropic = [
@@ -82,6 +82,9 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extra = ["python"] },
 ]
+tiktoken = [
+    { name = "tiktoken" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -92,22 +95,23 @@ dev = [
     { name = "rank-bm25" },
     { name = "rich" },
     { name = "ruff" },
+    { name = "tiktoken" },
     { name = "typer" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'anthropic'", specifier = ">=0.40,<1" },
-    { name = "astro-context", extras = ["bm25", "cli", "anthropic"], marker = "extra == 'all'" },
+    { name = "astro-context", extras = ["bm25", "cli", "anthropic", "tiktoken"], marker = "extra == 'all'" },
     { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9,<10" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.25,<1" },
     { name = "pydantic", specifier = ">=2.8,<3" },
     { name = "rank-bm25", marker = "extra == 'bm25'", specifier = ">=0.2.2,<1" },
     { name = "rich", marker = "extra == 'cli'", specifier = ">=13,<14" },
-    { name = "tiktoken", specifier = ">=0.7,<1" },
+    { name = "tiktoken", marker = "extra == 'tiktoken'", specifier = ">=0.7,<1" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.12,<1" },
 ]
-provides-extras = ["bm25", "cli", "anthropic", "docs", "all"]
+provides-extras = ["tiktoken", "bm25", "cli", "anthropic", "docs", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -118,6 +122,7 @@ dev = [
     { name = "rank-bm25", specifier = ">=0.2.2,<1" },
     { name = "rich", specifier = ">=13,<14" },
     { name = "ruff", specifier = ">=0.5,<1" },
+    { name = "tiktoken", specifier = ">=0.7,<1" },
     { name = "typer", specifier = ">=0.12,<1" },
 ]
 
