@@ -8,10 +8,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from astro_context.models.context import ContextItem, SourceType
 from astro_context.pipeline.step import PipelineStep
+from astro_context.protocols.memory import MemoryOperation
 
 if TYPE_CHECKING:
     from astro_context.memory.graph_memory import SimpleGraphMemory
@@ -23,6 +24,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _store_with_consolidation(
+    entries: list[MemoryEntry],
+    store: MemoryEntryStore,
+    consolidator: MemoryConsolidator | None,
+) -> None:
+    """Persist entries, optionally deduplicating via a consolidator.
+
+    If *consolidator* is provided, new entries are consolidated against
+    entries already in the store.  Only ``ADD`` and ``UPDATE`` operations
+    result in a ``store.add()`` call.
+
+    When no consolidator is configured, every entry is added directly.
+    """
+    if consolidator is not None:
+        existing = store.list_all()
+        actions = consolidator.consolidate(entries, existing)
+        for action, entry in actions:
+            if action in (MemoryOperation.ADD, MemoryOperation.UPDATE) and entry is not None:
+                store.add(entry)
+    else:
+        for entry in entries:
+            store.add(entry)
+
+
 def graph_retrieval_step(
     graph: SimpleGraphMemory,
     store: MemoryEntryStore,
@@ -30,7 +55,7 @@ def graph_retrieval_step(
     max_depth: int = 2,
     max_items: int = 5,
     name: str = "graph_retrieval",
-    on_error: str = "skip",
+    on_error: Literal["raise", "skip"] = "skip",
 ) -> PipelineStep:
     """Create a pipeline step that retrieves memory entries linked to graph entities.
 
@@ -106,7 +131,7 @@ def graph_retrieval_step(
     return PipelineStep(
         name=name,
         fn=_retrieve,
-        on_error=on_error,  # type: ignore[arg-type]
+        on_error=on_error,
     )
 
 
@@ -115,7 +140,7 @@ def auto_promotion_step(
     store: MemoryEntryStore,
     consolidator: MemoryConsolidator | None = None,
     name: str = "auto_promotion",
-    on_error: str = "skip",
+    on_error: Literal["raise", "skip"] = "skip",
 ) -> PipelineStep:
     """Create a pipeline step that extracts and stores memories from context.
 
@@ -169,23 +194,14 @@ def auto_promotion_step(
         if not new_entries:
             return items
 
-        if consolidator is not None:
-            existing = store.list_all()
-            actions = consolidator.consolidate(new_entries, existing)
-            for action, entry in actions:
-                if action in ("add", "update") and entry is not None:
-                    store.add(entry)
-                # "none" / "delete" -> skip
-        else:
-            for entry in new_entries:
-                store.add(entry)
+        _store_with_consolidation(new_entries, store, consolidator)
 
         return items
 
     return PipelineStep(
         name=name,
         fn=_promote,
-        on_error=on_error,  # type: ignore[arg-type]
+        on_error=on_error,
     )
 
 
@@ -227,15 +243,7 @@ def create_eviction_promoter(
             if not new_entries:
                 return
 
-            if consolidator is not None:
-                existing = store.list_all()
-                actions = consolidator.consolidate(new_entries, existing)
-                for action, entry in actions:
-                    if action in ("add", "update") and entry is not None:
-                        store.add(entry)
-            else:
-                for entry in new_entries:
-                    store.add(entry)
+            _store_with_consolidation(new_entries, store, consolidator)
         except Exception:
             logger.exception(
                 "eviction promoter failed — ignoring to protect pipeline"

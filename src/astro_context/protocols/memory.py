@@ -27,28 +27,85 @@ class MemoryOperation(StrEnum):
 class CompactionStrategy(Protocol):
     """Compacts evicted conversation turns into a summary."""
 
-    def compact(self, turns: list[ConversationTurn]) -> str: ...
+    def compact(self, turns: list[ConversationTurn]) -> str:
+        """Compact a sequence of conversation turns into a summary string.
+
+        Called by ``SummaryBufferMemory`` when evicted turns need to be
+        summarised before being discarded from the sliding window.
+
+        Parameters:
+            turns: The conversation turns to compact.  Ordered
+                chronologically (oldest first).
+
+        Returns:
+            A concise summary string that preserves the essential
+            information from the turns.
+        """
+        ...
 
 
 @runtime_checkable
 class AsyncCompactionStrategy(Protocol):
     """Async variant of CompactionStrategy."""
 
-    async def compact(self, turns: list[ConversationTurn]) -> str: ...
+    async def compact(self, turns: list[ConversationTurn]) -> str:
+        """Asynchronously compact conversation turns into a summary string.
+
+        Async counterpart of ``CompactionStrategy.compact``, intended for
+        implementations that call an external LLM or network service.
+
+        Parameters:
+            turns: The conversation turns to compact.  Ordered
+                chronologically (oldest first).
+
+        Returns:
+            A concise summary string that preserves the essential
+            information from the turns.
+        """
+        ...
 
 
 @runtime_checkable
 class MemoryExtractor(Protocol):
     """Extracts structured memories from conversation turns."""
 
-    def extract(self, turns: list[ConversationTurn]) -> list[MemoryEntry]: ...
+    def extract(self, turns: list[ConversationTurn]) -> list[MemoryEntry]:
+        """Extract structured memory entries from conversation turns.
+
+        Implementations analyse the provided turns and produce zero or
+        more ``MemoryEntry`` objects representing facts, preferences, or
+        other persistent knowledge worth remembering.
+
+        Parameters:
+            turns: The conversation turns to analyse.  Ordered
+                chronologically (oldest first).
+
+        Returns:
+            A list of newly created ``MemoryEntry`` objects.  Returns an
+            empty list when no extractable memories are found.
+        """
+        ...
 
 
 @runtime_checkable
 class AsyncMemoryExtractor(Protocol):
     """Async variant of MemoryExtractor."""
 
-    async def extract(self, turns: list[ConversationTurn]) -> list[MemoryEntry]: ...
+    async def extract(self, turns: list[ConversationTurn]) -> list[MemoryEntry]:
+        """Asynchronously extract structured memory entries from conversation turns.
+
+        Async counterpart of ``MemoryExtractor.extract``, intended for
+        implementations that call an external LLM or network service.
+
+        Parameters:
+            turns: The conversation turns to analyse.  Ordered
+                chronologically (oldest first).
+
+        Returns:
+            A list of newly created ``MemoryEntry`` objects.  Returns an
+            empty list when no extractable memories are found.
+        """
+        ...
 
 
 @runtime_checkable
@@ -61,7 +118,24 @@ class MemoryConsolidator(Protocol):
 
     def consolidate(
         self, new_entries: list[MemoryEntry], existing: list[MemoryEntry]
-    ) -> list[tuple[MemoryOperation, MemoryEntry | None]]: ...
+    ) -> list[tuple[MemoryOperation, MemoryEntry | None]]:
+        """Consolidate new memory entries against existing ones.
+
+        For each new entry, the implementation decides whether to add it,
+        update an existing entry, delete an existing entry, or take no
+        action.
+
+        Parameters:
+            new_entries: Newly extracted ``MemoryEntry`` objects to be
+                consolidated.
+            existing: All entries currently in the memory store.
+
+        Returns:
+            A list of ``(MemoryOperation, entry | None)`` tuples.  For
+            ``ADD`` and ``UPDATE`` operations the entry must be non-None.
+            For ``DELETE`` and ``NONE`` operations the entry may be None.
+        """
+        ...
 
 
 @runtime_checkable
@@ -73,7 +147,23 @@ class EvictionPolicy(Protocol):
 
     def select_for_eviction(
         self, turns: list[ConversationTurn], tokens_to_free: int
-    ) -> list[int]: ...
+    ) -> list[int]:
+        """Select conversation turns for eviction.
+
+        Called when the memory's token budget is exceeded and turns must
+        be removed to make room.
+
+        Parameters:
+            turns: All conversation turns currently held in memory.
+            tokens_to_free: The minimum number of tokens that must be
+                freed to accommodate the new turn.
+
+        Returns:
+            A list of zero-based indices into *turns* identifying the
+            turns to evict.  The indices should free at least
+            ``tokens_to_free`` tokens in total.
+        """
+        ...
 
 
 @runtime_checkable
@@ -83,14 +173,44 @@ class MemoryDecay(Protocol):
     Returns a float from 0.0 (forget) to 1.0 (perfect retention).
     """
 
-    def compute_retention(self, entry: MemoryEntry) -> float: ...
+    def compute_retention(self, entry: MemoryEntry) -> float:
+        """Compute the retention score for a memory entry.
+
+        The score reflects how well the memory is retained over time,
+        typically decaying as the entry ages.
+
+        Parameters:
+            entry: The memory entry to score.
+
+        Returns:
+            A float from 0.0 (completely forgotten) to 1.0 (perfectly
+            retained).  Used by ``MemoryGarbageCollector`` to prune
+            entries below a retention threshold.
+        """
+        ...
 
 
 @runtime_checkable
 class QueryEnricher(Protocol):
     """Enriches a query with memory context before retrieval."""
 
-    def enrich(self, query: str, memory_items: list[MemoryEntry]) -> str: ...
+    def enrich(self, query: str, memory_items: list[MemoryEntry]) -> str:
+        """Enrich a query string using relevant memory entries.
+
+        Called before retrieval steps to augment the raw user query with
+        context from persistent memory.
+
+        Parameters:
+            query: The original user query string.
+            memory_items: Relevant ``MemoryEntry`` objects retrieved from
+                the persistent store.
+
+        Returns:
+            An enriched query string that incorporates memory context.
+            If no enrichment is possible, the original query should be
+            returned unchanged.
+        """
+        ...
 
 
 @runtime_checkable
@@ -101,4 +221,17 @@ class RecencyScorer(Protocol):
     Returns a float from 0.0 to 1.0.
     """
 
-    def score(self, index: int, total: int) -> float: ...
+    def score(self, index: int, total: int) -> float:
+        """Compute a recency score for an item at the given position.
+
+        Parameters:
+            index: Zero-based position of the item in the chronologically
+                sorted list (0 = oldest, ``total - 1`` = newest).
+            total: Total number of items in the list.
+
+        Returns:
+            A float from 0.0 (oldest / least recent) to 1.0 (newest /
+            most recent).  The mapping function (linear, exponential,
+            etc.) is implementation-defined.
+        """
+        ...

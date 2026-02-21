@@ -11,7 +11,9 @@ if TYPE_CHECKING:
     from astro_context.protocols.memory import MemoryDecay
     from astro_context.protocols.storage import MemoryEntryStore, VectorStore
 
+from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import MemoryEntry
+from astro_context.models.query import QueryBundle
 
 
 class ScoredMemoryRetriever:
@@ -215,6 +217,21 @@ class ScoredMemoryRetriever:
         matches = sum(1 for term in query_terms if term in content_lower)
         return matches / len(query_terms)
 
+    def as_retriever(self) -> MemoryRetrieverAdapter:
+        """Return a Retriever-protocol-compatible adapter for pipeline integration.
+
+        The adapter wraps this ``ScoredMemoryRetriever`` so that it can be
+        used with ``retriever_step()`` and other pipeline helpers that
+        expect the ``Retriever`` protocol (``retrieve(query: QueryBundle,
+        top_k: int) -> list[ContextItem]``).
+
+        Example::
+
+            adapter = scored_retriever.as_retriever()
+            pipeline.add_step(retriever_step("memory", adapter, top_k=5))
+        """
+        return MemoryRetrieverAdapter(self)
+
     def __repr__(self) -> str:
         return (
             f"ScoredMemoryRetriever("
@@ -223,3 +240,48 @@ class ScoredMemoryRetriever:
             f"vector_store={'set' if self._vector_store is not None else 'None'}, "
             f"decay={'set' if self._decay is not None else 'None'})"
         )
+
+
+class MemoryRetrieverAdapter:
+    """Adapter that bridges ``ScoredMemoryRetriever`` to the ``Retriever`` protocol.
+
+    ``ScoredMemoryRetriever.retrieve()`` accepts ``(query: str, top_k, ...)``
+    and returns ``list[MemoryEntry]``, which does not match the ``Retriever``
+    protocol signature ``(query: QueryBundle, top_k) -> list[ContextItem]``.
+
+    This adapter performs the conversion so that the scored retriever can
+    be plugged directly into a ``ContextPipeline`` via ``retriever_step()``.
+
+    Use ``ScoredMemoryRetriever.as_retriever()`` to obtain an instance.
+    """
+
+    __slots__ = ("_retriever",)
+
+    def __init__(self, retriever: ScoredMemoryRetriever) -> None:
+        self._retriever = retriever
+
+    def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
+        """Retrieve memory entries and convert them to ``ContextItem`` objects.
+
+        Parameters:
+            query: The pipeline query bundle.
+            top_k: Maximum number of items to return.
+
+        Returns:
+            A list of ``ContextItem`` objects with ``source=MEMORY`` and
+            ``priority=7``.
+        """
+        entries = self._retriever.retrieve(query.query_str, top_k=top_k)
+        return [
+            ContextItem(
+                content=e.content,
+                source=SourceType.MEMORY,
+                priority=7,
+                score=e.relevance_score,
+                metadata={"memory_type": e.memory_type, "memory_id": e.id},
+            )
+            for e in entries
+        ]
+
+    def __repr__(self) -> str:
+        return f"MemoryRetrieverAdapter({self._retriever!r})"

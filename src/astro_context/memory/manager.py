@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType
+from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType, Role
 from astro_context.protocols.storage import MemoryEntryStore
 from astro_context.protocols.tokenizer import Tokenizer
 from astro_context.tokens.counter import get_default_counter
@@ -83,12 +83,12 @@ class MemoryManager:
 
     # ---- Conversation helpers ----
 
-    def _add_message(self, role: str, content: str) -> None:
+    def _add_message(self, role: Role, content: str) -> None:
         """Add a message to the conversation backend (works with both types)."""
         if isinstance(self._conversation, SummaryBufferMemory):
-            self._conversation.add_message(role, content)  # type: ignore[arg-type]
+            self._conversation.add_message(role, content)
         else:
-            self._conversation.add_turn(role, content)  # type: ignore[arg-type]
+            self._conversation.add_turn(role, content)
 
     def add_user_message(self, content: str) -> None:
         """Add a user message to the conversation history."""

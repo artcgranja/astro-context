@@ -33,10 +33,6 @@ class ScoreReranker:
         self._score_fn = score_fn
         self._top_k = top_k
 
-    @property
-    def format_type(self) -> str:
-        return "reranker"
-
     def process(
         self, items: list[ContextItem], query: QueryBundle | None = None
     ) -> list[ContextItem]:

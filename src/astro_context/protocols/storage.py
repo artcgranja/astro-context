@@ -196,10 +196,105 @@ class DocumentStore(Protocol):
 
 @runtime_checkable
 class MemoryEntryStore(Protocol):
-    """Protocol for persistent memory entry storage."""
+    """Protocol for persistent memory entry storage.
 
-    def add(self, entry: MemoryEntry) -> None: ...
-    def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]: ...
-    def list_all(self) -> list[MemoryEntry]: ...
-    def delete(self, entry_id: str) -> bool: ...
-    def clear(self) -> None: ...
+    Implementations hold ``MemoryEntry`` objects and provide basic
+    CRUD + search operations.  The store is used by ``MemoryManager``,
+    ``ScoredMemoryRetriever``, and the eviction-promotion pipeline steps.
+    """
+
+    def add(self, entry: MemoryEntry) -> None:
+        """Persist a single memory entry to the store.
+
+        Parameters:
+            entry: The memory entry to store.  If an entry with the same
+                ``id`` already exists, the implementation should overwrite it.
+
+        Side Effects:
+            The entry is durably persisted (or held in memory, depending on
+            the backend) and will be visible to subsequent ``search`` /
+            ``list_all`` calls.
+        """
+        ...
+
+    def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]:
+        """Search for memory entries relevant to a query string.
+
+        Parameters:
+            query: Free-text search query.  The matching semantics
+                (keyword, embedding, hybrid) are implementation-defined.
+            top_k: Maximum number of results to return.
+
+        Returns:
+            A list of up to ``top_k`` matching ``MemoryEntry`` objects,
+            ordered by relevance (most relevant first).  Returns an empty
+            list when no entries match.
+        """
+        ...
+
+    def list_all(self) -> list[MemoryEntry]:
+        """Return every non-expired memory entry in the store.
+
+        Returns:
+            A list of all stored ``MemoryEntry`` objects.  The order is
+            implementation-defined.  Returns an empty list when the store
+            is empty.
+        """
+        ...
+
+    def delete(self, entry_id: str) -> bool:
+        """Remove a memory entry by its unique identifier.
+
+        Parameters:
+            entry_id: The ``id`` of the entry to delete.
+
+        Returns:
+            ``True`` if an entry was found and deleted, ``False`` if no
+            entry with the given id existed.
+
+        Side Effects:
+            The entry is permanently removed from the store.
+        """
+        ...
+
+    def clear(self) -> None:
+        """Remove all entries from the store.
+
+        Side Effects:
+            The store is left empty.  This operation is irreversible.
+        """
+        ...
+
+
+@runtime_checkable
+class GarbageCollectableStore(Protocol):
+    """A memory entry store that supports garbage collection.
+
+    Extends the base ``MemoryEntryStore`` contract with
+    ``list_all_unfiltered`` so that expired entries can be discovered
+    and deleted by the ``MemoryGarbageCollector``.
+    """
+
+    def list_all_unfiltered(self) -> list[MemoryEntry]:
+        """Return *all* entries including expired ones.
+
+        Unlike ``MemoryEntryStore.list_all`` which may filter out expired
+        entries, this method returns every entry so that the garbage
+        collector can identify and prune them.
+
+        Returns:
+            A list of all ``MemoryEntry`` objects in the store,
+            regardless of expiration status.
+        """
+        ...
+
+    def delete(self, entry_id: str) -> bool:
+        """Delete an entry by id.
+
+        Parameters:
+            entry_id: The ``id`` of the entry to delete.
+
+        Returns:
+            ``True`` if found and deleted, ``False`` otherwise.
+        """
+        ...
