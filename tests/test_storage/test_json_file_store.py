@@ -1,4 +1,10 @@
-"""Tests for astro_context.storage.json_file_store.JsonFileMemoryStore."""
+"""Tests specific to astro_context.storage.json_file_store.JsonFileMemoryStore.
+
+Shared behavioral tests (search, filtering, CRUD) have been moved to
+``test_entry_store_shared.py`` which runs against both store implementations.
+This file retains only JsonFileMemoryStore-specific tests: persistence,
+file operations, export, and repr.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +13,6 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.models.memory import MemoryType
 from astro_context.storage.json_file_store import JsonFileMemoryStore
 from tests.conftest import make_memory_entry as _make_entry
 
@@ -110,54 +115,12 @@ class TestJsonFileStoreFileOperations:
 
 
 # ---------------------------------------------------------------------------
-# search (delegates to same logic as InMemoryEntryStore)
+# delete_by_user persistence
 # ---------------------------------------------------------------------------
 
 
-class TestJsonFileStoreSearch:
-    """Search works the same as the in-memory variant."""
-
-    def test_search_finds_substring(self, store: JsonFileMemoryStore) -> None:
-        store.add(_make_entry(entry_id="s1", content="Python rocks"))
-        store.add(_make_entry(entry_id="s2", content="Java is fine"))
-
-        results = store.search("python")
-        assert len(results) == 1
-        assert results[0].id == "s1"
-
-    def test_search_respects_top_k(self, store: JsonFileMemoryStore) -> None:
-        for i in range(10):
-            store.add(_make_entry(entry_id=f"k{i}", content=f"memory item {i}"))
-        results = store.search("memory", top_k=3)
-        assert len(results) == 3
-
-    def test_search_excludes_expired(self, store: JsonFileMemoryStore) -> None:
-        past = datetime.now(UTC) - timedelta(hours=1)
-        store.add(_make_entry(entry_id="exp", content="memory expired", expires_at=past))
-        store.add(_make_entry(entry_id="ok", content="memory valid"))
-
-        results = store.search("memory")
-        ids = {e.id for e in results}
-        assert "exp" not in ids
-        assert "ok" in ids
-
-
-# ---------------------------------------------------------------------------
-# get, delete_by_user
-# ---------------------------------------------------------------------------
-
-
-class TestJsonFileStoreExtraMethods:
-    """get(), delete_by_user(), and export_user_entries()."""
-
-    def test_get_returns_entry_by_id(self, store: JsonFileMemoryStore) -> None:
-        store.add(_make_entry(entry_id="g1", content="get me"))
-        result = store.get("g1")
-        assert result is not None
-        assert result.content == "get me"
-
-    def test_get_returns_none_for_missing(self, store: JsonFileMemoryStore) -> None:
-        assert store.get("no-id") is None
+class TestJsonFileStoreDeleteByUserPersistence:
+    """delete_by_user() should persist changes to disk via _after_mutation."""
 
     def test_delete_by_user_works_and_persists(
         self, store: JsonFileMemoryStore, store_path: Path
@@ -175,11 +138,14 @@ class TestJsonFileStoreExtraMethods:
         assert new_store.get("u2") is None
         assert new_store.get("u3") is not None
 
-    def test_delete_by_user_returns_zero_when_no_match(
-        self, store: JsonFileMemoryStore
-    ) -> None:
-        store.add(_make_entry(entry_id="x1", user_id="alice"))
-        assert store.delete_by_user("unknown") == 0
+
+# ---------------------------------------------------------------------------
+# export_user_entries (JsonFileMemoryStore-specific)
+# ---------------------------------------------------------------------------
+
+
+class TestJsonFileStoreExportUserEntries:
+    """export_user_entries() is specific to JsonFileMemoryStore."""
 
     def test_export_user_entries_returns_all_for_user(
         self, store: JsonFileMemoryStore
@@ -204,136 +170,6 @@ class TestJsonFileStoreExtraMethods:
         assert len(exported) == 2
         ids = {e.id for e in exported}
         assert "ee1" in ids
-
-
-# ---------------------------------------------------------------------------
-# search_filtered
-# ---------------------------------------------------------------------------
-
-
-class TestJsonFileStoreSearchFiltered:
-    """Filtered search with all filter types."""
-
-    def test_filters_by_user_id(self, store: JsonFileMemoryStore) -> None:
-        store.add(_make_entry(entry_id="f1", content="data point", user_id="alice"))
-        store.add(_make_entry(entry_id="f2", content="data point", user_id="bob"))
-
-        results = store.search_filtered("data", user_id="alice")
-        assert len(results) == 1
-        assert results[0].id == "f1"
-
-    def test_filters_by_session_id(self, store: JsonFileMemoryStore) -> None:
-        store.add(_make_entry(entry_id="s1", content="info x", session_id="sess-a"))
-        store.add(_make_entry(entry_id="s2", content="info x", session_id="sess-b"))
-
-        results = store.search_filtered("info", session_id="sess-a")
-        assert len(results) == 1
-        assert results[0].id == "s1"
-
-    def test_filters_by_memory_type(self, store: JsonFileMemoryStore) -> None:
-        store.add(
-            _make_entry(
-                entry_id="mt1", content="procedure steps", memory_type=MemoryType.PROCEDURAL
-            )
-        )
-        store.add(
-            _make_entry(entry_id="mt2", content="procedure info", memory_type=MemoryType.SEMANTIC)
-        )
-
-        results = store.search_filtered("procedure", memory_type=MemoryType.PROCEDURAL)
-        assert len(results) == 1
-        assert results[0].id == "mt1"
-
-    def test_filters_by_tags_must_match_all(self, store: JsonFileMemoryStore) -> None:
-        store.add(_make_entry(entry_id="tg1", content="tagged item", tags=["python", "ml"]))
-        store.add(_make_entry(entry_id="tg2", content="tagged item", tags=["python"]))
-
-        results = store.search_filtered("tagged", tags=["python", "ml"])
-        assert len(results) == 1
-        assert results[0].id == "tg1"
-
-    def test_filters_by_created_after(self, store: JsonFileMemoryStore) -> None:
-        old = datetime(2024, 1, 1, tzinfo=UTC)
-        recent = datetime(2025, 6, 1, tzinfo=UTC)
-        cutoff = datetime(2025, 1, 1, tzinfo=UTC)
-
-        store.add(_make_entry(entry_id="old", content="note here", created_at=old))
-        store.add(_make_entry(entry_id="new", content="note here", created_at=recent))
-
-        results = store.search_filtered("note", created_after=cutoff)
-        assert len(results) == 1
-        assert results[0].id == "new"
-
-    def test_filters_by_created_before(self, store: JsonFileMemoryStore) -> None:
-        old = datetime(2024, 1, 1, tzinfo=UTC)
-        recent = datetime(2025, 6, 1, tzinfo=UTC)
-        cutoff = datetime(2025, 1, 1, tzinfo=UTC)
-
-        store.add(_make_entry(entry_id="old", content="archival data", created_at=old))
-        store.add(_make_entry(entry_id="new", content="archival data", created_at=recent))
-
-        results = store.search_filtered("archival", created_before=cutoff)
-        assert len(results) == 1
-        assert results[0].id == "old"
-
-    def test_combines_multiple_filters(self, store: JsonFileMemoryStore) -> None:
-        ts = datetime(2025, 3, 15, tzinfo=UTC)
-        store.add(
-            _make_entry(
-                entry_id="hit",
-                content="combined filter test",
-                user_id="alice",
-                session_id="s1",
-                memory_type=MemoryType.EPISODIC,
-                tags=["important"],
-                created_at=ts,
-            )
-        )
-        store.add(
-            _make_entry(
-                entry_id="miss",
-                content="combined filter test",
-                user_id="bob",
-                session_id="s1",
-                memory_type=MemoryType.EPISODIC,
-                tags=["important"],
-                created_at=ts,
-            )
-        )
-
-        results = store.search_filtered(
-            "combined",
-            user_id="alice",
-            session_id="s1",
-            memory_type=MemoryType.EPISODIC,
-            tags=["important"],
-            created_after=datetime(2025, 1, 1, tzinfo=UTC),
-            created_before=datetime(2025, 12, 31, tzinfo=UTC),
-        )
-        assert len(results) == 1
-        assert results[0].id == "hit"
-
-    def test_search_filtered_excludes_expired(self, store: JsonFileMemoryStore) -> None:
-        past = datetime.now(UTC) - timedelta(hours=1)
-        store.add(
-            _make_entry(
-                entry_id="expired",
-                content="filtered content",
-                user_id="alice",
-                expires_at=past,
-            )
-        )
-        store.add(
-            _make_entry(
-                entry_id="valid",
-                content="filtered content",
-                user_id="alice",
-            )
-        )
-
-        results = store.search_filtered("filtered", user_id="alice")
-        assert len(results) == 1
-        assert results[0].id == "valid"
 
 
 # ---------------------------------------------------------------------------

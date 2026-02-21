@@ -8,10 +8,13 @@ that satisfy the storage protocols.
 from __future__ import annotations
 
 import heapq
+import logging
 from typing import Any
 
 from astro_context._math import cosine_similarity
 from astro_context.models.context import ContextItem
+
+logger = logging.getLogger(__name__)
 
 
 class InMemoryContextStore:
@@ -48,11 +51,14 @@ class InMemoryVectorStore:
     FAISS, Chroma, Qdrant, etc. via the VectorStore protocol.
     """
 
-    __slots__ = ("_embeddings", "_metadata")
+    __slots__ = ("_embeddings", "_large_store_warned", "_metadata")
+
+    _LARGE_STORE_THRESHOLD: int = 5000
 
     def __init__(self) -> None:
         self._embeddings: dict[str, list[float]] = {}
         self._metadata: dict[str, dict[str, Any]] = {}
+        self._large_store_warned: bool = False
 
     def add_embedding(
         self, item_id: str, embedding: list[float], metadata: dict[str, Any] | None = None
@@ -66,6 +72,14 @@ class InMemoryVectorStore:
     ) -> list[tuple[str, float]]:
         if not self._embeddings:
             return []
+        n = len(self._embeddings)
+        if n > self._LARGE_STORE_THRESHOLD and not self._large_store_warned:
+            logger.warning(
+                "InMemoryVectorStore has %d embeddings. Consider using a dedicated "
+                "vector database (FAISS, Chroma) for better performance.",
+                n,
+            )
+            self._large_store_warned = True
         results: list[tuple[str, float]] = []
         for item_id, emb in self._embeddings.items():
             score = cosine_similarity(query_embedding, emb)

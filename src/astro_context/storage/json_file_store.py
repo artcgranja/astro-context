@@ -6,26 +6,17 @@ import json
 import logging
 import os
 import tempfile
-from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from astro_context.models.memory import MemoryType
+from typing import Any
 
 from astro_context.exceptions import StorageError
 from astro_context.models.memory import MemoryEntry
-from astro_context.storage._filters import (
-    list_all_entries,
-    matches_filters,
-    search_entries,
-    search_filtered_entries,
-)
+from astro_context.storage._base import BaseEntryStoreMixin
 
 logger = logging.getLogger(__name__)
 
 
-class JsonFileMemoryStore:
+class JsonFileMemoryStore(BaseEntryStoreMixin):
     """Persistent MemoryEntry store backed by a JSON file.
 
     Implements the ``MemoryEntryStore`` protocol and adds extra methods for
@@ -56,6 +47,16 @@ class JsonFileMemoryStore:
             self.load()
 
     # ------------------------------------------------------------------
+    # Mutation hook (called by BaseEntryStoreMixin.delete_by_user)
+    # ------------------------------------------------------------------
+
+    def _after_mutation(self) -> None:
+        """Persist changes to disk when auto-save is enabled."""
+        self._dirty = True
+        if self._auto_save:
+            self._maybe_save()
+
+    # ------------------------------------------------------------------
     # MemoryEntryStore protocol methods
     # ------------------------------------------------------------------
 
@@ -65,17 +66,6 @@ class JsonFileMemoryStore:
         self._dirty = True
         if self._auto_save:
             self._maybe_save()
-
-    def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]:
-        """Search entries by substring match, excluding expired entries.
-
-        Results are sorted by relevance_score (descending).
-        """
-        return search_entries(self._entries, query, top_k)
-
-    def list_all(self) -> list[MemoryEntry]:
-        """Return all non-expired entries."""
-        return list_all_entries(self._entries)
 
     def delete(self, entry_id: str) -> bool:
         """Delete an entry by id, persist to disk. Returns True if found."""
@@ -164,28 +154,6 @@ class JsonFileMemoryStore:
     # Extra methods (beyond MemoryEntryStore protocol)
     # ------------------------------------------------------------------
 
-    def get(self, entry_id: str) -> MemoryEntry | None:
-        """Retrieve a single entry by id, or None if not found."""
-        return self._entries.get(entry_id)
-
-    def list_all_unfiltered(self) -> list[MemoryEntry]:
-        """Return all entries including expired ones."""
-        return list(self._entries.values())
-
-    def delete_by_user(self, user_id: str) -> int:
-        """Delete all entries belonging to a user. Returns count deleted."""
-        to_delete = [
-            eid for eid, entry in self._entries.items()
-            if entry.user_id == user_id
-        ]
-        for eid in to_delete:
-            del self._entries[eid]
-        if to_delete:
-            self._dirty = True
-            if self._auto_save:
-                self._maybe_save()
-        return len(to_delete)
-
     def export_user_entries(self, user_id: str) -> list[MemoryEntry]:
         """Export all entries belonging to a user (GDPR data portability).
 
@@ -196,71 +164,6 @@ class JsonFileMemoryStore:
             entry for entry in self._entries.values()
             if entry.user_id == user_id
         ]
-
-    def search_filtered(
-        self,
-        query: str,
-        top_k: int = 5,
-        *,
-        user_id: str | None = None,
-        session_id: str | None = None,
-        memory_type: MemoryType | str | None = None,
-        tags: list[str] | None = None,
-        created_after: datetime | None = None,
-        created_before: datetime | None = None,
-    ) -> list[MemoryEntry]:
-        """Search entries with optional filters, excluding expired entries.
-
-        Parameters:
-            query: Substring to match against entry content.
-            top_k: Maximum number of results to return.
-            user_id: Filter to entries with this user_id.
-            session_id: Filter to entries with this session_id.
-            memory_type: Filter to entries with this memory type (string or MemoryType).
-            tags: Entries must contain ALL specified tags.
-            created_after: Only entries created after this datetime.
-            created_before: Only entries created before this datetime.
-
-        Returns:
-            Matching entries sorted by relevance_score descending.
-        """
-        return search_filtered_entries(
-            self._entries,
-            query,
-            top_k,
-            user_id=user_id,
-            session_id=session_id,
-            memory_type=memory_type,
-            tags=tags,
-            created_after=created_after,
-            created_before=created_before,
-        )
-
-    @staticmethod
-    def _matches_filters(
-        entry: MemoryEntry,
-        *,
-        user_id: str | None,
-        session_id: str | None,
-        memory_type_str: str | None,
-        tags: list[str] | None,
-        created_after: datetime | None,
-        created_before: datetime | None,
-    ) -> bool:
-        """Check whether an entry passes all provided filters.
-
-        Delegates to :func:`astro_context.storage._filters.matches_filters`.
-        Kept for backwards compatibility.
-        """
-        return matches_filters(
-            entry,
-            user_id=user_id,
-            session_id=session_id,
-            memory_type_str=memory_type_str,
-            tags=tags,
-            created_after=created_after,
-            created_before=created_before,
-        )
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(file={self._file_path!s}, entries={len(self._entries)})"

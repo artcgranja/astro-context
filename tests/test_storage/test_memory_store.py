@@ -167,6 +167,67 @@ class TestInMemoryVectorStoreCosineSimilarity:
         assert InMemoryVectorStore._cosine_similarity(a, b) == 0.0
 
 
+class TestInMemoryVectorStoreLargeStoreWarning:
+    """Large store warning fires once when embeddings exceed threshold."""
+
+    def test_warning_fires_when_threshold_exceeded(
+        self,
+        vector_store: InMemoryVectorStore,
+        caplog: pytest.LogCaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from tests.conftest import make_embedding
+
+        # Lower the threshold on the class so we don't need 5001 embeddings
+        monkeypatch.setattr(InMemoryVectorStore, "_LARGE_STORE_THRESHOLD", 5)
+        for i in range(6):
+            vector_store.add_embedding(f"v{i}", make_embedding(i))
+
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+            vector_store.search(make_embedding(0), top_k=1)
+
+        assert any("6 embeddings" in r.message for r in caplog.records)
+        assert any("dedicated vector database" in r.message for r in caplog.records)
+
+    def test_warning_fires_only_once(
+        self,
+        vector_store: InMemoryVectorStore,
+        caplog: pytest.LogCaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        from tests.conftest import make_embedding
+
+        monkeypatch.setattr(InMemoryVectorStore, "_LARGE_STORE_THRESHOLD", 5)
+        for i in range(6):
+            vector_store.add_embedding(f"v{i}", make_embedding(i))
+
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+            vector_store.search(make_embedding(0), top_k=1)
+            caplog.clear()
+            vector_store.search(make_embedding(0), top_k=1)
+
+        assert not any("embeddings" in r.message for r in caplog.records)
+
+    def test_no_warning_below_threshold(
+        self, vector_store: InMemoryVectorStore, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        from tests.conftest import make_embedding
+
+        for i in range(10):
+            vector_store.add_embedding(f"v{i}", make_embedding(i))
+
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+            vector_store.search(make_embedding(0), top_k=1)
+
+        assert not any("embeddings" in r.message for r in caplog.records)
+
+
 class TestInMemoryVectorStoreProtocol:
     """InMemoryVectorStore satisfies the VectorStore protocol."""
 
