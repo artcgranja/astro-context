@@ -312,7 +312,9 @@ class ContextPipeline:
         uncapped (they compete in the shared pool during window assembly).
         """
         budget = self._budget
-        assert budget is not None  # caller guarantees  # noqa: S101
+        if budget is None:
+            msg = "_apply_source_budgets called without a budget configured"
+            raise PipelineExecutionError(msg)
 
         # Build a lookup of source -> max_tokens for allocated sources
         source_caps: dict[SourceType, int] = {}
@@ -354,6 +356,12 @@ class ContextPipeline:
         effective_max = self._max_tokens
         if self._budget is not None:
             effective_max = self._max_tokens - self._budget.reserve_tokens
+            if effective_max <= 0:
+                msg = (
+                    f"reserve_tokens ({self._budget.reserve_tokens}) must be less than "
+                    f"pipeline max_tokens ({self._max_tokens})"
+                )
+                raise PipelineExecutionError(msg)
 
         # Apply per-source budgets when allocations are defined
         budget_overflow: list[ContextItem] = []
@@ -395,10 +403,19 @@ class ContextPipeline:
             build_time_ms=round(build_time, 2),
         )
 
-    def build(self, query: str | QueryBundle) -> ContextResult:
-        """Execute the full pipeline synchronously and return assembled context."""
-        if isinstance(query, str):
-            query = QueryBundle(query_str=query)
+    # -- Shared build helpers (DRY for build/abuild) --
+
+    def _prepare_build(
+        self, query_input: str | QueryBundle
+    ) -> tuple[QueryBundle, list[ContextItem], dict[str, Any], float]:
+        """Shared pre-step logic for build() and abuild().
+
+        Normalises the query, initialises diagnostics, collects pre-step items,
+        and enriches the query with memory context when an enricher is attached.
+
+        Returns ``(query, all_items, diagnostics, start_time)``.
+        """
+        query = QueryBundle(query_str=query_input) if isinstance(query_input, str) else query_input
         start_time = time.monotonic()
         diagnostics: dict[str, Any] = {"steps": []}
 
@@ -418,42 +435,92 @@ class ContextPipeline:
                 query = query.model_copy(update={"query_str": enriched_text})
                 diagnostics["query_enriched"] = True
 
+        return query, all_items, diagnostics, start_time
+
+    def _handle_step_error(
+        self,
+        step: PipelineStep,
+        exc: Exception,
+        items_before: list[ContextItem],
+        diagnostics: dict[str, Any],
+        *,
+        is_known: bool,
+    ) -> list[ContextItem] | None:
+        """Handle an exception raised during step execution.
+
+        *is_known* is ``True`` when the exception is an expected type
+        (``AstroContextError``, ``TypeError``, ``ValueError``) that should
+        be re-raised as-is if the step policy is ``"raise"``.
+
+        Returns the rollback item list when the step is skipped, or ``None``
+        to signal that the caller should re-raise.
+        """
+        self._fire("on_step_error", step.name, exc)
+        if step.on_error == "skip":
+            logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
+            diagnostics.setdefault("skipped_steps", []).append(step.name)
+            return items_before
+        if is_known:
+            raise exc
+        diagnostics["failed_step"] = step.name
+        msg = f"Pipeline failed at step '{step.name}'"
+        raise PipelineExecutionError(msg, diagnostics=diagnostics) from exc
+
+    def _record_step_success(
+        self,
+        step: PipelineStep,
+        all_items: list[ContextItem],
+        step_start: float,
+        diagnostics: dict[str, Any],
+    ) -> None:
+        """Record timing and item count for a successfully completed step."""
+        step_time = (time.monotonic() - step_start) * 1000
+        self._fire("on_step_end", step.name, all_items, step_time)
+        diagnostics["steps"].append({
+            "name": step.name,
+            "items_after": len(all_items),
+            "time_ms": round(step_time, 2),
+        })
+
+    def _finalize_build(
+        self,
+        all_items: list[ContextItem],
+        diagnostics: dict[str, Any],
+        start_time: float,
+    ) -> ContextResult:
+        """Shared post-step logic: count tokens, assemble result, fire callback."""
+        counted_items = self._count_tokens(all_items)
+        result = self._assemble_result(counted_items, diagnostics, start_time)
+        self._fire("on_pipeline_end", result)
+        return result
+
+    # -- Public build entry points --
+
+    def build(self, query: str | QueryBundle) -> ContextResult:
+        """Execute the full pipeline synchronously and return assembled context."""
+        resolved_query, all_items, diagnostics, start_time = self._prepare_build(query)
+
         for step in self._steps:
             step_start = time.monotonic()
             items_before = all_items
             self._fire("on_step_start", step.name, list(all_items))
             try:
-                all_items = step.execute(all_items, query)
+                all_items = step.execute(all_items, resolved_query)
             except (AstroContextError, TypeError, ValueError) as exc:
-                self._fire("on_step_error", step.name, exc)
-                if step.on_error == "skip":
-                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
-                    diagnostics.setdefault("skipped_steps", []).append(step.name)
-                    all_items = items_before
-                    continue
-                raise
+                rollback = self._handle_step_error(
+                    step, exc, items_before, diagnostics, is_known=True,
+                )
+                all_items = rollback  # type: ignore[assignment]  # rollback is never None here
+                continue
             except Exception as e:
-                self._fire("on_step_error", step.name, e)
-                if step.on_error == "skip":
-                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
-                    diagnostics.setdefault("skipped_steps", []).append(step.name)
-                    all_items = items_before
-                    continue
-                diagnostics["failed_step"] = step.name
-                msg = f"Pipeline failed at step '{step.name}'"
-                raise PipelineExecutionError(msg, diagnostics=diagnostics) from e
-            step_time = (time.monotonic() - step_start) * 1000
-            self._fire("on_step_end", step.name, all_items, step_time)
-            diagnostics["steps"].append({
-                "name": step.name,
-                "items_after": len(all_items),
-                "time_ms": round(step_time, 2),
-            })
+                rollback = self._handle_step_error(
+                    step, e, items_before, diagnostics, is_known=False,
+                )
+                all_items = rollback  # type: ignore[assignment]
+                continue
+            self._record_step_success(step, all_items, step_start, diagnostics)
 
-        counted_items = self._count_tokens(all_items)
-        result = self._assemble_result(counted_items, diagnostics, start_time)
-        self._fire("on_pipeline_end", result)
-        return result
+        return self._finalize_build(all_items, diagnostics, start_time)
 
     async def abuild(self, query: str | QueryBundle) -> ContextResult:
         """Execute the full pipeline asynchronously and return assembled context.
@@ -463,60 +530,26 @@ class ContextPipeline:
         (e.g., in-memory BM25) with async retrievers (e.g., database lookups)
         in the same pipeline.
         """
-        if isinstance(query, str):
-            query = QueryBundle(query_str=query)
-        start_time = time.monotonic()
-        diagnostics: dict[str, Any] = {"steps": []}
-
-        self._fire("on_pipeline_start", query)
-
-        all_items = self._collect_pre_step_items(diagnostics)
-
-        # Enrich query with memory context before retrieval steps
-        if self._query_enricher is not None:
-            memory_items = [
-                i
-                for i in all_items
-                if i.source in (SourceType.MEMORY, SourceType.CONVERSATION)
-            ]
-            if memory_items:
-                enriched_text = self._query_enricher.enrich(query.query_str, memory_items)
-                query = query.model_copy(update={"query_str": enriched_text})
-                diagnostics["query_enriched"] = True
+        resolved_query, all_items, diagnostics, start_time = self._prepare_build(query)
 
         for step in self._steps:
             step_start = time.monotonic()
             items_before = all_items
             self._fire("on_step_start", step.name, list(all_items))
             try:
-                all_items = await step.aexecute(all_items, query)
+                all_items = await step.aexecute(all_items, resolved_query)
             except (AstroContextError, TypeError, ValueError) as exc:
-                self._fire("on_step_error", step.name, exc)
-                if step.on_error == "skip":
-                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
-                    diagnostics.setdefault("skipped_steps", []).append(step.name)
-                    all_items = items_before
-                    continue
-                raise
+                rollback = self._handle_step_error(
+                    step, exc, items_before, diagnostics, is_known=True,
+                )
+                all_items = rollback  # type: ignore[assignment]
+                continue
             except Exception as e:
-                self._fire("on_step_error", step.name, e)
-                if step.on_error == "skip":
-                    logger.warning("Step '%s' failed; skipping (on_error='skip')", step.name)
-                    diagnostics.setdefault("skipped_steps", []).append(step.name)
-                    all_items = items_before
-                    continue
-                diagnostics["failed_step"] = step.name
-                msg = f"Pipeline failed at step '{step.name}'"
-                raise PipelineExecutionError(msg, diagnostics=diagnostics) from e
-            step_time = (time.monotonic() - step_start) * 1000
-            self._fire("on_step_end", step.name, all_items, step_time)
-            diagnostics["steps"].append({
-                "name": step.name,
-                "items_after": len(all_items),
-                "time_ms": round(step_time, 2),
-            })
+                rollback = self._handle_step_error(
+                    step, e, items_before, diagnostics, is_known=False,
+                )
+                all_items = rollback  # type: ignore[assignment]
+                continue
+            self._record_step_success(step, all_items, step_start, diagnostics)
 
-        counted_items = self._count_tokens(all_items)
-        result = self._assemble_result(counted_items, diagnostics, start_time)
-        self._fire("on_pipeline_end", result)
-        return result
+        return self._finalize_build(all_items, diagnostics, start_time)
