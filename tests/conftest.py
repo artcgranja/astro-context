@@ -8,7 +8,7 @@ from datetime import datetime
 import pytest
 
 from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import ContextItem, SourceType
+from astro_context.models.context import ContextItem
 from astro_context.models.memory import MemoryEntry, MemoryType
 from astro_context.models.query import QueryBundle
 from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
@@ -130,36 +130,3 @@ def vector_store() -> InMemoryVectorStore:
     return InMemoryVectorStore()
 
 
-@pytest.fixture
-def sample_items(counter: FakeTokenizer) -> list[ContextItem]:
-    """Return 5 ContextItems with token counts from FakeTokenizer."""
-    texts = [
-        "Python is a high-level programming language known for readability.",
-        "Machine learning models require large amounts of training data to perform well.",
-        "Context engineering is the art of assembling the right information for LLMs.",
-        "Vector databases enable efficient similarity search over embeddings.",
-        "Retrieval-augmented generation combines search with language model generation.",
-    ]
-    items: list[ContextItem] = []
-    for i, text in enumerate(texts):
-        token_count = counter.count_tokens(text)
-        items.append(
-            ContextItem(
-                id=f"item-{i}",
-                content=text,
-                source=SourceType.RETRIEVAL,
-                score=0.5 + i * 0.1,
-                priority=5 + i,
-                token_count=token_count,
-            )
-        )
-    return items
-
-
-@pytest.fixture
-def sample_query() -> QueryBundle:
-    """Return a sample QueryBundle for testing."""
-    return QueryBundle(
-        query_str="What is context engineering?",
-        embedding=make_embedding(seed=99),
-    )

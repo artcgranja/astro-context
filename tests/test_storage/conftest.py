@@ -9,7 +9,6 @@ against both implementations.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -32,18 +31,3 @@ def entry_store(request: pytest.FixtureRequest, tmp_path: Path) -> BaseEntryStor
     return JsonFileMemoryStore(store_path)
 
 
-@pytest.fixture
-def store_factory(tmp_path: Path) -> Any:
-    """Factory fixture that creates either store type on demand.
-
-    Usage in tests that need two instances of the *same* concrete type
-    (e.g. persistence round-trip tests).
-    """
-
-    def _make(kind: str = "memory") -> BaseEntryStoreMixin:
-        if kind == "memory":
-            return InMemoryEntryStore()
-        store_path = tmp_path / "factory_memories.json"
-        return JsonFileMemoryStore(store_path)
-
-    return _make

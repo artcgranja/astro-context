@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterator
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
@@ -100,10 +99,6 @@ class ContextWindow(BaseModel):
 
     def __len__(self) -> int:
         return len(self.items)
-
-    def iter_items(self) -> Iterator[ContextItem]:
-        """Iterate over context items in the window."""
-        return iter(self.items)
 
     def add_items_by_priority(self, items: list[ContextItem]) -> list[ContextItem]:
         """Add items sorted by priority (highest first), return items that didn't fit."""
