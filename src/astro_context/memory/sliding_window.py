@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from collections import deque
 from collections.abc import Callable
 from typing import TYPE_CHECKING
@@ -29,6 +30,7 @@ class SlidingWindowMemory:
 
     __slots__ = (
         "_eviction_policy",
+        "_lock",
         "_max_tokens",
         "_on_evict",
         "_recency_scorer",
@@ -55,6 +57,7 @@ class SlidingWindowMemory:
         self._recency_scorer = recency_scorer
         self._turns: deque[ConversationTurn] = deque()
         self._total_tokens: int = 0
+        self._lock = threading.Lock()
 
     def __repr__(self) -> str:
         return (
@@ -64,11 +67,13 @@ class SlidingWindowMemory:
 
     @property
     def turns(self) -> list[ConversationTurn]:
-        return list(self._turns)
+        with self._lock:
+            return list(self._turns)
 
     @property
     def total_tokens(self) -> int:
-        return self._total_tokens
+        with self._lock:
+            return self._total_tokens
 
     @property
     def max_tokens(self) -> int:
@@ -96,41 +101,46 @@ class SlidingWindowMemory:
                 metadata={**dict(metadata), "truncated": True},
             )
 
-        # Evict turns until the new turn fits
-        evicted_turns: list[ConversationTurn] = []
-        if (
-            self._eviction_policy is not None
-            and self._turns
-            and (self._total_tokens + turn.token_count > self._max_tokens)
-        ):
-            tokens_to_free = (self._total_tokens + turn.token_count) - self._max_tokens
-            indices = self._eviction_policy.select_for_eviction(
-                list(self._turns), tokens_to_free
-            )
-            # Sort descending so we can pop from highest index first
-            # to avoid index shifting
-            for idx in sorted(indices, reverse=True):
-                evicted = self._turns[idx]
-                del self._turns[idx]
-                self._total_tokens -= evicted.token_count
-                evicted_turns.append(evicted)
-            # Reverse so evicted_turns is in original order (oldest first)
-            evicted_turns.reverse()
-        else:
-            # Default FIFO eviction
-            while self._turns and (self._total_tokens + turn.token_count > self._max_tokens):
-                evicted = self._turns.popleft()
-                self._total_tokens -= evicted.token_count
-                evicted_turns.append(evicted)
+        with self._lock:
+            # Evict turns until the new turn fits
+            evicted_turns: list[ConversationTurn] = []
+            if (
+                self._eviction_policy is not None
+                and self._turns
+                and (self._total_tokens + turn.token_count > self._max_tokens)
+            ):
+                tokens_to_free = (self._total_tokens + turn.token_count) - self._max_tokens
+                indices = self._eviction_policy.select_for_eviction(
+                    list(self._turns), tokens_to_free
+                )
+                # Sort descending so we can pop from highest index first
+                # to avoid index shifting
+                for idx in sorted(indices, reverse=True):
+                    evicted = self._turns[idx]
+                    del self._turns[idx]
+                    self._total_tokens -= evicted.token_count
+                    evicted_turns.append(evicted)
+                # Reverse so evicted_turns is in original order (oldest first)
+                evicted_turns.reverse()
+            else:
+                # Default FIFO eviction
+                while self._turns and (
+                    self._total_tokens + turn.token_count > self._max_tokens
+                ):
+                    evicted = self._turns.popleft()
+                    self._total_tokens -= evicted.token_count
+                    evicted_turns.append(evicted)
 
-        if evicted_turns and self._on_evict is not None:
-            try:
-                self._on_evict(evicted_turns)
-            except Exception:
-                logger.exception("on_evict callback failed — ignoring to protect pipeline")
+            if evicted_turns and self._on_evict is not None:
+                try:
+                    self._on_evict(evicted_turns)
+                except Exception:
+                    logger.exception(
+                        "on_evict callback failed — ignoring to protect pipeline"
+                    )
 
-        self._turns.append(turn)
-        self._total_tokens += turn.token_count
+            self._turns.append(turn)
+            self._total_tokens += turn.token_count
         return turn
 
     def to_context_items(self, priority: int = 7) -> list[ContextItem]:
@@ -142,25 +152,26 @@ class SlidingWindowMemory:
         their own message structure and avoid the double-role bug
         (e.g. ``{"role": "user", "content": "user: Hello"}``).
         """
-        items: list[ContextItem] = []
-        num_turns = len(self._turns)
-        for i, turn in enumerate(self._turns):
-            # Recency-weighted score: use custom scorer or default linear 0.5-1.0
-            if self._recency_scorer is not None:
-                recency_score = self._recency_scorer.score(i, num_turns)
-            else:
-                recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
-            item = ContextItem(
-                content=turn.content,
-                source=SourceType.CONVERSATION,
-                score=round(recency_score, 4),
-                priority=priority,
-                token_count=turn.token_count,
-                metadata={"role": turn.role, **turn.metadata},
-                created_at=turn.timestamp,
-            )
-            items.append(item)
-        return items
+        with self._lock:
+            items: list[ContextItem] = []
+            num_turns = len(self._turns)
+            for i, turn in enumerate(self._turns):
+                # Recency-weighted score: use custom scorer or default linear 0.5-1.0
+                if self._recency_scorer is not None:
+                    recency_score = self._recency_scorer.score(i, num_turns)
+                else:
+                    recency_score = 0.5 + 0.5 * (i / max(1, num_turns - 1))
+                item = ContextItem(
+                    content=turn.content,
+                    source=SourceType.CONVERSATION,
+                    score=round(recency_score, 4),
+                    priority=priority,
+                    token_count=turn.token_count,
+                    metadata={"role": turn.role, **turn.metadata},
+                    created_at=turn.timestamp,
+                )
+                items.append(item)
+            return items
 
     def clear(self) -> None:
         self._turns.clear()
