@@ -550,3 +550,418 @@ class TestBudgetEdgeCases:
 
         result = pipeline.build("test query")
         assert result.window.max_tokens == 900
+
+
+# ===========================================================================
+# TestOverflowStrategyTruncate -- "truncate" keeps highest-priority items
+# ===========================================================================
+
+
+class TestOverflowStrategyTruncate:
+    """The 'truncate' strategy keeps the highest-priority items within the cap."""
+
+    def test_truncate_keeps_highest_priority_items(self) -> None:
+        """With truncate, items are kept up to max_tokens in priority/score order."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=6,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+        # Each item is 3 tokens. Cap of 6 fits exactly 2 items.
+        high = _make_item("aaa bbb ccc", priority=9, score=0.9, item_id="high")
+        mid = _make_item("ddd eee fff", priority=7, score=0.7, item_id="mid")
+        low = _make_item("ggg hhh iii", priority=3, score=0.3, item_id="low")
+
+        def inject(items: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items, low, mid, high]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        ids_in_window = {i.id for i in result.window.items}
+        assert "high" in ids_in_window
+        assert "mid" in ids_in_window
+        assert "low" not in ids_in_window
+        assert any(i.id == "low" for i in result.overflow_items)
+
+    def test_truncate_is_default_strategy(self) -> None:
+        """When overflow_strategy is not specified, truncate is the default."""
+        alloc = BudgetAllocation(
+            source=SourceType.RETRIEVAL,
+            max_tokens=100,
+        )
+        assert alloc.overflow_strategy == "truncate"
+
+
+# ===========================================================================
+# TestOverflowStrategyDrop -- "drop" drops ALL items when source exceeds cap
+# ===========================================================================
+
+
+class TestOverflowStrategyDrop:
+    """The 'drop' strategy drops ALL items for a source when they exceed the cap."""
+
+    def test_drop_discards_all_items_when_exceeding_cap(self) -> None:
+        """With drop strategy, if total tokens exceed cap, ALL items are dropped."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=5,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        # Each item is 3 tokens. Total = 9, exceeds cap of 5.
+        # With "drop", ALL 3 items should be dropped.
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        retrieval_in = [i for i in result.window.items if i.source == SourceType.RETRIEVAL]
+        assert len(retrieval_in) == 0
+        assert len(result.overflow_items) == 3
+
+    def test_drop_keeps_all_items_when_within_cap(self) -> None:
+        """With drop strategy, if total tokens fit within cap, all items are kept."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=15,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        # Each item is 3 tokens. Total = 9, within cap of 15.
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        retrieval_in = [i for i in result.window.items if i.source == SourceType.RETRIEVAL]
+        assert len(retrieval_in) == 3
+        assert len(result.overflow_items) == 0
+
+    def test_drop_versus_truncate_behaviour(self) -> None:
+        """Demonstrates the difference: truncate keeps some, drop keeps none."""
+        # Same items, same cap -- only the strategy differs
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        # Truncate: cap=6 fits 2 of 3 items (6 tokens out of 9)
+        budget_truncate = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=6,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline_trunc = _make_pipeline_with_budget(max_tokens=1000, budget=budget_truncate)
+        pipeline_trunc.add_step(PipelineStep(name="inject", fn=inject))
+        result_trunc = pipeline_trunc.build(QueryBundle(query_str="test"))
+
+        # Drop: cap=6 can't fit all 9 tokens -> all 3 are dropped
+        budget_drop = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=6,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        pipeline_drop = _make_pipeline_with_budget(max_tokens=1000, budget=budget_drop)
+        pipeline_drop.add_step(PipelineStep(name="inject", fn=inject))
+        result_drop = pipeline_drop.build(QueryBundle(query_str="test"))
+
+        # Truncate kept 2 items, drop kept 0
+        trunc_retrieval = [
+            i for i in result_trunc.window.items if i.source == SourceType.RETRIEVAL
+        ]
+        drop_retrieval = [
+            i for i in result_drop.window.items if i.source == SourceType.RETRIEVAL
+        ]
+        assert len(trunc_retrieval) == 2
+        assert len(drop_retrieval) == 0
+
+    def test_drop_with_exact_fit(self) -> None:
+        """Drop strategy keeps items when total exactly equals the cap."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=9,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        # 3 items * 3 tokens = 9 exactly matches cap
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        retrieval_in = [i for i in result.window.items if i.source == SourceType.RETRIEVAL]
+        assert len(retrieval_in) == 3
+
+
+# ===========================================================================
+# TestBudgetDiagnostics -- budget_overflow_by_source and shared_pool_usage
+# ===========================================================================
+
+
+class TestBudgetDiagnostics:
+    """Tests for the new budget diagnostic fields."""
+
+    def test_budget_overflow_by_source_tracked(self) -> None:
+        """budget_overflow_by_source reports the count of overflowed items per source."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=6,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+        # 4 items * 3 tokens = 12 tokens. Cap = 6, so 2 fit, 2 overflow.
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(4)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert "budget_overflow_by_source" in result.diagnostics
+        assert result.diagnostics["budget_overflow_by_source"]["retrieval"] == 2
+
+    def test_budget_overflow_by_source_drop_strategy(self) -> None:
+        """budget_overflow_by_source with drop strategy reports all items dropped."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=5,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert result.diagnostics["budget_overflow_by_source"]["retrieval"] == 3
+
+    def test_no_overflow_no_overflow_diagnostics(self) -> None:
+        """When no items overflow, budget_overflow_by_source is absent."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(source=SourceType.RETRIEVAL, max_tokens=100),
+            ],
+        )
+        items = [_make_item("hello", item_id="r-0")]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert "budget_overflow_by_source" not in result.diagnostics
+
+    def test_shared_pool_usage_reported(self) -> None:
+        """shared_pool_usage tracks tokens used by sources without allocations."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(source=SourceType.RETRIEVAL, max_tokens=100),
+            ],
+        )
+        # TOOL source has no allocation -- it uses the shared pool
+        tool_item = _make_item("tool output data here", source=SourceType.TOOL, item_id="tool-1")
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, tool_item]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert "shared_pool_usage" in result.diagnostics
+        assert result.diagnostics["shared_pool_usage"] == tool_item.token_count
+
+    def test_shared_pool_usage_zero_when_all_allocated(self) -> None:
+        """shared_pool_usage is 0 when all items belong to allocated sources."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(source=SourceType.RETRIEVAL, max_tokens=100),
+                BudgetAllocation(source=SourceType.SYSTEM, max_tokens=100, priority=10),
+            ],
+        )
+        items = [_make_item("hello world", item_id="r-0")]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_system_prompt("System message")
+        pipeline.add_step(retriever_step("search", FakeRetriever(items)))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert result.diagnostics["shared_pool_usage"] == 0
+
+    def test_shared_pool_usage_with_budget_no_allocations(self) -> None:
+        """With a budget but no allocations, all tokens go to shared pool."""
+        budget = TokenBudget(total_tokens=1000)
+        items = [_make_item("hello world", item_id="r-0")]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(retriever_step("search", FakeRetriever(items)))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        # No allocations -> all items are unallocated -> shared_pool_usage = total tokens used
+        assert result.diagnostics["shared_pool_usage"] == result.window.used_tokens
+
+    def test_overflow_items_tracked_in_result(self) -> None:
+        """Overflow items from budget enforcement appear in result.overflow_items."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=3,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+        # Each item is 3 tokens. Cap = 3, so 1 fits, 2 overflow.
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+
+        def inject(items_in: list[ContextItem], q: QueryBundle) -> list[ContextItem]:
+            return [*items_in, *items]
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(PipelineStep(name="inject", fn=inject))
+
+        result = pipeline.build(QueryBundle(query_str="test"))
+        assert len(result.overflow_items) == 2
+        overflow_ids = {i.id for i in result.overflow_items}
+        window_ids = {i.id for i in result.window.items}
+        # No overlap between window and overflow
+        assert overflow_ids.isdisjoint(window_ids)
+
+
+# ===========================================================================
+# TestOverflowStrategyAsync -- abuild() respects overflow_strategy
+# ===========================================================================
+
+
+class TestOverflowStrategyAsync:
+    """Async abuild() also respects the overflow_strategy."""
+
+    async def test_abuild_drop_strategy(self) -> None:
+        """abuild() with drop strategy drops all items exceeding cap."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=5,
+                    overflow_strategy="drop",
+                ),
+            ],
+        )
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+        retriever = FakeRetriever(items)
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(retriever_step("search", retriever))
+
+        result = await pipeline.abuild(QueryBundle(query_str="test"))
+        retrieval_in = [i for i in result.window.items if i.source == SourceType.RETRIEVAL]
+        assert len(retrieval_in) == 0
+        assert len(result.overflow_items) == 3
+
+    async def test_abuild_truncate_strategy(self) -> None:
+        """abuild() with truncate strategy keeps items up to cap."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=6,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+        # 3 items * 3 tokens = 9, cap = 6, 2 fit
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+        retriever = FakeRetriever(items)
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(retriever_step("search", retriever))
+
+        result = await pipeline.abuild(QueryBundle(query_str="test"))
+        retrieval_in = [i for i in result.window.items if i.source == SourceType.RETRIEVAL]
+        assert len(retrieval_in) == 2
+
+    async def test_abuild_diagnostics_include_overflow_by_source(self) -> None:
+        """abuild() diagnostics include budget_overflow_by_source."""
+        budget = TokenBudget(
+            total_tokens=1000,
+            allocations=[
+                BudgetAllocation(
+                    source=SourceType.RETRIEVAL,
+                    max_tokens=3,
+                    overflow_strategy="truncate",
+                ),
+            ],
+        )
+        items = [_make_item("aaa bbb ccc", item_id=f"r-{i}") for i in range(3)]
+        retriever = FakeRetriever(items)
+
+        pipeline = _make_pipeline_with_budget(max_tokens=1000, budget=budget)
+        pipeline.add_step(retriever_step("search", retriever))
+
+        result = await pipeline.abuild(QueryBundle(query_str="test"))
+        assert "budget_overflow_by_source" in result.diagnostics
+        assert result.diagnostics["budget_overflow_by_source"]["retrieval"] == 2

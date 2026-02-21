@@ -296,9 +296,38 @@ class ContextPipeline:
             counted.append(item)
         return counted
 
+    @staticmethod
+    def _apply_drop_strategy(
+        source_items: list[ContextItem],
+        cap: int,
+    ) -> tuple[list[ContextItem], list[ContextItem]]:
+        """Apply the 'drop' overflow strategy: keep all or drop all."""
+        total_tokens = sum(item.token_count for item in source_items)
+        if total_tokens <= cap:
+            return source_items, []
+        return [], source_items
+
+    @staticmethod
+    def _apply_truncate_strategy(
+        source_items: list[ContextItem],
+        cap: int,
+    ) -> tuple[list[ContextItem], list[ContextItem]]:
+        """Apply the 'truncate' overflow strategy: keep items up to cap."""
+        accepted: list[ContextItem] = []
+        overflowed: list[ContextItem] = []
+        used = 0
+        for item in source_items:
+            if used + item.token_count <= cap:
+                accepted.append(item)
+                used += item.token_count
+            else:
+                overflowed.append(item)
+        return accepted, overflowed
+
     def _apply_source_budgets(
         self,
         items: list[ContextItem],
+        diagnostics: dict[str, Any],
     ) -> tuple[list[ContextItem], list[ContextItem]]:
         """Pre-filter items by per-source-type token budgets.
 
@@ -306,16 +335,26 @@ class ContextPipeline:
         cap from ``budget.allocations``, and returns (accepted, overflow).
         Items whose source has no explicit allocation are passed through
         uncapped (they compete in the shared pool during window assembly).
+
+        The per-allocation ``overflow_strategy`` controls behaviour when a
+        source exceeds its cap:
+
+        * ``"truncate"`` (default): include items up to the cap sorted by
+          priority/score, overflow the rest.
+        * ``"drop"``: if the total for that source exceeds the cap, **all**
+          items for that source are dropped to overflow.
         """
         budget = self._budget
         if budget is None:
             msg = "_apply_source_budgets called without a budget configured"
             raise PipelineExecutionError(msg)
 
-        # Build a lookup of source -> max_tokens for allocated sources
+        # Build lookups of source -> max_tokens and source -> overflow_strategy
         source_caps: dict[SourceType, int] = {}
+        source_strategies: dict[SourceType, str] = {}
         for alloc in budget.allocations:
             source_caps[alloc.source] = alloc.max_tokens
+            source_strategies[alloc.source] = alloc.overflow_strategy
 
         # Group items by source, preserving priority/score ordering
         by_source: dict[SourceType, list[ContextItem]] = {}
@@ -324,21 +363,26 @@ class ContextPipeline:
 
         accepted: list[ContextItem] = []
         overflow: list[ContextItem] = []
+        overflow_by_source: dict[str, int] = {}
 
         for source, source_items in by_source.items():
             if source not in source_caps:
-                # No explicit allocation -- pass through for shared pool
                 accepted.extend(source_items)
                 continue
 
             cap = source_caps[source]
-            used = 0
-            for item in source_items:
-                if used + item.token_count <= cap:
-                    accepted.append(item)
-                    used += item.token_count
-                else:
-                    overflow.append(item)
+            if source_strategies[source] == "drop":
+                kept, dropped = self._apply_drop_strategy(source_items, cap)
+            else:
+                kept, dropped = self._apply_truncate_strategy(source_items, cap)
+
+            accepted.extend(kept)
+            overflow.extend(dropped)
+            if dropped:
+                overflow_by_source[source.value] = len(dropped)
+
+        if overflow_by_source:
+            diagnostics["budget_overflow_by_source"] = overflow_by_source
 
         return accepted, overflow
 
@@ -362,7 +406,9 @@ class ContextPipeline:
         # Apply per-source budgets when allocations are defined
         budget_overflow: list[ContextItem] = []
         if self._budget is not None and self._budget.allocations:
-            counted_items, budget_overflow = self._apply_source_budgets(counted_items)
+            counted_items, budget_overflow = self._apply_source_budgets(
+                counted_items, diagnostics,
+            )
 
         window = ContextWindow(max_tokens=effective_max)
         window_overflow = window.add_items_by_priority(counted_items)
@@ -389,6 +435,15 @@ class ContextPipeline:
                 key = item.source.value
                 usage_by_source[key] = usage_by_source.get(key, 0) + item.token_count
             diagnostics["token_usage_by_source"] = usage_by_source
+
+            # Compute shared pool usage: tokens used by sources without allocations
+            allocated_sources = {a.source for a in self._budget.allocations}
+            shared_tokens = sum(
+                item.token_count
+                for item in window.items
+                if item.source not in allocated_sources
+            )
+            diagnostics["shared_pool_usage"] = shared_tokens
 
         return ContextResult(
             window=window,
