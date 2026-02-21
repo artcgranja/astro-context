@@ -13,7 +13,10 @@ from astro_context.memory.manager import MemoryManager
 from astro_context.models.context import ContextResult
 from astro_context.pipeline.pipeline import ContextPipeline
 
-from .tools import AgentTool
+from .models import AgentTool
+from .skills.activate import _make_activate_skill_tool
+from .skills.models import Skill
+from .skills.registry import SkillRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +61,7 @@ class Agent:
     """
 
     __slots__ = (
+        "_activate_tool",
         "_client",
         "_last_result",
         "_max_response_tokens",
@@ -66,6 +70,7 @@ class Agent:
         "_memory",
         "_model",
         "_pipeline",
+        "_skill_registry",
         "_system_prompt",
         "_tools",
     )
@@ -102,6 +107,8 @@ class Agent:
         self._tools: list[AgentTool] = []
         self._memory: MemoryManager | None = None
         self._last_result: ContextResult | None = None
+        self._skill_registry = SkillRegistry()
+        self._activate_tool: AgentTool | None = None
 
         tokenizer = _WhitespaceTokenizer()
         self._pipeline = ContextPipeline(max_tokens=max_tokens, tokenizer=tokenizer)
@@ -127,6 +134,19 @@ class Agent:
         self._tools.extend(tools)
         return self
 
+    def with_skill(self, skill: Skill) -> Agent:
+        """Register a skill. Returns self for chaining."""
+        self._skill_registry.register(skill)
+        self._ensure_activate_tool()
+        return self
+
+    def with_skills(self, skills: list[Skill]) -> Agent:
+        """Register multiple skills. Returns self for chaining."""
+        for skill in skills:
+            self._skill_registry.register(skill)
+        self._ensure_activate_tool()
+        return self
+
     # -- Accessors --
 
     @property
@@ -146,12 +166,26 @@ class Agent:
 
     # -- Internal helpers --
 
+    def _all_active_tools(self) -> list[AgentTool]:
+        """Return direct tools + skill tools + activate_skill meta-tool."""
+        tools: list[AgentTool] = list(self._tools)
+        tools.extend(self._skill_registry.active_tools())
+        if self._activate_tool is not None:
+            tools.append(self._activate_tool)
+        return tools
+
+    def _ensure_activate_tool(self) -> None:
+        """Create the activate_skill meta-tool if on-demand skills exist."""
+        if self._skill_registry.on_demand_skills() and self._activate_tool is None:
+            self._activate_tool = _make_activate_skill_tool(self._skill_registry)
+
     def _execute_tool(self, name: str, tool_input: dict[str, Any]) -> str:
         """Look up and execute a tool by name.
 
         Validates input against the tool's schema before calling.
+        Searches direct tools, active skill tools, and the meta-tool.
         """
-        for tool in self._tools:
+        for tool in self._all_active_tools():
             if tool.name == name:
                 valid, err = tool.validate_input(tool_input)
                 if not valid:
@@ -296,17 +330,26 @@ class Agent:
 
         system: Any = formatted["system"]
         messages: list[Any] = list(formatted["messages"])
-        tools_param = (
-            [t.to_anthropic_schema() for t in self._tools] if self._tools else None
-        )
 
         final_text = ""
 
         for _round in range(self._max_rounds):
+            # Per-round tool recomputation (skills may be activated mid-convo)
+            all_tools = self._all_active_tools()
+            tools_param = (
+                [t.to_anthropic_schema() for t in all_tools] if all_tools else None
+            )
+
+            # Append skill discovery prompt to system message
+            discovery = self._skill_registry.skill_discovery_prompt()
+            round_system = system
+            if discovery:
+                round_system = [*system, {"type": "text", "text": discovery}]
+
             kwargs: dict[str, Any] = {
                 "model": self._model,
                 "max_tokens": self._max_response_tokens,
-                "system": system,
+                "system": round_system,
                 "messages": messages,
             }
             if tools_param:
@@ -350,17 +393,26 @@ class Agent:
 
         system: Any = formatted["system"]
         messages: list[Any] = list(formatted["messages"])
-        tools_param = (
-            [t.to_anthropic_schema() for t in self._tools] if self._tools else None
-        )
 
         final_text = ""
 
         for _round in range(self._max_rounds):
+            # Per-round tool recomputation (skills may be activated mid-convo)
+            all_tools = self._all_active_tools()
+            tools_param = (
+                [t.to_anthropic_schema() for t in all_tools] if all_tools else None
+            )
+
+            # Append skill discovery prompt to system message
+            discovery = self._skill_registry.skill_discovery_prompt()
+            round_system = system
+            if discovery:
+                round_system = [*system, {"type": "text", "text": discovery}]
+
             kwargs: dict[str, Any] = {
                 "model": self._model,
                 "max_tokens": self._max_response_tokens,
-                "system": system,
+                "system": round_system,
                 "messages": messages,
             }
             if tools_param:
