@@ -117,7 +117,7 @@ class TestLinkMemory:
 
     def test_link_memory_raises_for_unknown_entity(self) -> None:
         graph = SimpleGraphMemory()
-        with pytest.raises(ValueError, match="does not exist"):
+        with pytest.raises(KeyError, match="does not exist"):
             graph.link_memory("unknown", "mem-001")
 
 

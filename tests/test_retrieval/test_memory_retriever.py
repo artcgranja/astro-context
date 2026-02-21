@@ -6,8 +6,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from astro_context.models.context import ContextItem, SourceType
 from astro_context.models.memory import MemoryEntry, MemoryType
-from astro_context.retrieval.memory_retriever import ScoredMemoryRetriever
+from astro_context.models.query import QueryBundle
+from astro_context.protocols.retriever import Retriever
+from astro_context.retrieval.memory_retriever import MemoryRetrieverAdapter, ScoredMemoryRetriever
 from astro_context.storage.json_memory_store import InMemoryEntryStore
 from astro_context.storage.memory_store import InMemoryVectorStore
 from tests.conftest import make_embedding
@@ -463,3 +466,78 @@ class TestScoredMemoryRetrieverRepr:
         assert "embed_fn=None" in r
         assert "vector_store=None" in r
         assert "decay=None" in r
+
+
+# ---------------------------------------------------------------------------
+# MemoryRetrieverAdapter -- Retriever protocol bridge
+# ---------------------------------------------------------------------------
+
+
+class TestMemoryRetrieverAdapter:
+    """MemoryRetrieverAdapter bridges ScoredMemoryRetriever to the Retriever protocol."""
+
+    def test_as_retriever_returns_adapter(self, entry_store: InMemoryEntryStore) -> None:
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+        assert isinstance(adapter, MemoryRetrieverAdapter)
+
+    def test_adapter_satisfies_retriever_protocol(
+        self, entry_store: InMemoryEntryStore
+    ) -> None:
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+        assert isinstance(adapter, Retriever)
+
+    def test_adapter_retrieve_returns_context_items(
+        self, entry_store: InMemoryEntryStore
+    ) -> None:
+        entry_store.add(_make_entry(entry_id="a1", content="memory about testing"))
+        entry_store.add(_make_entry(entry_id="a2", content="another memory item"))
+
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+
+        results = adapter.retrieve(QueryBundle(query_str="test"))
+        assert isinstance(results, list)
+        assert all(isinstance(item, ContextItem) for item in results)
+
+    def test_adapter_items_have_memory_source(
+        self, entry_store: InMemoryEntryStore
+    ) -> None:
+        entry_store.add(_make_entry(entry_id="s1", content="source test memory"))
+
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+
+        results = adapter.retrieve(QueryBundle(query_str="source test"))
+        assert len(results) >= 1
+        for item in results:
+            assert item.source == SourceType.MEMORY
+
+    def test_adapter_respects_top_k(self, entry_store: InMemoryEntryStore) -> None:
+        for i in range(5):
+            entry_store.add(_make_entry(entry_id=f"tk{i}", content=f"memory {i}"))
+
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+
+        results = adapter.retrieve(QueryBundle(query_str="memory"), top_k=2)
+        assert len(results) == 2
+
+    def test_adapter_items_have_priority_7(
+        self, entry_store: InMemoryEntryStore
+    ) -> None:
+        entry_store.add(_make_entry(entry_id="p1", content="priority test"))
+
+        retriever = ScoredMemoryRetriever(store=entry_store, embed_fn=_fake_embed)
+        adapter = retriever.as_retriever()
+
+        results = adapter.retrieve(QueryBundle(query_str="priority"))
+        assert results[0].priority == 7
+
+    def test_adapter_repr(self, entry_store: InMemoryEntryStore) -> None:
+        retriever = ScoredMemoryRetriever(store=entry_store)
+        adapter = retriever.as_retriever()
+        r = repr(adapter)
+        assert "MemoryRetrieverAdapter" in r
+        assert "ScoredMemoryRetriever" in r

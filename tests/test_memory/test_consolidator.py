@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 from astro_context.memory.consolidator import SimilarityConsolidator
 from astro_context.models.memory import MemoryEntry
@@ -24,19 +25,20 @@ def _identical_embed(_text: str) -> list[float]:
     return [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 
-# Assign sequential one-hot indices to unique texts for guaranteed orthogonality
-_orthogonal_index: dict[str, int] = {}
+def make_orthogonal_embed() -> Callable[[str], list[float]]:
+    """Factory that returns an embed function with a fresh index per call."""
+    index: dict[str, int] = {}
 
+    def _embed(text: str) -> list[float]:
+        dim = 128
+        if text not in index:
+            index[text] = len(index)
+        idx = index[text] % dim
+        vec = [0.0] * dim
+        vec[idx] = 1.0
+        return vec
 
-def _orthogonal_embed(text: str) -> list[float]:
-    """Returns orthogonal vectors for different inputs -- nothing is similar."""
-    dim = 128
-    if text not in _orthogonal_index:
-        _orthogonal_index[text] = len(_orthogonal_index)
-    idx = _orthogonal_index[text] % dim
-    vec = [0.0] * dim
-    vec[idx] = 1.0
-    return vec
+    return _embed
 
 
 class TestSimilarityConsolidatorDedup:
@@ -57,7 +59,7 @@ class TestSimilarityConsolidatorDedup:
 
     def test_different_content_not_deduped(self) -> None:
         consolidator = SimilarityConsolidator(
-            embed_fn=_orthogonal_embed,
+            embed_fn=make_orthogonal_embed(),
             similarity_threshold=0.99,
         )
         existing = MemoryEntry(content="User likes Python")
@@ -174,7 +176,7 @@ class TestSimilarityConsolidatorAdd:
 
     def test_low_similarity_returns_add(self) -> None:
         consolidator = SimilarityConsolidator(
-            embed_fn=_orthogonal_embed,
+            embed_fn=make_orthogonal_embed(),
             similarity_threshold=0.85,
         )
         existing = MemoryEntry(content="User likes Python")

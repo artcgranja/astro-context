@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from astro_context.exceptions import AstroContextError, FormatterError
+from astro_context.exceptions import AstroContextError, FormatterError, PipelineExecutionError
 from astro_context.models.context import ContextItem
 from astro_context.models.query import QueryBundle
 from astro_context.pipeline.pipeline import ContextPipeline
@@ -369,3 +369,60 @@ class TestMaxTokensValidation:
     def test_max_tokens_large_is_valid(self) -> None:
         pipeline = ContextPipeline(max_tokens=1_000_000)
         assert pipeline.max_tokens == 1_000_000
+
+
+# ---------------------------------------------------------------------------
+# 11. PipelineExecutionError wrapping with diagnostics
+# ---------------------------------------------------------------------------
+
+
+class TestPipelineExecutionErrorWrapping:
+    """When an unknown exception type escapes to the pipeline loop,
+    it is wrapped in PipelineExecutionError with diagnostics attached."""
+
+    def test_unknown_exception_wrapped_in_pipeline_execution_error(self) -> None:
+        """Force a bare RuntimeError past the step wrapper by patching execute.
+
+        PipelineStep uses ``@dataclass(slots=True)`` so we patch the
+        ``execute`` method on the *class* to raise a bare RuntimeError.
+        This simulates an unexpected exception type that bypasses the
+        step's internal AstroContextError wrapping and triggers the
+        outer ``except Exception`` handler in ``build()``, which wraps
+        the error in ``PipelineExecutionError`` with diagnostics attached.
+        """
+        pipeline = make_pipeline()
+
+        step = PipelineStep(name="raw-error-step", fn=_failing_step, on_error="raise")
+        pipeline.add_step(step)
+
+        def patched_execute(
+            self: PipelineStep,
+            items: list[ContextItem],
+            query: QueryBundle,
+        ) -> list[ContextItem]:
+            raise RuntimeError("unexpected")
+
+        with (
+            patch.object(PipelineStep, "execute", patched_execute),
+            pytest.raises(PipelineExecutionError) as exc_info,
+        ):
+            pipeline.build(QueryBundle(query_str="test"))
+
+        assert exc_info.value.diagnostics["failed_step"] == "raw-error-step"
+        assert isinstance(exc_info.value.__cause__, RuntimeError)
+        assert "unexpected" in str(exc_info.value.__cause__)
+
+    def test_pipeline_execution_error_is_astro_context_error(self) -> None:
+        """PipelineExecutionError should be a subclass of AstroContextError."""
+        assert issubclass(PipelineExecutionError, AstroContextError)
+
+    def test_pipeline_execution_error_diagnostics_default_empty(self) -> None:
+        """PipelineExecutionError with no diagnostics defaults to empty dict."""
+        err = PipelineExecutionError("test message")
+        assert err.diagnostics == {}
+
+    def test_pipeline_execution_error_preserves_diagnostics(self) -> None:
+        """PipelineExecutionError stores the diagnostics dict."""
+        diag = {"failed_step": "my-step", "steps": []}
+        err = PipelineExecutionError("test message", diagnostics=diag)
+        assert err.diagnostics["failed_step"] == "my-step"
