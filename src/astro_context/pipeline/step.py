@@ -11,6 +11,8 @@ from astro_context.exceptions import AstroContextError
 from astro_context.models.context import ContextItem
 from astro_context.models.query import QueryBundle
 from astro_context.protocols.postprocessor import AsyncPostProcessor, PostProcessor
+from astro_context.protocols.query_transform import QueryTransformer
+from astro_context.protocols.reranker import AsyncReranker, Reranker
 from astro_context.protocols.retriever import AsyncRetriever, Retriever
 
 SyncStepFn = Callable[[list[ContextItem], QueryBundle], list[ContextItem]]
@@ -124,6 +126,47 @@ def async_postprocessor_step(name: str, processor: AsyncPostProcessor) -> Pipeli
     return PipelineStep(name=name, fn=_aprocess, is_async=True)
 
 
+def reranker_step(name: str, reranker: Reranker, top_k: int = 10) -> PipelineStep:
+    """Create a pipeline step from a Reranker protocol implementation.
+
+    The reranker receives the current items and query, scores them,
+    and returns the top-k most relevant items.
+
+    Parameters:
+        name: Human-readable name for the step.
+        reranker: Any object implementing the Reranker protocol.
+        top_k: Maximum number of items the reranker should return.
+
+    Returns:
+        A ``PipelineStep`` that applies the reranker to the pipeline items.
+    """
+
+    def _rerank(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+        return reranker.rerank(query, items, top_k=top_k)
+
+    return PipelineStep(name=name, fn=_rerank)
+
+
+def async_reranker_step(
+    name: str, reranker: AsyncReranker, top_k: int = 10
+) -> PipelineStep:
+    """Create an async pipeline step from an AsyncReranker implementation.
+
+    Parameters:
+        name: Human-readable name for the step.
+        reranker: Any object implementing the AsyncReranker protocol.
+        top_k: Maximum number of items the reranker should return.
+
+    Returns:
+        An async ``PipelineStep`` that applies the reranker.
+    """
+
+    async def _arerank(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+        return await reranker.arerank(query, items, top_k=top_k)
+
+    return PipelineStep(name=name, fn=_arerank, is_async=True)
+
+
 def filter_step(name: str, predicate: Callable[[ContextItem], bool]) -> PipelineStep:
     """Create a pipeline step that filters items by a predicate."""
 
@@ -131,3 +174,42 @@ def filter_step(name: str, predicate: Callable[[ContextItem], bool]) -> Pipeline
         return [item for item in items if predicate(item)]
 
     return PipelineStep(name=name, fn=_filter)
+
+
+def query_transform_step(
+    name: str,
+    transformer: QueryTransformer,
+    retriever: Retriever,
+    top_k: int = 10,
+) -> PipelineStep:
+    """Create a pipeline step that transforms the query, retrieves for each variant, and merges.
+
+    The transformer expands a single query into multiple queries (e.g. via
+    HyDE, multi-query, decomposition).  Each expanded query is passed to the
+    retriever, and the results are merged (deduplicated by item ID) into the
+    existing items list.
+
+    Parameters:
+        name: A descriptive name for this pipeline step.
+        transformer: A ``QueryTransformer`` to expand the query.
+        retriever: A ``Retriever`` to run against each expanded query.
+        top_k: Maximum items to retrieve per query variant.
+
+    Returns:
+        A ``PipelineStep`` that performs multi-query retrieval.
+    """
+
+    def _transform_and_retrieve(
+        items: list[ContextItem], query: QueryBundle
+    ) -> list[ContextItem]:
+        queries = transformer.transform(query)
+        seen_ids: set[str] = {item.id for item in items}
+        new_items: list[ContextItem] = []
+        for q in queries:
+            for item in retriever.retrieve(q, top_k=top_k):
+                if item.id not in seen_ids:
+                    seen_ids.add(item.id)
+                    new_items.append(item)
+        return items + new_items
+
+    return PipelineStep(name=name, fn=_transform_and_retrieve)

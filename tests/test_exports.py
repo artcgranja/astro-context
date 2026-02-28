@@ -11,18 +11,24 @@ class TestTopLevelExports:
             ContextPipeline,
             PipelineStep,
             async_postprocessor_step,
+            async_reranker_step,
             async_retriever_step,
             filter_step,
             postprocessor_step,
+            query_transform_step,
+            reranker_step,
             retriever_step,
         )
 
         assert ContextPipeline is not None
         assert PipelineStep is not None
         assert async_postprocessor_step is not None
+        assert async_reranker_step is not None
         assert async_retriever_step is not None
         assert filter_step is not None
         assert postprocessor_step is not None
+        assert query_transform_step is not None
+        assert reranker_step is not None
         assert retriever_step is not None
 
     def test_model_exports(self) -> None:
@@ -59,23 +65,27 @@ class TestTopLevelExports:
     def test_protocol_exports(self) -> None:
         from astro_context import (
             AsyncPostProcessor,
+            AsyncReranker,
             AsyncRetriever,
             BaseFormatter,
             ContextStore,
             Formatter,
             PostProcessor,
+            Reranker,
             Retriever,
             Tokenizer,
             VectorStore,
         )
 
         assert AsyncPostProcessor is not None
+        assert AsyncReranker is not None
         assert AsyncRetriever is not None
         assert BaseFormatter is not None
         assert Formatter is not None
         assert BaseFormatter is Formatter  # backward-compat alias
         assert ContextStore is not None
         assert PostProcessor is not None
+        assert Reranker is not None
         assert Retriever is not None
         assert Tokenizer is not None
         assert VectorStore is not None
@@ -96,10 +106,24 @@ class TestTopLevelExports:
         assert TokenBudgetExceededError is not None
 
     def test_retrieval_exports(self) -> None:
-        from astro_context import DenseRetriever, HybridRetriever, SparseRetriever
+        from astro_context import (
+            CohereReranker,
+            CrossEncoderReranker,
+            DenseRetriever,
+            FlashRankReranker,
+            HybridRetriever,
+            RerankerPipeline,
+            RoundRobinReranker,
+            SparseRetriever,
+        )
 
+        assert CohereReranker is not None
+        assert CrossEncoderReranker is not None
         assert DenseRetriever is not None
+        assert FlashRankReranker is not None
         assert HybridRetriever is not None
+        assert RerankerPipeline is not None
+        assert RoundRobinReranker is not None
         assert SparseRetriever is not None
 
     def test_formatter_exports(self) -> None:
@@ -160,6 +184,108 @@ class TestTopLevelExports:
         from astro_context import TiktokenCounter
 
         assert TiktokenCounter is not None
+
+    def test_query_transform_exports(self) -> None:
+        from astro_context import (
+            AsyncQueryTransformer,
+            DecompositionTransformer,
+            HyDETransformer,
+            MultiQueryTransformer,
+            QueryTransformer,
+            QueryTransformPipeline,
+            StepBackTransformer,
+            query_transform_step,
+        )
+
+        assert AsyncQueryTransformer is not None
+        assert DecompositionTransformer is not None
+        assert HyDETransformer is not None
+        assert MultiQueryTransformer is not None
+        assert QueryTransformPipeline is not None
+        assert QueryTransformer is not None
+        assert StepBackTransformer is not None
+        assert query_transform_step is not None
+
+    def test_evaluation_exports(self) -> None:
+        from astro_context import (
+            EvaluationResult,
+            LLMRAGEvaluator,
+            PipelineEvaluator,
+            RAGEvaluator,
+            RAGMetrics,
+            RetrievalEvaluator,
+            RetrievalMetrics,
+            RetrievalMetricsCalculator,
+        )
+
+        assert EvaluationResult is not None
+        assert LLMRAGEvaluator is not None
+        assert PipelineEvaluator is not None
+        assert RAGEvaluator is not None
+        assert RAGMetrics is not None
+        assert RetrievalEvaluator is not None
+        assert RetrievalMetrics is not None
+        assert RetrievalMetricsCalculator is not None
+
+    def test_multimodal_exports(self) -> None:
+        from astro_context import (
+            CompositeEncoder,
+            HTMLTableParser,
+            ImageDescriptionEncoder,
+            MarkdownTableParser,
+            ModalityEncoder,
+            ModalityType,
+            MultiModalContent,
+            MultiModalConverter,
+            MultiModalItem,
+            TableEncoder,
+            TableExtractor,
+            TextEncoder,
+        )
+
+        assert CompositeEncoder is not None
+        assert HTMLTableParser is not None
+        assert ImageDescriptionEncoder is not None
+        assert MarkdownTableParser is not None
+        assert ModalityEncoder is not None
+        assert ModalityType is not None
+        assert MultiModalContent is not None
+        assert MultiModalConverter is not None
+        assert MultiModalItem is not None
+        assert TableEncoder is not None
+        assert TableExtractor is not None
+        assert TextEncoder is not None
+
+    def test_observability_exports(self) -> None:
+        from astro_context import (
+            ConsoleSpanExporter,
+            FileSpanExporter,
+            InMemoryMetricsCollector,
+            InMemorySpanExporter,
+            LoggingMetricsCollector,
+            MetricPoint,
+            MetricsCollector,
+            Span,
+            SpanExporter,
+            SpanKind,
+            Tracer,
+            TraceRecord,
+            TracingCallback,
+        )
+
+        assert ConsoleSpanExporter is not None
+        assert FileSpanExporter is not None
+        assert InMemoryMetricsCollector is not None
+        assert InMemorySpanExporter is not None
+        assert LoggingMetricsCollector is not None
+        assert MetricPoint is not None
+        assert MetricsCollector is not None
+        assert Span is not None
+        assert SpanExporter is not None
+        assert SpanKind is not None
+        assert TraceRecord is not None
+        assert Tracer is not None
+        assert TracingCallback is not None
 
     def test_version(self) -> None:
         from astro_context import __version__

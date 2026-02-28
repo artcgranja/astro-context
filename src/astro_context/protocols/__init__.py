@@ -1,5 +1,6 @@
 """Protocol definitions for astro-context's pluggable architecture."""
 
+from .evaluation import RAGEvaluator, RetrievalEvaluator
 from .ingestion import Chunker, DocumentParser
 from .memory import (
     AsyncCompactionStrategy,
@@ -16,7 +17,11 @@ from .memory import (
     QueryEnricher,
     RecencyScorer,
 )
+from .multimodal import ModalityEncoder, TableExtractor
+from .observability import MetricsCollector, SpanExporter
 from .postprocessor import AsyncPostProcessor, PostProcessor
+from .query_transform import AsyncQueryTransformer, QueryTransformer
+from .reranker import AsyncReranker, Reranker
 from .retriever import AsyncRetriever, Retriever
 from .storage import (
     ContextStore,
@@ -31,6 +36,8 @@ __all__ = [
     "AsyncCompactionStrategy",
     "AsyncMemoryExtractor",
     "AsyncPostProcessor",
+    "AsyncQueryTransformer",
+    "AsyncReranker",
     "AsyncRetriever",
     "Chunker",
     "CompactionStrategy",
@@ -47,10 +54,18 @@ __all__ = [
     "MemoryOperation",
     "MemoryProvider",
     "MemoryQueryEnricher",
+    "MetricsCollector",
+    "ModalityEncoder",
     "PostProcessor",
     "QueryEnricher",
+    "QueryTransformer",
+    "RAGEvaluator",
     "RecencyScorer",
+    "Reranker",
+    "RetrievalEvaluator",
     "Retriever",
+    "SpanExporter",
+    "TableExtractor",
     "Tokenizer",
     "VectorStore",
 ]

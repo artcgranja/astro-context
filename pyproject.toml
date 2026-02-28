@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 tiktoken = ["tiktoken>=0.7,<1"]
 bm25 = ["rank-bm25>=0.2.2,<1"]
+flashrank = ["flashrank>=0.2,<1"]
 cli = ["typer>=0.12,<1", "rich>=13,<14"]
 anthropic = ["anthropic>=0.40,<1"]
 agents = ["anthropic>=0.40,<1"]
@@ -35,7 +36,7 @@ docs = [
     "mkdocs-material>=9,<10",
     "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf]"]
+all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank]"]
 
 [project.scripts]
 astro-context = "astro_context.cli:app"
@@ -87,6 +88,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "pypdf.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "flashrank.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
