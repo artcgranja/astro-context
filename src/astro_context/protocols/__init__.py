@@ -1,5 +1,6 @@
 """Protocol definitions for astro-context's pluggable architecture."""
 
+from .ingestion import Chunker, DocumentParser
 from .memory import (
     AsyncCompactionStrategy,
     AsyncMemoryExtractor,
@@ -31,9 +32,11 @@ __all__ = [
     "AsyncMemoryExtractor",
     "AsyncPostProcessor",
     "AsyncRetriever",
+    "Chunker",
     "CompactionStrategy",
     "ContextStore",
     "ConversationMemory",
+    "DocumentParser",
     "DocumentStore",
     "EvictionPolicy",
     "GarbageCollectableStore",

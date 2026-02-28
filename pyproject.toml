@@ -30,11 +30,12 @@ bm25 = ["rank-bm25>=0.2.2,<1"]
 cli = ["typer>=0.12,<1", "rich>=13,<14"]
 anthropic = ["anthropic>=0.40,<1"]
 agents = ["anthropic>=0.40,<1"]
+pdf = ["pypdf>=4,<5"]
 docs = [
     "mkdocs-material>=9,<10",
     "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["astro-context[bm25,cli,anthropic,tiktoken,agents]"]
+all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf]"]
 
 [project.scripts]
 astro-context = "astro_context.cli:app"
@@ -82,6 +83,10 @@ strict = true
 
 [[tool.mypy.overrides]]
 module = "rank_bm25.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pypdf.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

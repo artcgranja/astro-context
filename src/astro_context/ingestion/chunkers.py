@@ -1,0 +1,315 @@
+"""Built-in chunking strategies for document ingestion.
+
+All chunkers implement the ``Chunker`` protocol and use the ``Tokenizer``
+protocol for token-aware splitting.  Zero external dependencies required.
+"""
+
+from __future__ import annotations
+
+import logging
+import re
+from typing import Any
+
+from astro_context.protocols.tokenizer import Tokenizer
+from astro_context.tokens.counter import get_default_counter
+
+logger = logging.getLogger(__name__)
+
+
+class FixedSizeChunker:
+    """Split text into fixed-size chunks by token count.
+
+    Implements the ``Chunker`` protocol.
+    """
+
+    __slots__ = ("_chunk_size", "_overlap", "_tokenizer")
+
+    def __init__(
+        self,
+        chunk_size: int = 512,
+        overlap: int = 50,
+        tokenizer: Tokenizer | None = None,
+    ) -> None:
+        if chunk_size <= 0:
+            msg = f"chunk_size must be positive, got {chunk_size}"
+            raise ValueError(msg)
+        if overlap < 0:
+            msg = f"overlap must be non-negative, got {overlap}"
+            raise ValueError(msg)
+        if overlap >= chunk_size:
+            msg = f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"
+            raise ValueError(msg)
+        self._chunk_size = chunk_size
+        self._overlap = overlap
+        self._tokenizer = tokenizer or get_default_counter()
+
+    def chunk(self, text: str, metadata: dict[str, Any] | None = None) -> list[str]:
+        """Split text into fixed-size token chunks with overlap.
+
+        Parameters:
+            text: The text to chunk.
+            metadata: Unused; accepted for protocol compliance.
+
+        Returns:
+            A list of text chunks.
+        """
+        if not text or not text.strip():
+            return []
+
+        words = text.split()
+        chunks: list[str] = []
+        start = 0
+
+        while start < len(words):
+            # Build a chunk up to chunk_size tokens
+            end = start
+            candidate = ""
+            while end < len(words):
+                trial = " ".join(words[start : end + 1])
+                if self._tokenizer.count_tokens(trial) > self._chunk_size and end > start:
+                    break
+                candidate = trial
+                end += 1
+
+            if candidate:
+                chunks.append(candidate)
+
+            # If this chunk reached the end of the text, we're done
+            if end >= len(words):
+                break
+
+            # Advance by (chunk_size - overlap) worth of words
+            if end == start:
+                # Single word exceeds chunk_size; skip it to avoid infinite loop
+                start = end + 1
+            else:
+                # Calculate how many words to step back for overlap
+                chunk_word_count = end - start
+                step = max(1, chunk_word_count - self._overlap_words(words, start, end))
+                start += step
+
+        return chunks
+
+    def _overlap_words(self, words: list[str], start: int, end: int) -> int:
+        """Calculate number of trailing words that fit in overlap tokens."""
+        if self._overlap == 0:
+            return 0
+        count = 0
+        idx = end - 1
+        while idx >= start and count < (end - start):
+            trail = " ".join(words[idx:end])
+            if self._tokenizer.count_tokens(trail) > self._overlap:
+                break
+            count += 1
+            idx -= 1
+        return count
+
+    def __repr__(self) -> str:
+        return (
+            f"FixedSizeChunker(chunk_size={self._chunk_size}, "
+            f"overlap={self._overlap})"
+        )
+
+
+class RecursiveCharacterChunker:
+    """Split text using a hierarchy of separators, falling back to finer splits.
+
+    Separator hierarchy: ``"\\n\\n"`` → ``"\\n"`` → ``". "`` → ``" "``.
+
+    Implements the ``Chunker`` protocol.
+    """
+
+    __slots__ = ("_chunk_size", "_overlap", "_separators", "_tokenizer")
+
+    _DEFAULT_SEPARATORS = ("\n\n", "\n", ". ", " ")
+
+    def __init__(
+        self,
+        chunk_size: int = 512,
+        overlap: int = 50,
+        separators: tuple[str, ...] | None = None,
+        tokenizer: Tokenizer | None = None,
+    ) -> None:
+        if chunk_size <= 0:
+            msg = f"chunk_size must be positive, got {chunk_size}"
+            raise ValueError(msg)
+        if overlap < 0:
+            msg = f"overlap must be non-negative, got {overlap}"
+            raise ValueError(msg)
+        if overlap >= chunk_size:
+            msg = f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"
+            raise ValueError(msg)
+        self._chunk_size = chunk_size
+        self._overlap = overlap
+        self._separators = separators or self._DEFAULT_SEPARATORS
+        self._tokenizer = tokenizer or get_default_counter()
+
+    def chunk(self, text: str, metadata: dict[str, Any] | None = None) -> list[str]:
+        """Recursively split text using separator hierarchy.
+
+        Parameters:
+            text: The text to chunk.
+            metadata: Unused; accepted for protocol compliance.
+
+        Returns:
+            A list of text chunks.
+        """
+        if not text or not text.strip():
+            return []
+        return self._split(text, 0)
+
+    def _split(self, text: str, sep_idx: int) -> list[str]:
+        """Recursively split text, falling back to finer separators."""
+        if self._tokenizer.count_tokens(text) <= self._chunk_size:
+            stripped = text.strip()
+            return [stripped] if stripped else []
+
+        if sep_idx >= len(self._separators):
+            # No more separators; truncate to chunk_size
+            return [self._tokenizer.truncate_to_tokens(text, self._chunk_size)]
+
+        separator = self._separators[sep_idx]
+        parts = text.split(separator)
+
+        chunks: list[str] = []
+        current = ""
+
+        for part in parts:
+            candidate = separator.join([current, part]) if current else part
+
+            if self._tokenizer.count_tokens(candidate) <= self._chunk_size:
+                current = candidate
+            else:
+                if current.strip():
+                    chunks.append(current.strip())
+                # If the part itself exceeds chunk_size, split it further
+                if self._tokenizer.count_tokens(part) > self._chunk_size:
+                    sub_chunks = self._split(part, sep_idx + 1)
+                    chunks.extend(sub_chunks)
+                    current = ""
+                else:
+                    current = part
+
+        if current.strip():
+            chunks.append(current.strip())
+
+        return self._apply_overlap(chunks)
+
+    def _apply_overlap(self, chunks: list[str]) -> list[str]:
+        """Apply token-based overlap between adjacent chunks."""
+        if self._overlap == 0 or len(chunks) <= 1:
+            return chunks
+
+        result: list[str] = [chunks[0]]
+        for i in range(1, len(chunks)):
+            prev_words = chunks[i - 1].split()
+            overlap_text = ""
+            for j in range(len(prev_words) - 1, -1, -1):
+                candidate = " ".join(prev_words[j:])
+                if self._tokenizer.count_tokens(candidate) > self._overlap:
+                    break
+                overlap_text = candidate
+
+            if overlap_text:
+                merged = overlap_text + " " + chunks[i]
+                # Only add overlap if it doesn't exceed chunk_size
+                if self._tokenizer.count_tokens(merged) <= self._chunk_size:
+                    result.append(merged)
+                else:
+                    result.append(chunks[i])
+            else:
+                result.append(chunks[i])
+
+        return result
+
+    def __repr__(self) -> str:
+        return (
+            f"RecursiveCharacterChunker(chunk_size={self._chunk_size}, "
+            f"overlap={self._overlap})"
+        )
+
+
+class SentenceChunker:
+    """Split text at sentence boundaries, grouping sentences to fill chunks.
+
+    Uses regex-based sentence boundary detection.  Overlap is measured
+    in sentences rather than tokens.
+
+    Implements the ``Chunker`` protocol.
+    """
+
+    __slots__ = ("_chunk_size", "_overlap", "_sentence_pattern", "_tokenizer")
+
+    _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
+
+    def __init__(
+        self,
+        chunk_size: int = 512,
+        overlap: int = 1,
+        tokenizer: Tokenizer | None = None,
+    ) -> None:
+        if chunk_size <= 0:
+            msg = f"chunk_size must be positive, got {chunk_size}"
+            raise ValueError(msg)
+        if overlap < 0:
+            msg = f"overlap must be non-negative, got {overlap}"
+            raise ValueError(msg)
+        self._chunk_size = chunk_size
+        self._overlap = overlap
+        self._tokenizer = tokenizer or get_default_counter()
+        self._sentence_pattern = self._SENTENCE_RE
+
+    def chunk(self, text: str, metadata: dict[str, Any] | None = None) -> list[str]:
+        """Split text into sentence-based chunks.
+
+        Parameters:
+            text: The text to chunk.
+            metadata: Unused; accepted for protocol compliance.
+
+        Returns:
+            A list of text chunks, each containing one or more sentences.
+        """
+        if not text or not text.strip():
+            return []
+
+        sentences = self._split_sentences(text)
+        if not sentences:
+            return []
+
+        chunks: list[str] = []
+        start = 0
+
+        while start < len(sentences):
+            end = start
+            current = ""
+
+            while end < len(sentences):
+                candidate = " ".join(sentences[start : end + 1])
+                if self._tokenizer.count_tokens(candidate) > self._chunk_size and end > start:
+                    break
+                current = candidate
+                end += 1
+
+            if current:
+                chunks.append(current)
+
+            if end == start:
+                # Single sentence exceeds chunk_size; include it anyway
+                chunks.append(sentences[start])
+                start = end + 1
+            else:
+                step = max(1, (end - start) - self._overlap)
+                start += step
+
+        return chunks
+
+    def _split_sentences(self, text: str) -> list[str]:
+        """Split text into sentences using regex."""
+        sentences = self._sentence_pattern.split(text)
+        return [s.strip() for s in sentences if s.strip()]
+
+    def __repr__(self) -> str:
+        return (
+            f"SentenceChunker(chunk_size={self._chunk_size}, "
+            f"overlap={self._overlap})"
+        )

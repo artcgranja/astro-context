@@ -121,6 +121,41 @@ class TestTopLevelExports:
         assert InMemoryContextStore is not None
         assert InMemoryVectorStore is not None
 
+    def test_ingestion_exports(self) -> None:
+        from astro_context import (
+            Chunker,
+            DocumentIngester,
+            DocumentParser,
+            FixedSizeChunker,
+            HTMLParser,
+            IngestionError,
+            MarkdownParser,
+            MetadataEnricher,
+            PDFParser,
+            PlainTextParser,
+            RecursiveCharacterChunker,
+            SentenceChunker,
+            extract_chunk_metadata,
+            generate_chunk_id,
+            generate_doc_id,
+        )
+
+        assert Chunker is not None
+        assert DocumentIngester is not None
+        assert DocumentParser is not None
+        assert FixedSizeChunker is not None
+        assert HTMLParser is not None
+        assert IngestionError is not None
+        assert MarkdownParser is not None
+        assert MetadataEnricher is not None
+        assert PDFParser is not None
+        assert PlainTextParser is not None
+        assert RecursiveCharacterChunker is not None
+        assert SentenceChunker is not None
+        assert extract_chunk_metadata is not None
+        assert generate_chunk_id is not None
+        assert generate_doc_id is not None
+
     def test_token_exports(self) -> None:
         from astro_context import TiktokenCounter
 

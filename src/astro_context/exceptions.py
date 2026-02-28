@@ -7,6 +7,7 @@ from typing import Any
 __all__ = [
     "AstroContextError",
     "FormatterError",
+    "IngestionError",
     "PipelineExecutionError",
     "RetrieverError",
     "StorageError",
@@ -40,3 +41,7 @@ class StorageError(AstroContextError):
 
 class FormatterError(AstroContextError):
     """Raised when formatting context fails."""
+
+
+class IngestionError(AstroContextError):
+    """Raised when document ingestion fails."""
