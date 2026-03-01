@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from astro_context.models.query import QueryBundle
@@ -84,11 +85,14 @@ class QueryTransformPipeline:
         """
         current: list[QueryBundle] = [query]
         for transformer in self._transformers:
-            next_queries: list[QueryBundle] = []
-            for q in current:
-                if isinstance(transformer, AsyncQueryTransformer):
-                    next_queries.extend(await transformer.atransform(q))
-                else:
+            if isinstance(transformer, AsyncQueryTransformer):
+                results = await asyncio.gather(
+                    *(transformer.atransform(q) for q in current)
+                )
+                next_queries = [q for qs in results for q in qs]
+            else:
+                next_queries = []
+                for q in current:
                     next_queries.extend(transformer.transform(q))
             current = next_queries
         result = self._deduplicate(current)

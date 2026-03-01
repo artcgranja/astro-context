@@ -7,9 +7,10 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
-from astro_context.exceptions import AstroContextError
+from astro_context.exceptions import AstroContextError, RetrieverError
 from astro_context.models.context import ContextItem
 from astro_context.models.query import QueryBundle
+from astro_context.retrieval._rrf import rrf_fuse
 from astro_context.protocols.postprocessor import AsyncPostProcessor, PostProcessor
 from astro_context.protocols.query_transform import QueryTransformer
 from astro_context.protocols.reranker import AsyncReranker, Reranker
@@ -62,9 +63,7 @@ class PipelineStep:
             raise AstroContextError(msg) from e
         return self._validate_result(result)
 
-    async def aexecute(
-        self, items: list[ContextItem], query: QueryBundle
-    ) -> list[ContextItem]:
+    async def aexecute(self, items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
         """Execute this step asynchronously.
 
         Works for both sync and async step functions -- sync functions
@@ -92,14 +91,10 @@ def retriever_step(name: str, retriever: Retriever, top_k: int = 10) -> Pipeline
     return PipelineStep(name=name, fn=_retrieve)
 
 
-def async_retriever_step(
-    name: str, retriever: AsyncRetriever, top_k: int = 10
-) -> PipelineStep:
+def async_retriever_step(name: str, retriever: AsyncRetriever, top_k: int = 10) -> PipelineStep:
     """Create an async pipeline step from an AsyncRetriever implementation."""
 
-    async def _aretrieve(
-        items: list[ContextItem], query: QueryBundle
-    ) -> list[ContextItem]:
+    async def _aretrieve(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
         retrieved = await retriever.aretrieve(query, top_k=top_k)
         return items + retrieved
 
@@ -118,9 +113,7 @@ def postprocessor_step(name: str, processor: PostProcessor) -> PipelineStep:
 def async_postprocessor_step(name: str, processor: AsyncPostProcessor) -> PipelineStep:
     """Create an async pipeline step from an AsyncPostProcessor implementation."""
 
-    async def _aprocess(
-        items: list[ContextItem], query: QueryBundle
-    ) -> list[ContextItem]:
+    async def _aprocess(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
         return await processor.aprocess(items, query)
 
     return PipelineStep(name=name, fn=_aprocess, is_async=True)
@@ -147,9 +140,7 @@ def reranker_step(name: str, reranker: Reranker, top_k: int = 10) -> PipelineSte
     return PipelineStep(name=name, fn=_rerank)
 
 
-def async_reranker_step(
-    name: str, reranker: AsyncReranker, top_k: int = 10
-) -> PipelineStep:
+def async_reranker_step(name: str, reranker: AsyncReranker, top_k: int = 10) -> PipelineStep:
     """Create an async pipeline step from an AsyncReranker implementation.
 
     Parameters:
@@ -199,17 +190,62 @@ def query_transform_step(
         A ``PipelineStep`` that performs multi-query retrieval.
     """
 
-    def _transform_and_retrieve(
-        items: list[ContextItem], query: QueryBundle
-    ) -> list[ContextItem]:
+    def _transform_and_retrieve(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
         queries = transformer.transform(query)
-        seen_ids: set[str] = {item.id for item in items}
-        new_items: list[ContextItem] = []
+        ranked_lists: list[list[ContextItem]] = []
         for q in queries:
-            for item in retriever.retrieve(q, top_k=top_k):
-                if item.id not in seen_ids:
-                    seen_ids.add(item.id)
-                    new_items.append(item)
+            ranked_lists.append(retriever.retrieve(q, top_k=top_k))
+        fused = rrf_fuse(ranked_lists, top_k=top_k)
+        existing_ids: set[str] = {item.id for item in items}
+        new_items = [item for item in fused if item.id not in existing_ids]
         return items + new_items
 
     return PipelineStep(name=name, fn=_transform_and_retrieve)
+
+
+def classified_retriever_step(
+    name: str,
+    classifier: Any,  # QueryClassifier protocol
+    retrievers: dict[str, Retriever],
+    default: str | None = None,
+    top_k: int = 10,
+) -> PipelineStep:
+    """Create a pipeline step that classifies the query and routes to a retriever.
+
+    The classifier assigns a label to the query, then the corresponding
+    retriever is looked up from the ``retrievers`` dict.  If the label
+    is not found, the ``default`` key is used as a fallback.
+
+    Parameters:
+        name: Human-readable name for this pipeline step.
+        classifier: Any object implementing the ``QueryClassifier`` protocol
+            (must have a ``classify(QueryBundle) -> str`` method).
+        retrievers: A mapping from class label to ``Retriever``.
+        default: Optional fallback key to use when the classified label
+            is not in ``retrievers``.  If ``None`` and the label is
+            missing, a ``RetrieverError`` is raised.
+        top_k: Maximum number of items to retrieve.
+
+    Returns:
+        A ``PipelineStep`` that classifies and retrieves.
+
+    Raises:
+        RetrieverError: If the classified label has no matching retriever
+            and no default is configured.
+    """
+
+    def _classify_and_retrieve(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+        label = classifier.classify(query)
+        retriever = retrievers.get(label)
+        if retriever is None and default is not None:
+            retriever = retrievers.get(default)
+        if retriever is None:
+            msg = (
+                f"No retriever found for class label {label!r} "
+                f"and no default configured in step {name!r}"
+            )
+            raise RetrieverError(msg)
+        retrieved = retriever.retrieve(query, top_k=top_k)
+        return items + retrieved
+
+    return PipelineStep(name=name, fn=_classify_and_retrieve)

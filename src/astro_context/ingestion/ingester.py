@@ -99,6 +99,13 @@ class DocumentIngester:
             return []
 
         doc_id = doc_id or generate_doc_id(text)
+
+        if hasattr(self._chunker, "chunk_with_metadata"):
+            chunks_with_meta = self._chunker.chunk_with_metadata(text, doc_metadata)
+            if not chunks_with_meta:
+                return []
+            return self._build_items_with_metadata(chunks_with_meta, doc_id, doc_metadata)
+
         chunks = self._chunker.chunk(text, doc_metadata)
 
         if not chunks:
@@ -144,6 +151,13 @@ class DocumentIngester:
             return []
 
         doc_id = doc_id or generate_doc_id(text, str(path))
+
+        if hasattr(self._chunker, "chunk_with_metadata"):
+            chunks_with_meta = self._chunker.chunk_with_metadata(text, doc_metadata)
+            if not chunks_with_meta:
+                return []
+            return self._build_items_with_metadata(chunks_with_meta, doc_id, doc_metadata)
+
         chunks = self._chunker.chunk(text, doc_metadata)
 
         if not chunks:
@@ -208,6 +222,54 @@ class DocumentIngester:
             metadata = extract_chunk_metadata(
                 chunk_text, idx, total, doc_id, doc_metadata,
             )
+
+            if self._enricher:
+                metadata = self._enricher.enrich(chunk_text, idx, total, metadata)
+
+            token_count = self._tokenizer.count_tokens(chunk_text)
+
+            item = ContextItem(
+                id=chunk_id,
+                content=chunk_text,
+                source=self._source_type,
+                priority=self._priority,
+                token_count=token_count,
+                metadata=metadata,
+            )
+            items.append(item)
+
+        return items
+
+    def _build_items_with_metadata(
+        self,
+        chunks_with_meta: list[tuple[str, dict[str, Any]]],
+        doc_id: str,
+        doc_metadata: dict[str, Any] | None,
+    ) -> list[ContextItem]:
+        """Convert (text, metadata) tuples into ContextItem objects.
+
+        Used when the chunker provides its own metadata (e.g.
+        ``ParentChildChunker.chunk_with_metadata``).
+
+        Parameters:
+            chunks_with_meta: List of ``(text, metadata)`` tuples.
+            doc_id: The parent document ID.
+            doc_metadata: Optional document-level metadata.
+
+        Returns:
+            A list of ``ContextItem`` objects.
+        """
+        items: list[ContextItem] = []
+        total = len(chunks_with_meta)
+
+        for idx, (chunk_text, chunk_meta) in enumerate(chunks_with_meta):
+            chunk_id = generate_chunk_id(doc_id, idx)
+
+            # Start with standard metadata, then layer chunker metadata on top
+            metadata = extract_chunk_metadata(
+                chunk_text, idx, total, doc_id, doc_metadata,
+            )
+            metadata.update(chunk_meta)
 
             if self._enricher:
                 metadata = self._enricher.enrich(chunk_text, idx, total, metadata)

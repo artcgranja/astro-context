@@ -7,7 +7,9 @@ protocol for token-aware splitting.  Zero external dependencies required.
 from __future__ import annotations
 
 import logging
+import math
 import re
+from collections.abc import Callable
 from typing import Any
 
 from astro_context.protocols.tokenizer import Tokenizer
@@ -312,4 +314,178 @@ class SentenceChunker:
         return (
             f"SentenceChunker(chunk_size={self._chunk_size}, "
             f"overlap={self._overlap})"
+        )
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Compute cosine similarity between two vectors.
+
+    Parameters:
+        a: First embedding vector.
+        b: Second embedding vector.
+
+    Returns:
+        Cosine similarity in ``[-1, 1]``.  Returns ``0.0`` when either
+        vector has zero magnitude.
+    """
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
+    mag_a = math.sqrt(sum(x * x for x in a))
+    mag_b = math.sqrt(sum(x * x for x in b))
+    if mag_a == 0.0 or mag_b == 0.0:
+        return 0.0
+    return dot / (mag_a * mag_b)
+
+
+class SemanticChunker:
+    """Split text at semantic boundaries using embedding similarity.
+
+    Segments the text into sentences, computes embeddings, and splits
+    where cosine similarity between adjacent segments drops below a
+    threshold.
+
+    Implements the ``Chunker`` protocol.
+
+    Parameters:
+        embed_fn: A callable that takes a list of strings and returns
+            a list of float lists (embeddings). Signature:
+            ``(list[str]) -> list[list[float]]``
+        tokenizer: Token counter for enforcing chunk size limits.
+        threshold: Cosine similarity threshold. Adjacent segments with
+            similarity below this are split. Default 0.5.
+        chunk_size: Maximum tokens per chunk. Default 512.
+        min_chunk_size: Minimum tokens per chunk. Chunks smaller than
+            this are merged with neighbors. Default 50.
+    """
+
+    __slots__ = ("_chunk_size", "_embed_fn", "_min_chunk_size", "_threshold", "_tokenizer")
+
+    _SENTENCE_RE = SentenceChunker._SENTENCE_RE
+
+    def __init__(
+        self,
+        embed_fn: Callable[[list[str]], list[list[float]]],
+        tokenizer: Tokenizer | None = None,
+        threshold: float = 0.5,
+        chunk_size: int = 512,
+        min_chunk_size: int = 50,
+    ) -> None:
+        if chunk_size <= 0:
+            msg = f"chunk_size must be positive, got {chunk_size}"
+            raise ValueError(msg)
+        if min_chunk_size < 0:
+            msg = f"min_chunk_size must be non-negative, got {min_chunk_size}"
+            raise ValueError(msg)
+        self._embed_fn = embed_fn
+        self._tokenizer = tokenizer or get_default_counter()
+        self._threshold = threshold
+        self._chunk_size = chunk_size
+        self._min_chunk_size = min_chunk_size
+
+    def chunk(self, text: str, metadata: dict[str, Any] | None = None) -> list[str]:
+        """Split text into semantically coherent chunks.
+
+        Parameters:
+            text: The text to chunk.
+            metadata: Unused; accepted for protocol compliance.
+
+        Returns:
+            A list of text chunks split at semantic boundaries.
+        """
+        if not text or not text.strip():
+            return []
+
+        sentences = self._split_sentences(text)
+        if not sentences:
+            return []
+
+        # If everything fits in one chunk, return as-is
+        joined = " ".join(sentences)
+        if self._tokenizer.count_tokens(joined) <= self._chunk_size:
+            return [joined]
+
+        # Compute embeddings for all sentences
+        embeddings = self._embed_fn(sentences)
+
+        # Identify split points where similarity drops below threshold
+        split_indices: list[int] = []
+        for i in range(len(embeddings) - 1):
+            sim = _cosine_similarity(embeddings[i], embeddings[i + 1])
+            if sim < self._threshold:
+                split_indices.append(i + 1)
+
+        # Group sentences between split points
+        groups = self._group_sentences(sentences, split_indices)
+
+        # Merge small chunks with neighbors
+        groups = self._merge_small_chunks(groups)
+
+        # Split oversized chunks using word-based fallback
+        result: list[str] = []
+        fallback = FixedSizeChunker(
+            chunk_size=self._chunk_size, overlap=0, tokenizer=self._tokenizer
+        )
+        for group in groups:
+            if self._tokenizer.count_tokens(group) > self._chunk_size:
+                result.extend(fallback.chunk(group))
+            else:
+                result.append(group)
+
+        return result
+
+    def _split_sentences(self, text: str) -> list[str]:
+        """Split text into sentences using regex."""
+        sentences = self._SENTENCE_RE.split(text)
+        return [s.strip() for s in sentences if s.strip()]
+
+    def _group_sentences(
+        self, sentences: list[str], split_indices: list[int]
+    ) -> list[str]:
+        """Group sentences between split points into chunks.
+
+        Parameters:
+            sentences: All sentences from the text.
+            split_indices: Indices where semantic breaks occur.
+
+        Returns:
+            A list of text chunks formed by joining sentence groups.
+        """
+        groups: list[str] = []
+        prev = 0
+        for idx in split_indices:
+            group = " ".join(sentences[prev:idx])
+            if group.strip():
+                groups.append(group.strip())
+            prev = idx
+        # Remaining sentences
+        tail = " ".join(sentences[prev:])
+        if tail.strip():
+            groups.append(tail.strip())
+        return groups
+
+    def _merge_small_chunks(self, chunks: list[str]) -> list[str]:
+        """Merge chunks smaller than min_chunk_size with their neighbors.
+
+        Parameters:
+            chunks: List of text chunks.
+
+        Returns:
+            A list of chunks with small ones merged into neighbors.
+        """
+        if self._min_chunk_size <= 0 or len(chunks) <= 1:
+            return chunks
+
+        merged: list[str] = [chunks[0]]
+        for chunk in chunks[1:]:
+            prev_tokens = self._tokenizer.count_tokens(merged[-1])
+            cur_tokens = self._tokenizer.count_tokens(chunk)
+            if prev_tokens < self._min_chunk_size or cur_tokens < self._min_chunk_size:
+                merged[-1] = merged[-1] + " " + chunk
+            else:
+                merged.append(chunk)
+        return merged
+
+    def __repr__(self) -> str:
+        return (
+            f"SemanticChunker(threshold={self._threshold}, "
+            f"chunk_size={self._chunk_size})"
         )

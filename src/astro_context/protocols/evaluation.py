@@ -6,35 +6,33 @@ as an evaluator -- no inheritance required.
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from astro_context.evaluation.models import RAGMetrics, RetrievalMetrics
 from astro_context.models.context import ContextItem
 
 
 @runtime_checkable
-class RetrievalEvaluator(Protocol):
-    """Protocol for retrieval-quality evaluators.
+class HumanEvaluator(Protocol):
+    """Protocol for human-in-the-loop evaluators.
 
-    Implementations compute precision, recall, MRR, NDCG, etc. by comparing
-    retrieved items against a set of known-relevant document IDs.
+    Implementations collect human judgments and compute inter-annotator
+    agreement metrics.
     """
 
-    def evaluate(
-        self,
-        retrieved: list[ContextItem],
-        relevant: list[str],
-        k: int = 10,
-    ) -> RetrievalMetrics:
-        """Evaluate retrieval quality.
+    def add_judgment(self, judgment: Any) -> None:
+        """Record a single human judgment.
 
         Parameters:
-            retrieved: The items returned by the retriever, in ranked order.
-            relevant: IDs of documents that are relevant to the query.
-            k: Number of top results to consider.
+            judgment: The judgment object to record.
+        """
+        ...
+
+    def compute_agreement(self) -> float:
+        """Compute inter-annotator agreement.
 
         Returns:
-            A ``RetrievalMetrics`` instance with all computed scores.
+            A float representing the agreement score (e.g. Cohen's kappa).
         """
         ...
 
@@ -64,5 +62,32 @@ class RAGEvaluator(Protocol):
 
         Returns:
             A ``RAGMetrics`` instance with all computed scores.
+        """
+        ...
+
+
+@runtime_checkable
+class RetrievalEvaluator(Protocol):
+    """Protocol for retrieval-quality evaluators.
+
+    Implementations compute precision, recall, MRR, NDCG, etc. by comparing
+    retrieved items against a set of known-relevant document IDs.
+    """
+
+    def evaluate(
+        self,
+        retrieved: list[ContextItem],
+        relevant: list[str],
+        k: int = 10,
+    ) -> RetrievalMetrics:
+        """Evaluate retrieval quality.
+
+        Parameters:
+            retrieved: The items returned by the retriever, in ranked order.
+            relevant: IDs of documents that are relevant to the query.
+            k: Number of top results to consider.
+
+        Returns:
+            A ``RetrievalMetrics`` instance with all computed scores.
         """
         ...

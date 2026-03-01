@@ -9,7 +9,10 @@ Core Pipeline:
     retriever_step, filter_step, postprocessor_step, reranker_step,
     async_retriever_step, async_postprocessor_step, async_reranker_step,
     auto_promotion_step, graph_retrieval_step, create_eviction_promoter,
-    query_transform_step
+    query_transform_step, classified_retriever_step
+
+Caching:
+    CacheBackend, InMemoryCacheBackend
 
 Memory Management:
     MemoryManager, SlidingWindowMemory, SummaryBufferMemory, SimpleGraphMemory,
@@ -23,7 +26,8 @@ Retrieval:
     DenseRetriever, SparseRetriever, HybridRetriever, ScoreReranker,
     CrossEncoderReranker, CohereReranker, FlashRankReranker,
     RoundRobinReranker, RerankerPipeline,
-    ScoredMemoryRetriever, MemoryRetrieverAdapter
+    ScoredMemoryRetriever, MemoryRetrieverAdapter, rrf_fuse,
+    CallbackRouter, KeywordRouter, MetadataRouter, RoutedRetriever
 
 Formatting:
     AnthropicFormatter, OpenAIFormatter, GenericTextFormatter, BaseFormatter
@@ -34,7 +38,8 @@ Query Transformation:
 
 Evaluation:
     RetrievalMetrics, RAGMetrics, EvaluationResult,
-    RetrievalMetricsCalculator, LLMRAGEvaluator, PipelineEvaluator
+    RetrievalMetricsCalculator, LLMRAGEvaluator, PipelineEvaluator,
+    EvaluationSample, EvaluationDataset, AggregatedMetrics, BatchEvaluator
 
 Multi-modal:
     ModalityType, MultiModalContent, MultiModalItem, MultiModalConverter,
@@ -45,7 +50,9 @@ Multi-modal:
 Observability:
     Tracer, TracingCallback, Span, SpanKind, TraceRecord, MetricPoint,
     ConsoleSpanExporter, InMemorySpanExporter, FileSpanExporter,
-    InMemoryMetricsCollector, LoggingMetricsCollector
+    OTLPSpanExporter, OTLPMetricsExporter,
+    InMemoryMetricsCollector, LoggingMetricsCollector,
+    CostEntry, CostSummary, CostTracker, CostTrackingCallback
 
 Protocols (extension points):
     Retriever, AsyncRetriever, PostProcessor, AsyncPostProcessor,
@@ -58,7 +65,8 @@ Protocols (extension points):
     GarbageCollectableStore, ConversationMemory, MemoryProvider,
     RetrievalEvaluator, RAGEvaluator,
     ModalityEncoder, TableExtractor,
-    SpanExporter, MetricsCollector
+    SpanExporter, MetricsCollector,
+    QueryRouter, CacheBackend
 
 Storage:
     InMemoryContextStore, InMemoryDocumentStore, InMemoryVectorStore,
@@ -73,7 +81,8 @@ Models & Types:
 
 Ingestion:
     DocumentIngester, FixedSizeChunker, RecursiveCharacterChunker,
-    SentenceChunker, PlainTextParser, MarkdownParser, HTMLParser, PDFParser,
+    SemanticChunker, SentenceChunker, ParentChildChunker, ParentExpander,
+    PlainTextParser, MarkdownParser, HTMLParser, PDFParser,
     MetadataEnricher, generate_doc_id, generate_chunk_id, extract_chunk_metadata
 
 Exceptions:
@@ -97,8 +106,17 @@ from astro_context.agent import (
     rag_tools,
     tool,
 )
+from astro_context.cache import InMemoryCacheBackend
 from astro_context.evaluation import (
+    ABTestResult,
+    ABTestRunner,
+    AggregatedMetrics,
+    BatchEvaluator,
+    EvaluationDataset,
     EvaluationResult,
+    EvaluationSample,
+    HumanEvaluationCollector,
+    HumanJudgment,
     LLMRAGEvaluator,
     PipelineEvaluator,
     RAGMetrics,
@@ -122,15 +140,20 @@ from astro_context.formatters import (
     OpenAIFormatter,
 )
 from astro_context.ingestion import (
+    CodeChunker,
     DocumentIngester,
     FixedSizeChunker,
     HTMLParser,
     MarkdownParser,
     MetadataEnricher,
+    ParentChildChunker,
+    ParentExpander,
     PDFParser,
     PlainTextParser,
     RecursiveCharacterChunker,
+    SemanticChunker,
     SentenceChunker,
+    TableAwareChunker,
     extract_chunk_metadata,
     generate_chunk_id,
     generate_doc_id,
@@ -189,11 +212,17 @@ from astro_context.multimodal import (
 )
 from astro_context.observability import (
     ConsoleSpanExporter,
+    CostEntry,
+    CostSummary,
+    CostTracker,
+    CostTrackingCallback,
     FileSpanExporter,
     InMemoryMetricsCollector,
     InMemorySpanExporter,
     LoggingMetricsCollector,
     MetricPoint,
+    OTLPMetricsExporter,
+    OTLPSpanExporter,
     Span,
     SpanKind,
     Tracer,
@@ -210,6 +239,7 @@ from astro_context.pipeline import (
     async_reranker_step,
     async_retriever_step,
     auto_promotion_step,
+    classified_retriever_step,
     create_eviction_promoter,
     filter_step,
     graph_retrieval_step,
@@ -225,6 +255,7 @@ from astro_context.protocols import (
     AsyncQueryTransformer,
     AsyncReranker,
     AsyncRetriever,
+    CacheBackend,
     Chunker,
     CompactionStrategy,
     ContextStore,
@@ -233,6 +264,7 @@ from astro_context.protocols import (
     DocumentStore,
     EvictionPolicy,
     GarbageCollectableStore,
+    HumanEvaluator,
     MemoryConsolidator,
     MemoryDecay,
     MemoryEntryStore,
@@ -243,7 +275,9 @@ from astro_context.protocols import (
     MetricsCollector,
     ModalityEncoder,
     PostProcessor,
+    QueryClassifier,
     QueryEnricher,
+    QueryRouter,
     QueryTransformer,
     RAGEvaluator,
     RecencyScorer,
@@ -253,27 +287,47 @@ from astro_context.protocols import (
     SpanExporter,
     TableExtractor,
     Tokenizer,
+    TokenLevelEncoder,
     VectorStore,
 )
 from astro_context.query import (
+    CallbackClassifier,
+    ContextualQueryTransformer,
+    ConversationRewriter,
     DecompositionTransformer,
+    EmbeddingClassifier,
     HyDETransformer,
+    KeywordClassifier,
     MultiQueryTransformer,
     QueryTransformPipeline,
     StepBackTransformer,
 )
 from astro_context.retrieval import (
+    AsyncCohereReranker,
+    AsyncCrossEncoderReranker,
+    AsyncDenseRetriever,
+    AsyncHybridRetriever,
+    CallbackRouter,
     CohereReranker,
     CrossEncoderReranker,
+    CrossModalEncoder,
     DenseRetriever,
     FlashRankReranker,
     HybridRetriever,
+    KeywordRouter,
+    LateInteractionRetriever,
+    LateInteractionScorer,
+    MaxSimScorer,
     MemoryRetrieverAdapter,
+    MetadataRouter,
     RerankerPipeline,
     RoundRobinReranker,
+    RoutedRetriever,
     ScoredMemoryRetriever,
     ScoreReranker,
+    SharedSpaceRetriever,
     SparseRetriever,
+    rrf_fuse,
 )
 from astro_context.storage import (
     InMemoryContextStore,
@@ -290,20 +344,32 @@ except PackageNotFoundError:
     __version__ = "0.0.0-dev"
 
 __all__ = [
+    "ABTestResult",
+    "ABTestRunner",
     "Agent",
     "AgentTool",
+    "AggregatedMetrics",
     "AnthropicFormatter",
     "AstroContextError",
+    "AsyncCohereReranker",
     "AsyncCompactionStrategy",
+    "AsyncCrossEncoderReranker",
+    "AsyncDenseRetriever",
+    "AsyncHybridRetriever",
     "AsyncMemoryExtractor",
     "AsyncPostProcessor",
     "AsyncQueryTransformer",
     "AsyncReranker",
     "AsyncRetriever",
     "BaseFormatter",
+    "BatchEvaluator",
     "BudgetAllocation",
+    "CacheBackend",
+    "CallbackClassifier",
     "CallbackExtractor",
+    "CallbackRouter",
     "Chunker",
+    "CodeChunker",
     "CohereReranker",
     "CompactionStrategy",
     "CompositeEncoder",
@@ -314,16 +380,26 @@ __all__ = [
     "ContextResult",
     "ContextStore",
     "ContextWindow",
+    "ContextualQueryTransformer",
     "ConversationMemory",
+    "ConversationRewriter",
     "ConversationTurn",
+    "CostEntry",
+    "CostSummary",
+    "CostTracker",
+    "CostTrackingCallback",
     "CrossEncoderReranker",
+    "CrossModalEncoder",
     "DecompositionTransformer",
     "DenseRetriever",
     "DocumentIngester",
     "DocumentParser",
     "DocumentStore",
     "EbbinghausDecay",
+    "EmbeddingClassifier",
+    "EvaluationDataset",
     "EvaluationResult",
+    "EvaluationSample",
     "EvictionPolicy",
     "ExponentialRecencyScorer",
     "FIFOEviction",
@@ -337,10 +413,14 @@ __all__ = [
     "GenericTextFormatter",
     "HTMLParser",
     "HTMLTableParser",
+    "HumanEvaluationCollector",
+    "HumanEvaluator",
+    "HumanJudgment",
     "HyDETransformer",
     "HybridRetriever",
     "ImageDescriptionEncoder",
     "ImportanceEviction",
+    "InMemoryCacheBackend",
     "InMemoryContextStore",
     "InMemoryDocumentStore",
     "InMemoryEntryStore",
@@ -349,12 +429,17 @@ __all__ = [
     "InMemoryVectorStore",
     "IngestionError",
     "JsonFileMemoryStore",
+    "KeywordClassifier",
+    "KeywordRouter",
     "LLMRAGEvaluator",
+    "LateInteractionRetriever",
+    "LateInteractionScorer",
     "LinearDecay",
     "LinearRecencyScorer",
     "LoggingMetricsCollector",
     "MarkdownParser",
     "MarkdownTableParser",
+    "MaxSimScorer",
     "MemoryCallback",
     "MemoryConsolidator",
     "MemoryContextEnricher",
@@ -370,6 +455,7 @@ __all__ = [
     "MemoryRetrieverAdapter",
     "MemoryType",
     "MetadataEnricher",
+    "MetadataRouter",
     "MetricPoint",
     "MetricsCollector",
     "ModalityEncoder",
@@ -378,10 +464,14 @@ __all__ = [
     "MultiModalConverter",
     "MultiModalItem",
     "MultiQueryTransformer",
+    "OTLPMetricsExporter",
+    "OTLPSpanExporter",
     "OpenAIFormatter",
     "OverflowStrategy",
     "PDFParser",
     "PairedEviction",
+    "ParentChildChunker",
+    "ParentExpander",
     "PipelineCallback",
     "PipelineDiagnostics",
     "PipelineEvaluator",
@@ -390,7 +480,9 @@ __all__ = [
     "PlainTextParser",
     "PostProcessor",
     "QueryBundle",
+    "QueryClassifier",
     "QueryEnricher",
+    "QueryRouter",
     "QueryTransformPipeline",
     "QueryTransformer",
     "RAGEvaluator",
@@ -406,9 +498,12 @@ __all__ = [
     "RetrieverError",
     "Role",
     "RoundRobinReranker",
+    "RoutedRetriever",
     "ScoreReranker",
     "ScoredMemoryRetriever",
+    "SemanticChunker",
     "SentenceChunker",
+    "SharedSpaceRetriever",
     "SimilarityConsolidator",
     "SimpleGraphMemory",
     "Skill",
@@ -426,12 +521,14 @@ __all__ = [
     "StreamResult",
     "StreamUsage",
     "SummaryBufferMemory",
+    "TableAwareChunker",
     "TableEncoder",
     "TableExtractor",
     "TextEncoder",
     "TiktokenCounter",
     "TokenBudget",
     "TokenBudgetExceededError",
+    "TokenLevelEncoder",
     "Tokenizer",
     "TraceRecord",
     "Tracer",
@@ -441,6 +538,7 @@ __all__ = [
     "async_reranker_step",
     "async_retriever_step",
     "auto_promotion_step",
+    "classified_retriever_step",
     "create_eviction_promoter",
     "default_agent_budget",
     "default_chat_budget",
@@ -458,5 +556,6 @@ __all__ = [
     "rag_tools",
     "reranker_step",
     "retriever_step",
+    "rrf_fuse",
     "tool",
 ]

@@ -67,20 +67,10 @@ class LLMRAGEvaluator:
             A ``RAGMetrics`` instance.  Dimensions without callbacks are 0.0.
         """
         faithfulness = (
-            self._faithfulness_fn(answer, contexts)
-            if self._faithfulness_fn is not None
-            else 0.0
+            self._faithfulness_fn(answer, contexts) if self._faithfulness_fn is not None else 0.0
         )
-        relevancy = (
-            self._relevancy_fn(query, answer)
-            if self._relevancy_fn is not None
-            else 0.0
-        )
-        precision = (
-            self._precision_fn(query, contexts)
-            if self._precision_fn is not None
-            else 0.0
-        )
+        relevancy = self._relevancy_fn(query, answer) if self._relevancy_fn is not None else 0.0
+        precision = self._precision_fn(query, contexts) if self._precision_fn is not None else 0.0
         recall = (
             self._recall_fn(query, contexts, ground_truth)
             if self._recall_fn is not None and ground_truth is not None

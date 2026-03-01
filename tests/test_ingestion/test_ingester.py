@@ -7,12 +7,11 @@ from typing import Any
 
 import pytest
 
-from tests.conftest import FakeTokenizer
-
 from astro_context.ingestion.chunkers import FixedSizeChunker
 from astro_context.ingestion.ingester import DocumentIngester
 from astro_context.ingestion.metadata import MetadataEnricher, generate_doc_id
 from astro_context.models.context import ContextItem, SourceType
+from tests.conftest import FakeTokenizer
 
 
 @pytest.fixture

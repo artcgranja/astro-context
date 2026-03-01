@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from tests.conftest import FakeTokenizer
-
 from astro_context.ingestion.chunkers import (
     FixedSizeChunker,
     RecursiveCharacterChunker,
     SentenceChunker,
 )
 from astro_context.protocols.ingestion import Chunker
+from tests.conftest import FakeTokenizer
 
 
 class TestFixedSizeChunker:
@@ -58,7 +57,7 @@ class TestFixedSizeChunker:
             FixedSizeChunker(overlap=-1, tokenizer=fake_tokenizer)
 
     def test_overlap_exceeds_chunk_size(self, fake_tokenizer: FakeTokenizer) -> None:
-        with pytest.raises(ValueError, match="overlap.*must be less than chunk_size"):
+        with pytest.raises(ValueError, match=r"overlap.*must be less than chunk_size"):
             FixedSizeChunker(chunk_size=5, overlap=5, tokenizer=fake_tokenizer)
 
     def test_repr(self, fixed_chunker: FixedSizeChunker) -> None:

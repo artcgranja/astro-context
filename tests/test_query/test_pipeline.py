@@ -38,7 +38,8 @@ class TestQueryTransformPipeline:
         query = QueryBundle(query_str="original")
         result = pipeline.transform(query)
         # step_back: [original, abstract: original]
-        # multi on each: [original, var-0: original] + [abstract: original, var-0: abstract: original]
+        # multi on each: [original, var-0: original]
+        # + [abstract: original, var-0: abstract: original]
         assert len(result) == 4
 
     def test_deduplication(self) -> None:
@@ -160,8 +161,7 @@ class TestQueryTransformStep:
 
     def test_top_k_respected(self) -> None:
         items = [
-            ContextItem(id=f"item-{i}", content=f"doc {i}", source="retrieval")
-            for i in range(10)
+            ContextItem(id=f"item-{i}", content=f"doc {i}", source="retrieval") for i in range(10)
         ]
         retriever = self._make_retriever(items)
         transformer = HyDETransformer(generate_fn=lambda q: q)

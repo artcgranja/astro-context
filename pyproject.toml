@@ -32,11 +32,15 @@ cli = ["typer>=0.12,<1", "rich>=13,<14"]
 anthropic = ["anthropic>=0.40,<1"]
 agents = ["anthropic>=0.40,<1"]
 pdf = ["pypdf>=4,<5"]
+otlp = [
+    "opentelemetry-exporter-otlp-proto-http>=1.20,<2",
+    "opentelemetry-sdk>=1.20,<2",
+]
 docs = [
     "mkdocs-material>=9,<10",
     "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank]"]
+all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
 
 [project.scripts]
 astro-context = "astro_context.cli:app"
@@ -92,6 +96,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "flashrank.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "opentelemetry.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

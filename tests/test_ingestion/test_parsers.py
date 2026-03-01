@@ -84,7 +84,7 @@ class TestMarkdownParser:
         f = tmp_path / "readme.md"
         f.write_text("# Title\n\nContent.", encoding="utf-8")
         parser = MarkdownParser()
-        text, meta = parser.parse(f)
+        _text, meta = parser.parse(f)
         assert meta["filename"] == "readme.md"
         assert meta["extension"] == ".md"
 
@@ -120,7 +120,10 @@ class TestHTMLParser:
 
     def test_strips_script_and_style(self) -> None:
         parser = HTMLParser()
-        html = b"<html><head><style>body{}</style></head><body><script>alert(1)</script>Text</body></html>"
+        html = (
+            b"<html><head><style>body{}</style></head>"
+            b"<body><script>alert(1)</script>Text</body></html>"
+        )
         text, _ = parser.parse(html)
         assert "alert" not in text
         assert "body{}" not in text

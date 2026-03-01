@@ -111,9 +111,7 @@ class PipelineEvaluator:
 
         rag_metrics: RAGMetrics | None = None
         if self._rag_evaluator is not None:
-            rag_metrics = self._rag_evaluator.evaluate(
-                query, answer, contexts, ground_truth
-            )
+            rag_metrics = self._rag_evaluator.evaluate(query, answer, contexts, ground_truth)
 
         return EvaluationResult(
             retrieval_metrics=retrieval_metrics,
