@@ -105,6 +105,7 @@ tiktoken = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "mkdocs-material" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -137,6 +138,7 @@ provides-extras = ["tiktoken", "bm25", "flashrank", "cli", "anthropic", "agents"
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "mkdocs-material", specifier = ">=9.7.2" },
     { name = "mypy", specifier = ">=1.10,<2" },
     { name = "pytest", specifier = ">=8,<9" },
     { name = "pytest-asyncio", specifier = ">=0.24,<1" },

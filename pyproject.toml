@@ -62,6 +62,7 @@ dev = [
     "typer>=0.12,<1",
     "rich>=13,<14",
     "tiktoken>=0.7,<1",
+    "mkdocs-material>=9.7.2",
 ]
 
 [build-system]

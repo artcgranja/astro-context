@@ -12,6 +12,16 @@ Stop duct-taping RAG, memory, and tools together. Build intelligent context pipe
 pip install astro-context
 ```
 
+## Documentation
+
+Full documentation at [arthurgranja.github.io/astro-context](https://arthurgranja.github.io/astro-context/)
+
+- [Getting Started](https://arthurgranja.github.io/astro-context/getting-started/)
+- [Architecture](https://arthurgranja.github.io/astro-context/concepts/architecture/)
+- [Pipeline Guide](https://arthurgranja.github.io/astro-context/guides/pipeline/)
+- [API Reference](https://arthurgranja.github.io/astro-context/api/pipeline/)
+- [Examples](https://arthurgranja.github.io/astro-context/examples/rag-pipeline/)
+
 ## 30 Seconds to Your First Context Pipeline
 
 ```python
@@ -269,7 +279,7 @@ uv run ruff check src/ tests/  # Lint
 
 ## Roadmap
 
-- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API
+- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API + [Full documentation site](https://arthurgranja.github.io/astro-context/)
 - **v0.2.0** -- MCP Bridge, progressive summarization, persistent storage backends
 - **v0.3.0** -- GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
 - **v1.0.0** -- Production-grade APIs, plugin ecosystem

@@ -1,5 +1,6 @@
 site_name: astro-context
 site_description: Context engineering toolkit for AI applications
+site_url: https://arthurgranja.github.io/astro-context/
 repo_url: https://github.com/arthurgranja/astro-context
 repo_name: arthurgranja/astro-context
 
@@ -10,26 +11,90 @@ theme:
       scheme: default
       primary: deep purple
       accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: deep purple
       accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
   features:
     - content.code.copy
+    - content.tabs.link
     - navigation.tabs
     - navigation.sections
+    - navigation.expand
+    - navigation.top
     - search.highlight
+    - search.suggest
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
 
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Concepts:
+    - Architecture: concepts/architecture.md
+    - Context Engineering: concepts/context-engineering.md
+    - Protocols: concepts/protocols.md
+    - Token Budgets: concepts/token-budgets.md
+  - Guides:
+    - Pipeline: guides/pipeline.md
+    - Retrieval: guides/retrieval.md
+    - Advanced Retrieval: guides/advanced-retrieval.md
+    - Memory: guides/memory.md
+    - Ingestion: guides/ingestion.md
+    - Query Transform: guides/query-transform.md
+    - Classifiers: guides/classifiers.md
+    - Evaluation: guides/evaluation.md
+    - Observability: guides/observability.md
+    - Formatters: guides/formatters.md
+    - Agent: guides/agent.md
+    - Storage: guides/storage.md
+    - Multi-modal: guides/multimodal.md
+    - Cache: guides/cache.md
+  - API Reference:
+    - Pipeline: api/pipeline.md
+    - Retrieval: api/retrieval.md
+    - Memory: api/memory.md
+    - Ingestion: api/ingestion.md
+    - Query: api/query.md
+    - Evaluation: api/evaluation.md
+    - Observability: api/observability.md
+    - Formatters: api/formatters.md
+    - Agent: api/agent.md
+    - Models: api/models.md
+    - Protocols: api/protocols.md
+    - Storage: api/storage.md
+    - Multi-modal: api/multimodal.md
+    - Cache: api/cache.md
+    - Exceptions: api/exceptions.md
+  - Examples:
+    - Chatbot with Memory: examples/chatbot-with-memory.md
+    - RAG Pipeline: examples/rag-pipeline.md
+    - Document Ingestion: examples/document-ingestion.md
+    - Custom Retriever: examples/custom-retriever.md
+    - Evaluation Workflow: examples/evaluation-workflow.md
+    - Agent with Tools: examples/agent-with-tools.md
+  - Contributing: contributing.md
 
 plugins:
   - search
 
 markdown_extensions:
-  - pymdownx.highlight
+  - pymdownx.highlight:
+      anchor_linenums: true
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
   - admonition
+  - attr_list
+  - md_in_html
   - toc:
       permalink: true
+  - tables
