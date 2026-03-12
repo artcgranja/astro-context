@@ -22,12 +22,12 @@ The Python toolkit for context engineering -- assemble RAG, memory, tools,
 and system prompts into a single, token-aware pipeline.
 
 [Get Started :material-arrow-right:](getting-started/index.md){ .md-button .md-button--primary }
-[View on GitHub :material-github:](https://github.com/arthurgranja/anchor){ .md-button }
+[View on GitHub :material-github:](https://github.com/artcgranja/anchor){ .md-button }
 
 [![PyPI version](https://img.shields.io/pypi/v/anchor?color=blue)](https://pypi.org/project/anchor/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/arthurgranja/anchor/blob/main/LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/arthurgranja/anchor/ci.yml?label=tests)](https://github.com/arthurgranja/anchor/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/artcgranja/anchor/blob/main/LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/artcgranja/anchor/ci.yml?label=tests)](https://github.com/artcgranja/anchor/actions)
 
 </div>
 

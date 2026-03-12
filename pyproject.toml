@@ -48,10 +48,10 @@ all = ["astro-anchor[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
 anchor = "anchor.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/arthurgranja/anchor"
-Repository = "https://github.com/arthurgranja/anchor"
-Documentation = "https://arthurgranja.github.io/anchor"
-"Bug Tracker" = "https://github.com/arthurgranja/anchor/issues"
+Homepage = "https://github.com/artcgranja/anchor"
+Repository = "https://github.com/artcgranja/anchor"
+Documentation = "https://artcgranja.github.io/anchor"
+"Bug Tracker" = "https://github.com/artcgranja/anchor/issues"
 
 [dependency-groups]
 dev = [
