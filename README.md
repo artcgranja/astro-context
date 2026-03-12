@@ -1,31 +1,67 @@
-# anchor
+<p align="center">
+  <img src="https://raw.githubusercontent.com/arthurgranja/anchor/main/docs/docs/assets/logo-light.png" alt="anchor" width="400">
+</p>
 
-**Context engineering toolkit for AI applications.**
+<p align="center">
+  <strong>Context engineering toolkit for AI applications.</strong>
+</p>
 
-> "Context is the product. The LLM is just the consumer."
+<p align="center">
+  <a href="https://arthurgranja.github.io/anchor/">Docs</a> ·
+  <a href="https://arthurgranja.github.io/anchor/getting-started/quickstart/">Quickstart</a> ·
+  <a href="https://arthurgranja.github.io/anchor/cookbook/">Cookbook</a> ·
+  <a href="https://arthurgranja.github.io/anchor/api/">API Reference</a> ·
+  <a href="https://github.com/arthurgranja/anchor/issues">Issues</a>
+</p>
 
-Stop duct-taping RAG, memory, and tools together. Build intelligent context pipelines in minutes.
+<p align="center">
+  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/v/anchor?color=3b82f6&style=flat-square" alt="PyPI"></a>
+  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/dm/anchor?color=64748b&style=flat-square" alt="Downloads"></a>
+  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/pyversions/anchor?color=6B8E6B&style=flat-square" alt="Python"></a>
+  <a href="https://github.com/arthurgranja/anchor/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arthurgranja/anchor?color=64748b&style=flat-square" alt="License"></a>
+  <a href="https://github.com/arthurgranja/anchor"><img src="https://img.shields.io/github/stars/arthurgranja/anchor?style=flat-square&color=3b82f6" alt="Stars"></a>
+</p>
 
-## Install
+---
+
+Stop duct-taping RAG, memory, and tools together. **anchor** gives you a single, token-aware pipeline that assembles context for any LLM — with smart budgets, hybrid retrieval, and provider-agnostic formatting out of the box.
+
+## Why anchor?
+
+| Feature | LangChain | LlamaIndex | mem0 | **anchor** |
+|---------|:---------:|:----------:|:----:|:----------:|
+| Hybrid RAG (Dense + BM25 + RRF) | partial | yes | no | **yes** |
+| Token-aware Memory | partial | no | yes | **yes** |
+| Token Budget Management | no | no | no | **yes** |
+| Provider-agnostic Formatting | no | no | no | **yes** |
+| Protocol-based Plugins (PEP 544) | no | partial | no | **yes** |
+| Zero-config Defaults | no | no | yes | **yes** |
+| 2000+ tests, 94% coverage | — | — | — | **yes** |
+
+## Quick Install
 
 ```bash
 pip install anchor
 ```
 
-## Documentation
+<details>
+<summary>Optional extras</summary>
 
-Full documentation at [arthurgranja.github.io/anchor](https://arthurgranja.github.io/anchor/)
+```bash
+pip install anchor[bm25]        # BM25 sparse retrieval
+pip install anchor[anthropic]   # Anthropic Claude support
+pip install anchor[cli]         # CLI tools (typer + rich)
+pip install anchor[flashrank]   # FlashRank reranking
+pip install anchor[otlp]        # OpenTelemetry tracing
+pip install anchor[all]         # Everything
+```
 
-- [Getting Started](https://arthurgranja.github.io/anchor/getting-started/)
-- [Architecture](https://arthurgranja.github.io/anchor/concepts/architecture/)
-- [Pipeline Guide](https://arthurgranja.github.io/anchor/guides/pipeline/)
-- [API Reference](https://arthurgranja.github.io/anchor/api/pipeline/)
-- [Examples](https://arthurgranja.github.io/anchor/examples/rag-pipeline/)
+</details>
 
-## 30 Seconds to Your First Context Pipeline
+## 30 Seconds to Your First Pipeline
 
 ```python
-from anchor import ContextPipeline, QueryBundle, MemoryManager, AnthropicFormatter
+from anchor import ContextPipeline, MemoryManager, AnthropicFormatter
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -34,85 +70,60 @@ pipeline = (
     .add_system_prompt("You are a helpful assistant.")
 )
 
-result = pipeline.build("What is context engineering?")   # Plain strings work too
+result = pipeline.build("What is context engineering?")
 print(result.formatted_output)   # Ready for Claude API
 print(result.diagnostics)        # Token usage, timing, overflow info
 ```
 
-> **Tip:** `build()` accepts either a plain string or a `QueryBundle` object:
-> ```python
-> result = pipeline.build("What is context engineering?")
-> # equivalent to:
-> result = pipeline.build(QueryBundle(query_str="What is context engineering?"))
-> ```
-
-## Why anchor?
-
-| Feature | LangChain | LlamaIndex | mem0 | **anchor** |
-|---------|:---------:|:----------:|:----:|:-----------------:|
-| Hybrid RAG (Dense + BM25 + RRF) | partial | yes | no | **yes** |
-| Token-aware Memory | partial | no | yes | **yes** |
-| Token Budget Management | no | no | no | **yes** |
-| Provider-agnostic Formatting | no | no | no | **yes** |
-| Protocol-based Plugins | no | partial | no | **yes** |
-| Zero-config Defaults | no | no | yes | **yes** |
-
 ## Features
 
-- **Hybrid RAG** -- Dense embeddings + BM25 sparse retrieval with Reciprocal Rank Fusion
-- **Smart Memory** -- Token-aware sliding window with automatic eviction
-- **Token Budgets** -- Priority-ranked context assembly that never exceeds your window
-- **Provider Agnostic** -- Format output for Anthropic, OpenAI, or plain text
-- **Protocol-Based** -- Plug in any vector store, tokenizer, or retriever via PEP 544 Protocols
-- **Type-Safe** -- Pydantic v2 models throughout, full `py.typed` support
-- **Model-Agnostic** -- Core never calls an LLM; you provide the embedding function
-- **Rich Diagnostics** -- Per-step timing, token utilization, overflow tracking
+- **Hybrid RAG** — Dense embeddings + BM25 sparse retrieval with Reciprocal Rank Fusion
+- **Smart Memory** — Token-aware sliding window with automatic eviction
+- **Token Budgets** — Priority-ranked context assembly that never exceeds your window
+- **Provider Agnostic** — Format output for Anthropic, OpenAI, or plain text
+- **Protocol-Based** — Plug in any vector store, tokenizer, or retriever via PEP 544 Protocols
+- **Type-Safe** — Pydantic v2 models throughout, full `py.typed` support
+- **Agent Framework** — Build tool-calling agents with `@tool` decorator and skills
+- **Full Observability** — OpenTelemetry tracing, cost tracking, per-step diagnostics
 
-## Hybrid Retrieval
+<details>
+<summary><strong>Hybrid Retrieval Example</strong></summary>
 
 ```python
 import math
 from anchor import (
     ContextPipeline, ContextItem, QueryBundle, SourceType,
-    DenseRetriever, HybridRetriever,
-    InMemoryContextStore, InMemoryVectorStore,
+    DenseRetriever, InMemoryContextStore, InMemoryVectorStore,
     retriever_step,
 )
 
-# You provide the embedding function (any model or API)
 def my_embed_fn(text: str) -> list[float]:
-    """Simple deterministic embedding for demonstration."""
     seed = sum(ord(c) for c in text) % 10000
     raw = [math.sin(seed * 1000 + i) for i in range(64)]
     norm = math.sqrt(sum(x * x for x in raw))
     return [x / norm for x in raw] if norm else raw
 
-# Create retriever with in-memory stores
 dense = DenseRetriever(
     vector_store=InMemoryVectorStore(),
     context_store=InMemoryContextStore(),
     embed_fn=my_embed_fn,
 )
 
-# Create ContextItem objects for your documents
 items = [
     ContextItem(content="Python is great for data science.", source=SourceType.RETRIEVAL),
     ContextItem(content="RAG combines retrieval with generation.", source=SourceType.RETRIEVAL),
 ]
-
-# Index your documents
 dense.index(items)
 
-# Build the pipeline (also supports SparseRetriever + HybridRetriever with RRF)
-pipeline = (
-    ContextPipeline(max_tokens=8192)
-    .add_step(retriever_step("search", dense, top_k=5))
-)
+pipeline = ContextPipeline(max_tokens=8192).add_step(retriever_step("search", dense, top_k=5))
 query = QueryBundle(query_str="How does RAG work?", embedding=my_embed_fn("How does RAG work?"))
 result = pipeline.build(query)
 ```
 
-## Memory Management
+</details>
+
+<details>
+<summary><strong>Memory Management Example</strong></summary>
 
 ```python
 from anchor import ContextPipeline, QueryBundle, MemoryManager
@@ -127,7 +138,31 @@ result = pipeline.build(QueryBundle(query_str="What are the risks?"))
 # Memory is automatically included, oldest turns evicted if over budget
 ```
 
-## Provider Formatting
+</details>
+
+<details>
+<summary><strong>Decorator API Example</strong></summary>
+
+```python
+from anchor import ContextPipeline, ContextItem, QueryBundle
+
+pipeline = ContextPipeline(max_tokens=8192)
+
+@pipeline.step
+def boost_recent(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
+    return [
+        item.model_copy(update={"score": min(1.0, item.score * 1.5)})
+        if item.metadata.get("recent") else item
+        for item in items
+    ]
+
+result = pipeline.build("What is context engineering?")
+```
+
+</details>
+
+<details>
+<summary><strong>Provider Formatting</strong></summary>
 
 ```python
 from anchor import AnthropicFormatter, OpenAIFormatter
@@ -139,151 +174,58 @@ result = pipeline.with_formatter(AnthropicFormatter()).build(query)
 result = pipeline.with_formatter(OpenAIFormatter()).build(query)
 ```
 
-## Decorator API
-
-Instead of `add_step()` with factory functions, you can use the `@pipeline.step` decorator to register pipeline steps directly:
-
-```python
-from anchor import ContextPipeline, ContextItem, QueryBundle
-
-pipeline = ContextPipeline(max_tokens=8192)
-
-@pipeline.step
-def boost_recent(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
-    """Boost the score of recent items."""
-    return [
-        item.model_copy(update={"score": min(1.0, item.score * 1.5)})
-        if item.metadata.get("recent")
-        else item
-        for item in items
-    ]
-
-@pipeline.step(name="quality-filter")
-def filter_low_quality(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
-    """Remove items below a quality threshold."""
-    return [item for item in items if item.score > 0.3]
-
-result = pipeline.build("What is context engineering?")
-```
-
-## Async Pipeline
-
-For pipelines that include async steps (e.g., database lookups, API calls), use `abuild()` and `@pipeline.async_step`:
-
-```python
-import asyncio
-from anchor import ContextPipeline, ContextItem, SourceType, QueryBundle
-
-pipeline = ContextPipeline(max_tokens=8192)
-
-@pipeline.async_step
-async def fetch_from_db(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
-    """Fetch relevant context from an async database."""
-    results = await my_async_db_search(query.query_str)  # your async function
-    new_items = [
-        ContextItem(content=r["text"], source=SourceType.RETRIEVAL, score=r["score"])
-        for r in results
-    ]
-    return items + new_items
-
-@pipeline.step
-def filter_results(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
-    """Sync steps and async steps can be mixed in the same pipeline."""
-    return [item for item in items if item.score > 0.5]
-
-# Use abuild() instead of build() to run the async pipeline
-result = asyncio.run(pipeline.abuild("What is context engineering?"))
-```
+</details>
 
 ## Architecture
 
 ```
 ContextPipeline
-  |
-  |-- System Prompts (priority=10)
-  |-- Memory Manager (priority=7)
-  |-- Pipeline Steps
-  |     |-- Retriever Steps (append items)
-  |     |-- PostProcessor Steps (transform items)
-  |     |-- Filter Steps (filter items)
-  |
-  v
+  │
+  ├── System Prompts (priority=10)
+  ├── Memory Manager (priority=7)
+  ├── Pipeline Steps
+  │     ├── Retriever Steps (append items)
+  │     ├── PostProcessor Steps (transform items)
+  │     └── Filter Steps (filter items)
+  │
+  ▼
 ContextWindow (token-aware, priority-ranked)
-  |
-  v
+  │
+  ▼
 Formatter (Anthropic / OpenAI / Generic)
-  |
-  v
+  │
+  ▼
 ContextResult (formatted output + diagnostics)
 ```
 
-## Priority System
-
-Every `ContextItem` has a `priority` field (1--10) that controls placement order in the context window. Higher priority items are placed first and are never evicted in favor of lower priority items.
-
-| Priority | Source | Usage |
-|----------|--------|-------|
-| 10 | System prompts | Instructions, persona, rules |
-| 8 | Persistent memory | Long-term facts from `MemoryManager.add_fact()` |
-| 7 | Conversation memory | Recent chat turns from `SlidingWindowMemory` |
-| 5 | Retrieval (default) | RAG results from retrievers |
-| 1--4 | Custom | Low-priority supplementary context |
-
-When the total context exceeds `max_tokens`, the pipeline fills from highest priority down. Items that do not fit are tracked in `result.overflow_items`.
-
 ## Token Budgets
 
-For fine-grained control over how tokens are allocated across sources, use `TokenBudget`:
-
 ```python
-from anchor import ContextPipeline, TokenBudget, default_chat_budget
+from anchor import ContextPipeline, default_chat_budget
 
-# Use a preset budget (allocates tokens across system, memory, retrieval, etc.)
 budget = default_chat_budget(max_tokens=8192)
 pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
 ```
 
-Three preset factories are available:
-
-- `default_chat_budget(max_tokens)` -- Optimized for conversational apps (60% conversation)
-- `default_rag_budget(max_tokens)` -- Optimized for RAG-heavy apps (40% retrieval)
-- `default_agent_budget(max_tokens)` -- Optimized for agentic apps (balanced allocation)
-
-Each budget supports `reserve_tokens` to guarantee room for the LLM response, and per-source overflow strategies (`"truncate"` or `"drop"`).
-
-## Optional Dependencies
-
-```bash
-pip install anchor[bm25]   # BM25 sparse retrieval (rank-bm25)
-pip install anchor[cli]    # CLI tools (typer + rich)
-pip install anchor[all]    # Everything
-```
-
-## CLI
-
-```bash
-pip install anchor[cli]
-anchor info       # Show installation info
-anchor --help     # See all commands
-```
+Three presets available: `default_chat_budget` (conversational), `default_rag_budget` (retrieval-heavy), `default_agent_budget` (balanced).
 
 ## Development
 
 ```bash
 git clone https://github.com/arthurgranja/anchor.git
 cd anchor
-uv sync           # Install all dependencies
-uv run pytest     # Run tests (1088 tests, 94% coverage)
-uv run ruff check src/ tests/  # Lint
+uv sync
+uv run pytest     # 2000+ tests
+uv run ruff check src/ tests/
 ```
 
 ## Roadmap
 
-- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API + [Full documentation site](https://arthurgranja.github.io/anchor/)
-- **v0.2.0** -- MCP Bridge, progressive summarization, persistent storage backends
-- **v0.3.0** -- GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
-- **v1.0.0** -- Production-grade APIs, plugin ecosystem
+- **v0.1.0** (current) — Hybrid RAG, Memory, Pipeline, Formatters, Async, Decorator API, Agent Framework, [Full docs](https://arthurgranja.github.io/anchor/)
+- **v0.2.0** — MCP Bridge, progressive summarization, persistent storage backends
+- **v0.3.0** — GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
+- **v1.0.0** — Production-grade APIs, plugin ecosystem
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.

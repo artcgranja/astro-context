@@ -37,7 +37,9 @@ otlp = [
     "opentelemetry-sdk>=1.20,<2",
 ]
 docs = [
+    "mkdocs>=1.6,<2",
     "mkdocs-material>=9,<10",
+    "mkdocs-minify-plugin>=0.8,<1",
     "mkdocstrings[python]>=0.25,<1",
 ]
 all = ["anchor[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
