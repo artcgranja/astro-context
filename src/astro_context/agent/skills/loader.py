@@ -99,22 +99,31 @@ def _discover_tools(skill_dir: Path, skill_name: str) -> tuple[AgentTool, ...]:
     if not tools_path.exists():
         return ()
 
-    module_name = f"astro_context.skills.{skill_name}.tools"
+    # Use path hash in module name to prevent collisions when two directories
+    # define skills with the same name (e.g. during load-then-reject flows).
+    path_hash = hex(hash(str(tools_path)))[-8:]
+    module_name = f"astro_context.skills.{skill_name}.{path_hash}.tools"
     logger.info("Loading tools from %s as %s", tools_path, module_name)
 
-    try:
-        # Remove any previously-cached version so reloads pick up changes.
-        sys.modules.pop(module_name, None)
+    # Remove any previously-cached version so reloads pick up changes.
+    sys.modules.pop(module_name, None)
 
-        spec = importlib.util.spec_from_file_location(module_name, tools_path)
-        if spec is None or spec.loader is None:
-            msg = f"Cannot load module spec from {tools_path}"
-            raise ValueError(msg)
+    spec = importlib.util.spec_from_file_location(module_name, tools_path)
+    if spec is None or spec.loader is None:
+        msg = f"Cannot load module spec from {tools_path}"
+        raise ValueError(msg)
+
+    try:
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
         spec.loader.exec_module(module)
+    except (ImportError, SyntaxError, AttributeError, TypeError) as exc:
+        # Clean up partial registration on import-related failures.
+        sys.modules.pop(module_name, None)
+        msg = f"Failed to import tools for skill '{skill_name}': {exc}"
+        raise ValueError(msg) from exc
     except Exception as exc:
-        # Clean up partial registration
+        # Unexpected error — still clean up, but preserve the original type.
         sys.modules.pop(module_name, None)
         msg = f"Failed to import tools for skill '{skill_name}': {exc}"
         raise ValueError(msg) from exc
@@ -161,8 +170,14 @@ def load_skill(path: str | Path) -> Skill:
     description = fm.get("description", "")
     _validate_description(description)
 
+    valid_activations = ("always", "on_demand")
     activation = fm.get("activation", "on_demand")
-    if activation not in ("always", "on_demand"):
+    if activation not in valid_activations:
+        msg = (
+            f"Invalid activation '{activation}' in SKILL.md for '{name}': "
+            f"must be one of {valid_activations}, defaulting to 'on_demand'"
+        )
+        logger.warning(msg)
         activation = "on_demand"
 
     tags = _parse_tags(fm.get("tags", ""))
