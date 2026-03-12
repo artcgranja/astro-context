@@ -11,7 +11,7 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, cast
 
 from astro_context.agent.skills.models import Skill
 
@@ -171,14 +171,15 @@ def load_skill(path: str | Path) -> Skill:
     _validate_description(description)
 
     valid_activations = ("always", "on_demand")
-    activation = fm.get("activation", "on_demand")
-    if activation not in valid_activations:
+    activation_raw = fm.get("activation", "on_demand")
+    if activation_raw not in valid_activations:
         msg = (
-            f"Invalid activation '{activation}' in SKILL.md for '{name}': "
+            f"Invalid activation '{activation_raw}' in SKILL.md for '{name}': "
             f"must be one of {valid_activations}, defaulting to 'on_demand'"
         )
         logger.warning(msg)
-        activation = "on_demand"
+        activation_raw = "on_demand"
+    activation = cast(Literal["always", "on_demand"], activation_raw)
 
     tags = _parse_tags(fm.get("tags", ""))
     tools = _discover_tools(skill_dir, name)
