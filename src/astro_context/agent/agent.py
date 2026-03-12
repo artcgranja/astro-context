@@ -6,6 +6,7 @@ import json
 import logging
 import time
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 from typing import Any
 
 from astro_context.formatters.anthropic import AnthropicFormatter
@@ -144,6 +145,18 @@ class Agent:
         """Register multiple skills. Returns self for chaining."""
         for skill in skills:
             self._skill_registry.register(skill)
+        self._ensure_activate_tool()
+        return self
+
+    def with_skills_directory(self, path: str | Path) -> Agent:
+        """Load all SKILL.md skills from a directory. Returns self for chaining."""
+        self._skill_registry.load_from_directory(Path(path))
+        self._ensure_activate_tool()
+        return self
+
+    def with_skill_from_path(self, path: str | Path) -> Agent:
+        """Load one SKILL.md skill from a directory. Returns self for chaining."""
+        self._skill_registry.load_from_path(Path(path))
         self._ensure_activate_tool()
         return self
 
