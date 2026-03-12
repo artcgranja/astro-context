@@ -92,3 +92,32 @@ class TestActivationOverride:
         )
         skill = load_skill(skill_dir)
         assert skill.activation == "always"
+
+
+class TestToolDiscovery:
+    def test_discovers_tools_from_tools_py(self) -> None:
+        skill = load_skill(FIXTURES / "brainstorm")
+        assert len(skill.tools) == 1
+        assert skill.tools[0].name == "save_brainstorm_result"
+
+    def test_instructions_only_has_no_tools(self) -> None:
+        skill = load_skill(FIXTURES / "minimal")
+        assert skill.tools == ()
+
+    def test_tool_is_callable(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.chdir(tmp_path)
+        skill = load_skill(FIXTURES / "brainstorm")
+        tool = skill.tools[0]
+        result = tool.fn(title="Test", summary="Sum", approaches="A vs B")
+        assert "saved" in result.lower() or "brainstorm" in result.lower()
+        assert (tmp_path / "brainstorm_output.json").exists()
+
+    def test_tools_py_import_error_raises(self, tmp_path: Path) -> None:
+        skill_dir = tmp_path / "bad-tools"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: bad-tools\ndescription: test\n---\nBody"
+        )
+        (skill_dir / "tools.py").write_text("import nonexistent_module_xyz")
+        with pytest.raises(ValueError, match="Failed to import"):
+            load_skill(skill_dir)
