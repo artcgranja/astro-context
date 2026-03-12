@@ -84,10 +84,6 @@ Two new methods on `SkillRegistry`. No new instance attributes -- these are stat
 
 If a SKILL.md skill has the same name as an already-registered skill, `register()` raises `ValueError` (existing behavior). `load_from_directory` logs the error and skips the duplicate, continuing with remaining skills.
 
-### SkillRegistry Extensions
-
-Two new methods on `SkillRegistry`:
-
 ```python
 def load_from_path(self, path: Path) -> Skill:
     """Load a SKILL.md skill and register it. Returns the skill."""
