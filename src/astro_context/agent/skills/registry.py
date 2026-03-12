@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from astro_context.agent.skills.models import Skill
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from astro_context.agent.models import AgentTool
@@ -52,6 +56,36 @@ class SkillRegistry:
     def reset(self) -> None:
         """Clear all activation state (keeps registrations)."""
         self._activated.clear()
+
+    # -- SKILL.md loading --
+
+    def load_from_path(self, path: str | Path) -> Skill:
+        """Load a SKILL.md skill from *path* and register it.
+
+        Returns the loaded :class:`Skill`.
+        """
+        from astro_context.agent.skills.loader import load_skill
+
+        skill = load_skill(Path(path))
+        self.register(skill)
+        return skill
+
+    def load_from_directory(self, path: str | Path) -> list[Skill]:
+        """Load all SKILL.md skills from *path* and register them.
+
+        Skips skills that fail to load or have duplicate names.
+        """
+        from astro_context.agent.skills.loader import load_skills_directory
+
+        loaded = load_skills_directory(Path(path))
+        registered: list[Skill] = []
+        for skill in loaded:
+            try:
+                self.register(skill)
+                registered.append(skill)
+            except ValueError as exc:
+                logger.warning("Skipping skill '%s': %s", skill.name, exc)
+        return registered
 
     # -- Queries --
 

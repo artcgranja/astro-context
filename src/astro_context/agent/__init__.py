@@ -5,6 +5,8 @@ from astro_context.agent.models import AgentTool
 from astro_context.agent.skills import (
     Skill,
     SkillRegistry,
+    load_skill,
+    load_skills_directory,
     memory_skill,
     rag_skill,
 )
@@ -17,6 +19,8 @@ __all__ = [
     "AgentTool",
     "Skill",
     "SkillRegistry",
+    "load_skill",
+    "load_skills_directory",
     "memory_skill",
     "memory_tools",
     "rag_skill",
