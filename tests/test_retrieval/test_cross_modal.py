@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.retriever import Retriever
-from astro_context.retrieval.cross_modal import CrossModalEncoder, SharedSpaceRetriever
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.protocols.retriever import Retriever
+from anchor.retrieval.cross_modal import CrossModalEncoder, SharedSpaceRetriever
 
 
 def _text_encoder(text: str) -> list[float]:
@@ -236,7 +236,7 @@ class TestIntegrationLateInteractionWithSharedSpace:
         SharedSpaceRetriever acts as the first-stage candidate generator,
         and LateInteractionRetriever re-scores with token-level MaxSim.
         """
-        from astro_context.retrieval.late_interaction import LateInteractionRetriever
+        from anchor.retrieval.late_interaction import LateInteractionRetriever
 
         # Set up cross-modal encoder and first-stage retriever
         cm_encoder = CrossModalEncoder(encoders={"text": _text_encoder})

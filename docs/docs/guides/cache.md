@@ -1,6 +1,6 @@
 # Cache Guide
 
-astro-context provides a caching layer for pipeline step results. Caching
+anchor provides a caching layer for pipeline step results. Caching
 avoids redundant retrieval, reranking, or transformation work when the same
 query is processed multiple times.
 
@@ -20,7 +20,7 @@ The built-in backend stores entries in a Python dict with optional TTL
 expiration and LRU-style size limits:
 
 ```python
-from astro_context import InMemoryCacheBackend
+from anchor import InMemoryCacheBackend
 
 cache = InMemoryCacheBackend(
     default_ttl=300.0,  # 5 minutes
@@ -45,7 +45,7 @@ InMemoryCacheBackend(
 ### Basic Usage
 
 ```python
-from astro_context import InMemoryCacheBackend
+from anchor import InMemoryCacheBackend
 
 cache = InMemoryCacheBackend(default_ttl=60.0)
 
@@ -113,7 +113,7 @@ To implement a custom backend (e.g., Redis, disk-based), satisfy the
 `CacheBackend` protocol:
 
 ```python
-from astro_context import CacheBackend
+from anchor import CacheBackend
 
 class RedisCacheBackend:
     """Example Redis-based cache backend."""

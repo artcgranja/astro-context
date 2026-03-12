@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.evaluation.evaluator import PipelineEvaluator
-from astro_context.evaluation.models import EvaluationResult, RAGMetrics, RetrievalMetrics
-from astro_context.evaluation.rag import LLMRAGEvaluator
-from astro_context.evaluation.retrieval import RetrievalMetricsCalculator
-from astro_context.models.context import ContextItem, SourceType
+from anchor.evaluation.evaluator import PipelineEvaluator
+from anchor.evaluation.models import EvaluationResult, RAGMetrics, RetrievalMetrics
+from anchor.evaluation.rag import LLMRAGEvaluator
+from anchor.evaluation.retrieval import RetrievalMetricsCalculator
+from anchor.models.context import ContextItem, SourceType
 
 
 def _item(doc_id: str) -> ContextItem:

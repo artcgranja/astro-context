@@ -1,4 +1,4 @@
-"""Tests for astro_context.tokens.counter.
+"""Tests for anchor.tokens.counter.
 
 Since tiktoken requires network access to download encoding data (which is
 unavailable in this test environment), we mock the tiktoken encoding to
@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from astro_context.protocols.tokenizer import Tokenizer
-from astro_context.tokens.counter import TiktokenCounter
+from anchor.protocols.tokenizer import Tokenizer
+from anchor.tokens.counter import TiktokenCounter
 from tests.conftest import FakeTokenizer
 
 
@@ -112,7 +112,7 @@ class TestGetDefaultCounter:
     """get_default_counter singleton."""
 
     def test_returns_tiktoken_counter(self) -> None:
-        from astro_context.tokens.counter import get_default_counter
+        from anchor.tokens.counter import get_default_counter
 
         get_default_counter.cache_clear()
         with patch("tiktoken.get_encoding", return_value=_MockEncoding()):
@@ -123,7 +123,7 @@ class TestGetDefaultCounter:
                 get_default_counter.cache_clear()
 
     def test_returns_same_instance(self) -> None:
-        from astro_context.tokens.counter import get_default_counter
+        from anchor.tokens.counter import get_default_counter
 
         get_default_counter.cache_clear()
         with patch("tiktoken.get_encoding", return_value=_MockEncoding()):

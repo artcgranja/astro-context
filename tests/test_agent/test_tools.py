@@ -6,12 +6,12 @@ import math
 
 import pytest
 
-from astro_context.agent.tools import AgentTool, memory_tools, rag_tools
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.retrieval.dense import DenseRetriever
-from astro_context.storage.json_memory_store import InMemoryEntryStore
-from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
+from anchor.agent.tools import AgentTool, memory_tools, rag_tools
+from anchor.memory.manager import MemoryManager
+from anchor.models.context import ContextItem, SourceType
+from anchor.retrieval.dense import DenseRetriever
+from anchor.storage.json_memory_store import InMemoryEntryStore
+from anchor.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 
 
 class _Tok:

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.ingestion.code_chunker import _EXTENSION_MAP, CodeChunker
-from astro_context.ingestion.ingester import DocumentIngester
-from astro_context.ingestion.table_chunker import TableAwareChunker
-from astro_context.protocols.ingestion import Chunker
+from anchor.ingestion.code_chunker import _EXTENSION_MAP, CodeChunker
+from anchor.ingestion.ingester import DocumentIngester
+from anchor.ingestion.table_chunker import TableAwareChunker
+from anchor.protocols.ingestion import Chunker
 from tests.conftest import FakeTokenizer
 
 

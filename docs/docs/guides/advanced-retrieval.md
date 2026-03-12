@@ -15,7 +15,7 @@ All rerankers conform to the `Reranker` protocol with `rerank(query, items, top_
 Scores each item with a user-provided `(query_str, doc_content) -> float` function.
 
 ```python
-from astro_context.retrieval import CrossEncoderReranker
+from anchor.retrieval import CrossEncoderReranker
 
 reranker = CrossEncoderReranker(score_fn=my_scorer, top_k=10)
 results = reranker.rerank(query, items)
@@ -27,7 +27,7 @@ Batch reranking via a callback that takes `(query_str, documents, top_k)` and
 returns `(original_index, score)` tuples.
 
 ```python
-from astro_context.retrieval import CohereReranker
+from anchor.retrieval import CohereReranker
 
 def cohere_rerank(query: str, docs: list[str], top_k: int) -> list[tuple[int, float]]:
     response = co.rerank(query=query, documents=docs, top_n=top_k)
@@ -41,10 +41,10 @@ reranker = CohereReranker(rerank_fn=cohere_rerank, top_k=10)
 Local cross-encoder reranking using `flashrank`. The model is lazily loaded.
 
 !!! warning
-    Requires: `pip install astro-context[flashrank]`
+    Requires: `pip install anchor[flashrank]`
 
 ```python
-from astro_context.retrieval import FlashRankReranker
+from anchor.retrieval import FlashRankReranker
 
 reranker = FlashRankReranker(model_name="ms-marco-MiniLM-L-12-v2", top_k=10)
 results = reranker.rerank(query, items)
@@ -56,7 +56,7 @@ Merges multiple result sets round-robin (deduplicating by ID), or re-sorts by
 existing score via `rerank()`.
 
 ```python
-from astro_context.retrieval import RoundRobinReranker
+from anchor.retrieval import RoundRobinReranker
 
 rr = RoundRobinReranker(top_k=10)
 merged = rr.rerank_multiple(query, [dense_results, sparse_results], top_k=10)
@@ -68,7 +68,7 @@ Chains multiple rerankers sequentially. Intermediate stages pass all items
 through; `top_k` is applied only at the end.
 
 ```python
-from astro_context.retrieval import RerankerPipeline
+from anchor.retrieval import RerankerPipeline
 
 pipeline = RerankerPipeline(rerankers=[cross_encoder, cohere_reranker], top_k=5)
 results = pipeline.rerank(query, items)
@@ -91,7 +91,7 @@ Async embedding-based retriever. Use `aindex()` to embed items, or `index()`
 for pre-embedded items (those with `"embedding"` in metadata).
 
 ```python
-from astro_context.retrieval import AsyncDenseRetriever
+from anchor.retrieval import AsyncDenseRetriever
 
 async def async_embed(text: str) -> list[float]:
     return await embedding_service.embed(text)
@@ -107,7 +107,7 @@ Fans out to multiple async retrievers concurrently via `asyncio.gather` and
 fuses results with RRF.
 
 ```python
-from astro_context.retrieval import AsyncHybridRetriever
+from anchor.retrieval import AsyncHybridRetriever
 
 hybrid = AsyncHybridRetriever(retrievers=[ret_a, ret_b], weights=[0.7, 0.3], k=60)
 results = await hybrid.aretrieve(query, top_k=10)
@@ -123,7 +123,7 @@ results = await hybrid.aretrieve(query, top_k=10)
 - **`AsyncCohereReranker`** -- batch reranking via an async callback.
 
 ```python
-from astro_context.retrieval import AsyncCrossEncoderReranker
+from anchor.retrieval import AsyncCrossEncoderReranker
 
 reranker = AsyncCrossEncoderReranker(score_fn=async_scorer)
 results = await reranker.arerank(query, items, top_k=5)
@@ -143,7 +143,7 @@ Routes based on keyword matching. First keyword match wins; falls back to a
 default route.
 
 ```python
-from astro_context.retrieval import KeywordRouter, RoutedRetriever
+from anchor.retrieval import KeywordRouter, RoutedRetriever
 
 router = KeywordRouter(
     routes={
@@ -167,7 +167,7 @@ Routes using a user-provided function that takes a `QueryBundle` and returns
 a route name (or `None` for the default).
 
 ```python
-from astro_context.retrieval import CallbackRouter, RoutedRetriever
+from anchor.retrieval import CallbackRouter, RoutedRetriever
 
 def classify(q):
     if len(q.query_str) > 100:
@@ -183,8 +183,8 @@ Routes based on a metadata field in the `QueryBundle`. Inspects
 `query.metadata[key]` and uses its value as the route name.
 
 ```python
-from astro_context.retrieval import MetadataRouter, RoutedRetriever
-from astro_context.models.query import QueryBundle
+from anchor.retrieval import MetadataRouter, RoutedRetriever
+from anchor.models.query import QueryBundle
 
 router = MetadataRouter(metadata_key="domain", default="general")
 
@@ -219,7 +219,7 @@ Encodes content from multiple modalities using modality-specific callbacks.
 
 ```python
 import math
-from astro_context.retrieval import CrossModalEncoder
+from anchor.retrieval import CrossModalEncoder
 
 def text_encoder(text: str) -> list[float]:
     vals = [ord(c) for c in text[:20]]
@@ -240,7 +240,7 @@ print(encoder.modalities)  # ["image", "text"]
 Retriever that searches across modalities in a shared embedding space.
 
 ```python
-from astro_context.retrieval import SharedSpaceRetriever
+from anchor.retrieval import SharedSpaceRetriever
 
 retriever = SharedSpaceRetriever(
     encoder=encoder,
@@ -268,7 +268,7 @@ ColBERT-style scorer: for each query token, finds the maximum cosine
 similarity across all document tokens, then sums the maxima.
 
 ```python
-from astro_context.retrieval import MaxSimScorer
+from anchor.retrieval import MaxSimScorer
 
 scorer = MaxSimScorer()
 score = scorer.score(query_tokens, doc_tokens)
@@ -280,7 +280,7 @@ Configurable wrapper that defaults to `MaxSimScorer` but accepts a custom
 scoring function.
 
 ```python
-from astro_context.retrieval import LateInteractionScorer
+from anchor.retrieval import LateInteractionScorer
 
 scorer = LateInteractionScorer(score_fn=None)  # uses MaxSim
 ```
@@ -291,7 +291,7 @@ Two-stage retriever: a first-stage retriever generates candidates, then a
 token-level encoder re-scores each candidate.
 
 ```python
-from astro_context.retrieval import LateInteractionRetriever, LateInteractionScorer
+from anchor.retrieval import LateInteractionRetriever, LateInteractionScorer
 
 retriever = LateInteractionRetriever(
     first_stage=dense_retriever,
@@ -326,7 +326,7 @@ to retrieve from a `MemoryEntryStore`.
 ### ScoredMemoryRetriever
 
 ```python
-from astro_context.retrieval import ScoredMemoryRetriever
+from anchor.retrieval import ScoredMemoryRetriever
 
 retriever = ScoredMemoryRetriever(
     store=memory_store,

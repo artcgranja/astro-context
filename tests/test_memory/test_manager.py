@@ -1,10 +1,10 @@
-"""Tests for astro_context.memory.manager."""
+"""Tests for anchor.memory.manager."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.models.context import SourceType
+from anchor.models.context import SourceType
 from tests.conftest import make_memory_manager
 
 

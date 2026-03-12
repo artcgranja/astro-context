@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from astro_context.models.budget import BudgetAllocation, TokenBudget
-from astro_context.models.budget_defaults import (
+from anchor.models.budget import BudgetAllocation, TokenBudget
+from anchor.models.budget_defaults import (
     default_agent_budget,
     default_chat_budget,
     default_rag_budget,
 )
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep, retriever_step
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep, retriever_step
 from tests.conftest import FakeRetriever, FakeTokenizer, make_memory_manager
 from tests.test_pipeline.conftest import make_pipeline
 

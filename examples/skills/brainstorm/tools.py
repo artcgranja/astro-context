@@ -1,6 +1,6 @@
 """Tools for the brainstorm skill.
 
-Example of a SKILL.md skill with Python tools for astro-context.
+Example of a SKILL.md skill with Python tools for anchor.
 """
 
 from __future__ import annotations
@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from astro_context.agent.tool_decorator import tool
+from anchor.agent.tool_decorator import tool
 
 
 @tool

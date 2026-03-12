@@ -7,7 +7,7 @@ Demonstrates the Agent class combining all three context engineering pillars:
   3. Agentic RAG        -- model decides when to search documentation
 
 Requirements:
-    pip install astro-context[agents]
+    pip install anchor[agents]
     pip install rich  # optional, for pretty output
     export ANTHROPIC_API_KEY=sk-ant-...
 """
@@ -39,7 +39,7 @@ try:
 except ImportError:
     HAS_RICH = False
 
-from astro_context import (
+from anchor import (
     Agent,
     ContextItem,
     DenseRetriever,
@@ -48,7 +48,7 @@ from astro_context import (
     memory_tools,
     rag_tools,
 )
-from astro_context.storage import InMemoryContextStore, InMemoryEntryStore, InMemoryVectorStore
+from anchor.storage import InMemoryContextStore, InMemoryEntryStore, InMemoryVectorStore
 
 MODEL = "claude-haiku-4-5-20251001"
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -193,7 +193,7 @@ def _build_agent() -> tuple[Agent, MemoryManager]:
     agent = (
         Agent(model=MODEL)
         .with_system_prompt(
-            "You are a helpful assistant for the astro-context library. "
+            "You are a helpful assistant for the anchor library. "
             "Save important user facts with save_fact. Search docs with search_docs when needed."
         )
         .with_memory(memory)
@@ -240,7 +240,7 @@ def main() -> None:
         sys.exit(1)
 
     agent, memory = _build_agent()
-    _print("astro-context agent chat", style="bold")
+    _print("anchor agent chat", style="bold")
     _print(f"  Model: {MODEL}", style="info")
     _print('  Type /help for commands, "quit" to exit.\n', style="info")
 

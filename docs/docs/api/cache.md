@@ -1,10 +1,10 @@
 # Cache API Reference
 
 The cache module provides an in-memory cache backend for pipeline step
-results. All classes are importable from `astro_context`:
+results. All classes are importable from `anchor`:
 
 ```python
-from astro_context import CacheBackend, InMemoryCacheBackend
+from anchor import CacheBackend, InMemoryCacheBackend
 ```
 
 ---
@@ -99,7 +99,7 @@ Remove all entries from the cache.
 ### Example
 
 ```python
-from astro_context import InMemoryCacheBackend
+from anchor import InMemoryCacheBackend
 
 cache = InMemoryCacheBackend(default_ttl=60.0, max_size=500)
 

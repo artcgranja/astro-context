@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.agent.agent import Agent
-from astro_context.agent.skills.models import Skill
-from astro_context.agent.skills.registry import SkillRegistry
-from astro_context.agent.tools import AgentTool
+from anchor.agent.agent import Agent
+from anchor.agent.skills.models import Skill
+from anchor.agent.skills.registry import SkillRegistry
+from anchor.agent.tools import AgentTool
 
 FIXTURES = Path(__file__).resolve().parent.parent.parent / "fixtures" / "skills"
 

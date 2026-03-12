@@ -1,4 +1,4 @@
-"""Tests for astro_context.memory.extractor."""
+"""Tests for anchor.memory.extractor."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from astro_context.memory.extractor import CallbackExtractor
-from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType
+from anchor.memory.extractor import CallbackExtractor
+from anchor.models.memory import ConversationTurn, MemoryEntry, MemoryType
 
 
 def _make_turns(n: int = 3) -> list[ConversationTurn]:

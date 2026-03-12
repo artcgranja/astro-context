@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from astro_context.memory.extractor import CallbackExtractor
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.models.memory import ConversationTurn, MemoryEntry
-from astro_context.pipeline.memory_steps import create_eviction_promoter
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.memory.extractor import CallbackExtractor
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.models.memory import ConversationTurn, MemoryEntry
+from anchor.pipeline.memory_steps import create_eviction_promoter
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeTokenizer
 
 # ---------------------------------------------------------------------------

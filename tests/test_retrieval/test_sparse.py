@@ -1,12 +1,12 @@
-"""Tests for astro_context.retrieval.sparse."""
+"""Tests for anchor.retrieval.sparse."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
 from tests.test_retrieval.conftest import make_sparse_retriever
 
 

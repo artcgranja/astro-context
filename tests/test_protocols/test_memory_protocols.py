@@ -6,8 +6,8 @@ concrete implementations pass isinstance checks (PEP 544 structural subtyping).
 
 from __future__ import annotations
 
-from astro_context.models.memory import ConversationTurn, MemoryEntry
-from astro_context.protocols.memory import (
+from anchor.models.memory import ConversationTurn, MemoryEntry
+from anchor.protocols.memory import (
     AsyncCompactionStrategy,
     AsyncMemoryExtractor,
     CompactionStrategy,

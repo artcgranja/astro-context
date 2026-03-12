@@ -19,7 +19,7 @@ This example demonstrates:
 The `Retriever` protocol requires a single method:
 
 ```python
-from astro_context import Retriever, ContextItem, QueryBundle
+from anchor import Retriever, ContextItem, QueryBundle
 
 class Retriever:
     def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
@@ -35,7 +35,7 @@ structural subtyping via [PEP 544](https://peps.python.org/pep-0544/).
 ```python
 import math
 
-from astro_context import (
+from anchor import (
     ContextItem,
     ContextPipeline,
     DenseRetriever,
@@ -252,7 +252,7 @@ and call `pipeline.abuild()` instead of `pipeline.build()`.
 !!! tip "Protocol Compliance"
     You can verify your class satisfies the protocol at runtime:
     ```python
-    from astro_context import Retriever
+    from anchor import Retriever
     assert isinstance(my_retriever, Retriever)
     ```
 

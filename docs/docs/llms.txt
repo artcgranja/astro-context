@@ -1,33 +1,33 @@
-# astro-context
+# anchor
 
 > Context engineering toolkit for AI applications.
 
-astro-context is a Python library for building context pipelines that assemble,
+anchor is a Python library for building context pipelines that assemble,
 rank, and format context windows for large language models. It provides retrieval,
 memory management, token budgeting, formatting, query transformation, ingestion,
 evaluation, observability, and an agent framework -- all through a composable,
 protocol-driven architecture.
 
-- Repo: https://github.com/arthurgranja/astro-context
-- Docs: https://arthurgranja.github.io/astro-context
+- Repo: https://github.com/arthurgranja/anchor
+- Docs: https://arthurgranja.github.io/anchor
 - License: MIT
 - Python: >=3.11
 - Core dependency: pydantic>=2.8
 
 ## Installation
 
-pip install astro-context
+pip install anchor
 
 Optional extras:
-  pip install astro-context[tiktoken]    # tiktoken tokenizer
-  pip install astro-context[bm25]        # BM25 sparse retrieval
-  pip install astro-context[anthropic]   # Anthropic formatter + agent
-  pip install astro-context[agents]      # Agent framework (Anthropic SDK)
-  pip install astro-context[flashrank]   # FlashRank reranker
-  pip install astro-context[pdf]         # PDF parsing
-  pip install astro-context[otlp]        # OpenTelemetry export
-  pip install astro-context[cli]         # CLI (typer + rich)
-  pip install astro-context[all]         # Everything
+  pip install anchor[tiktoken]    # tiktoken tokenizer
+  pip install anchor[bm25]        # BM25 sparse retrieval
+  pip install anchor[anthropic]   # Anthropic formatter + agent
+  pip install anchor[agents]      # Agent framework (Anthropic SDK)
+  pip install anchor[flashrank]   # FlashRank reranker
+  pip install anchor[pdf]         # PDF parsing
+  pip install anchor[otlp]        # OpenTelemetry export
+  pip install anchor[cli]         # CLI (typer + rich)
+  pip install anchor[all]         # Everything
 
 ## Core Concepts
 
@@ -295,7 +295,7 @@ Collectors: InMemoryMetricsCollector, LoggingMetricsCollector
 
 ## Quick Start Example
 
-  from astro_context import (
+  from anchor import (
       ContextPipeline, QueryBundle, AnthropicFormatter,
       DenseRetriever, SlidingWindowMemory, MemoryManager,
       retriever_step, default_rag_budget,

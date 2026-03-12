@@ -1,4 +1,4 @@
-"""Tests for astro_context.storage.memory_store."""
+"""Tests for anchor.storage.memory_store."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ import math
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.protocols.storage import ContextStore, DocumentStore, VectorStore
-from astro_context.storage.memory_store import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.protocols.storage import ContextStore, DocumentStore, VectorStore
+from anchor.storage.memory_store import (
     InMemoryContextStore,
     InMemoryDocumentStore,
     InMemoryVectorStore,
@@ -185,7 +185,7 @@ class TestInMemoryVectorStoreLargeStoreWarning:
 
         import logging
 
-        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+        with caplog.at_level(logging.WARNING, logger="anchor.storage.memory_store"):
             vector_store.search(make_embedding(0), top_k=1)
 
         assert any("6 embeddings" in r.message for r in caplog.records)
@@ -205,7 +205,7 @@ class TestInMemoryVectorStoreLargeStoreWarning:
 
         import logging
 
-        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+        with caplog.at_level(logging.WARNING, logger="anchor.storage.memory_store"):
             vector_store.search(make_embedding(0), top_k=1)
             caplog.clear()
             vector_store.search(make_embedding(0), top_k=1)
@@ -222,7 +222,7 @@ class TestInMemoryVectorStoreLargeStoreWarning:
 
         import logging
 
-        with caplog.at_level(logging.WARNING, logger="astro_context.storage.memory_store"):
+        with caplog.at_level(logging.WARNING, logger="anchor.storage.memory_store"):
             vector_store.search(make_embedding(0), top_k=1)
 
         assert not any("embeddings" in r.message for r in caplog.records)

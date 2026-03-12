@@ -1,8 +1,8 @@
-"""Tests for astro_context.models.streaming -- StreamDelta, StreamResult, StreamUsage."""
+"""Tests for anchor.models.streaming -- StreamDelta, StreamResult, StreamUsage."""
 
 from __future__ import annotations
 
-from astro_context.models.streaming import StreamDelta, StreamResult, StreamUsage
+from anchor.models.streaming import StreamDelta, StreamResult, StreamUsage
 
 # ---------------------------------------------------------------------------
 # StreamDelta

@@ -1,6 +1,6 @@
 # Pipeline API Reference
 
-API reference for the pipeline module -- the orchestration layer of astro-context.
+API reference for the pipeline module -- the orchestration layer of anchor.
 
 ## `ContextPipeline`
 
@@ -8,7 +8,7 @@ The main orchestrator that assembles context from multiple sources into a
 token-aware, priority-ranked context window.
 
 ```python
-from astro_context import ContextPipeline
+from anchor import ContextPipeline
 
 class ContextPipeline:
     def __init__(
@@ -139,7 +139,7 @@ async def abuild(self, query: str | QueryBundle) -> ContextResult: ...
 A single composable step in the context pipeline. This is a dataclass.
 
 ```python
-from astro_context import PipelineStep
+from anchor import PipelineStep
 
 @dataclass(slots=True)
 class PipelineStep:
@@ -180,7 +180,7 @@ Create a step from a `Retriever` protocol implementation. Appends retrieved
 items to the current list.
 
 ```python
-from astro_context import retriever_step
+from anchor import retriever_step
 step = retriever_step("search", my_retriever, top_k=5)
 ```
 
@@ -195,7 +195,7 @@ step = retriever_step("search", my_retriever, top_k=5)
 Async variant. Wraps an `AsyncRetriever` (must have `aretrieve(query, top_k)`).
 
 ```python
-from astro_context import async_retriever_step
+from anchor import async_retriever_step
 step = async_retriever_step("async-search", my_async_retriever, top_k=5)
 ```
 
@@ -211,7 +211,7 @@ Create a step that filters items by a predicate function. Items where the
 predicate returns `False` are removed.
 
 ```python
-from astro_context import filter_step
+from anchor import filter_step
 step = filter_step("score-gate", lambda item: item.score > 0.5)
 ```
 
@@ -225,7 +225,7 @@ step = filter_step("score-gate", lambda item: item.score > 0.5)
 Create a step from a `PostProcessor` protocol implementation.
 
 ```python
-from astro_context import postprocessor_step
+from anchor import postprocessor_step
 step = postprocessor_step("dedup", my_deduplicator)
 ```
 
@@ -249,7 +249,7 @@ Create a step from a `Reranker` protocol implementation. The reranker scores
 and returns the top-k most relevant items.
 
 ```python
-from astro_context import reranker_step
+from anchor import reranker_step
 step = reranker_step("rerank", my_reranker, top_k=3)
 ```
 
@@ -276,7 +276,7 @@ and merges results using Reciprocal Rank Fusion (RRF). New items are
 deduplicated by ID.
 
 ```python
-from astro_context import query_transform_step
+from anchor import query_transform_step
 step = query_transform_step("multi-query", my_transformer, my_retriever, top_k=5)
 ```
 
@@ -292,7 +292,7 @@ step = query_transform_step("multi-query", my_transformer, my_retriever, top_k=5
 Create a step that classifies the query and routes to the appropriate retriever.
 
 ```python
-from astro_context import classified_retriever_step
+from anchor import classified_retriever_step
 step = classified_retriever_step(
     "router",
     classifier=my_classifier,
@@ -346,7 +346,7 @@ Create an `on_evict` callback that promotes evicted conversation turns to
 long-term memory. Designed for `SlidingWindowMemory(on_evict=...)`.
 
 ```python
-from astro_context import create_eviction_promoter, SlidingWindowMemory
+from anchor import create_eviction_promoter, SlidingWindowMemory
 
 promoter = create_eviction_promoter(extractor, store, consolidator)
 memory = SlidingWindowMemory(max_tokens=4096, on_evict=promoter)
@@ -372,7 +372,7 @@ A runtime-checkable protocol for pipeline event callbacks. All methods are
 optional -- implement only the ones you need.
 
 ```python
-from astro_context import PipelineCallback
+from anchor import PipelineCallback
 
 class PipelineCallback(Protocol):
     def on_pipeline_start(self, query: QueryBundle) -> None: ...

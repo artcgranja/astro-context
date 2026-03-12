@@ -6,9 +6,9 @@ roles and that retrieval content is placed in safe message positions.
 
 from __future__ import annotations
 
-from astro_context.formatters.openai import OpenAIFormatter
-from astro_context.formatters.utils import get_message_role
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.formatters.openai import OpenAIFormatter
+from anchor.formatters.utils import get_message_role
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestOpenAIRetrievalRole:

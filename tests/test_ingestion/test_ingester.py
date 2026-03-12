@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from astro_context.ingestion.chunkers import FixedSizeChunker
-from astro_context.ingestion.ingester import DocumentIngester
-from astro_context.ingestion.metadata import MetadataEnricher, generate_doc_id
-from astro_context.models.context import ContextItem, SourceType
+from anchor.ingestion.chunkers import FixedSizeChunker
+from anchor.ingestion.ingester import DocumentIngester
+from anchor.ingestion.metadata import MetadataEnricher, generate_doc_id
+from anchor.models.context import ContextItem, SourceType
 from tests.conftest import FakeTokenizer
 
 
@@ -127,7 +127,7 @@ class TestIngestFile:
     ) -> None:
         f = tmp_path / "data.xyz"
         f.write_text("content", encoding="utf-8")
-        from astro_context.exceptions import IngestionError
+        from anchor.exceptions import IngestionError
 
         with pytest.raises(IngestionError, match="No parser registered"):
             ingester.ingest_file(f)
@@ -184,7 +184,7 @@ class TestIngestDirectory:
         assert "Text file" in contents
 
     def test_directory_not_found(self, ingester: DocumentIngester) -> None:
-        from astro_context.exceptions import IngestionError
+        from anchor.exceptions import IngestionError
 
         with pytest.raises(IngestionError, match="Directory not found"):
             ingester.ingest_directory(Path("/nonexistent/dir"))

@@ -6,11 +6,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.enrichment import ContextQueryEnricher, MemoryContextEnricher
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep, retriever_step
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.enrichment import ContextQueryEnricher, MemoryContextEnricher
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep, retriever_step
 from tests.conftest import FakeRetriever, FakeTokenizer, make_memory_manager
 from tests.test_pipeline.conftest import make_pipeline
 

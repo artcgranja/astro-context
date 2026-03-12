@@ -11,11 +11,11 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import MemoryEntry
-from astro_context.storage.json_file_store import JsonFileMemoryStore
-from astro_context.storage.json_memory_store import InMemoryEntryStore
-from astro_context.storage.memory_store import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.memory import MemoryEntry
+from anchor.storage.json_file_store import JsonFileMemoryStore
+from anchor.storage.json_memory_store import InMemoryEntryStore
+from anchor.storage.memory_store import (
     InMemoryContextStore,
     InMemoryDocumentStore,
     InMemoryVectorStore,

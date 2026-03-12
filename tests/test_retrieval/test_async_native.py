@@ -7,15 +7,15 @@ import time
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.reranker import AsyncReranker
-from astro_context.protocols.retriever import AsyncRetriever
-from astro_context.retrieval.async_reranker import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.protocols.reranker import AsyncReranker
+from anchor.protocols.retriever import AsyncRetriever
+from anchor.retrieval.async_reranker import (
     AsyncCohereReranker,
     AsyncCrossEncoderReranker,
 )
-from astro_context.retrieval.async_retriever import (
+from anchor.retrieval.async_retriever import (
     AsyncDenseRetriever,
     AsyncHybridRetriever,
 )

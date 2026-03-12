@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.memory.graph_memory import SimpleGraphMemory
+from anchor.memory.graph_memory import SimpleGraphMemory
 
 # ===========================================================================
 # TestAddEntity

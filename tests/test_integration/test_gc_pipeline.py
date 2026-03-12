@@ -15,12 +15,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from astro_context.memory.gc import MemoryGarbageCollector
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import ContextResult, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.memory.gc import MemoryGarbageCollector
+from anchor.memory.manager import MemoryManager
+from anchor.models.context import ContextResult, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeTokenizer
 
 # ---------------------------------------------------------------------------

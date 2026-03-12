@@ -20,7 +20,7 @@ This example demonstrates:
 ```python
 import math
 
-from astro_context import (
+from anchor import (
     ContextItem,
     ContextPipeline,
     CrossEncoderReranker,
@@ -198,9 +198,9 @@ print(f"  Items from decorator pipeline: {len(result.window.items)}")
 Combine dense and sparse retrievers with Reciprocal Rank Fusion:
 
 ```python
-from astro_context import HybridRetriever, SparseRetriever
+from anchor import HybridRetriever, SparseRetriever
 
-sparse = SparseRetriever()  # requires pip install astro-context[bm25]
+sparse = SparseRetriever()  # requires pip install anchor[bm25]
 sparse.index(items)
 
 hybrid = HybridRetriever(

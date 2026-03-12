@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.query_transform import AsyncQueryTransformer, QueryTransformer
-from astro_context.query.transformers import (
+from anchor.models.query import QueryBundle
+from anchor.protocols.query_transform import AsyncQueryTransformer, QueryTransformer
+from anchor.query.transformers import (
     DecompositionTransformer,
     HyDETransformer,
     MultiQueryTransformer,

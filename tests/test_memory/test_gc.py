@@ -7,12 +7,12 @@ from typing import Any
 
 import pytest
 
-from astro_context.memory.gc import (
+from anchor.memory.gc import (
     GarbageCollectableStore,
     GCStats,
     MemoryGarbageCollector,
 )
-from astro_context.models.memory import MemoryEntry
+from anchor.models.memory import MemoryEntry
 
 # ---------------------------------------------------------------------------
 # Helpers

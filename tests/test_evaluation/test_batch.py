@@ -5,15 +5,15 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from astro_context.evaluation.batch import (
+from anchor.evaluation.batch import (
     AggregatedMetrics,
     BatchEvaluator,
     EvaluationDataset,
     EvaluationSample,
     _percentile,
 )
-from astro_context.evaluation.evaluator import PipelineEvaluator
-from astro_context.models.context import ContextItem, SourceType
+from anchor.evaluation.evaluator import PipelineEvaluator
+from anchor.models.context import ContextItem, SourceType
 from tests.conftest import FakeRetriever
 
 

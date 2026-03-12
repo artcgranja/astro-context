@@ -23,8 +23,8 @@ evaluated in insertion order; the first matching rule wins. If no rule matches,
 the `default` label is returned.
 
 ```python
-from astro_context.query import KeywordClassifier
-from astro_context.models.query import QueryBundle
+from anchor.query import KeywordClassifier
+from anchor.models.query import QueryBundle
 
 classifier = KeywordClassifier(
     rules={
@@ -51,8 +51,8 @@ Delegates classification to a user-supplied callback. Use this when you need
 custom logic, an LLM-based classifier, or integration with an external service.
 
 ```python
-from astro_context.query import CallbackClassifier
-from astro_context.models.query import QueryBundle
+from anchor.query import CallbackClassifier
+from anchor.models.query import QueryBundle
 
 def my_classifier(query: QueryBundle) -> str:
     if "?" in query.query_str:
@@ -73,8 +73,8 @@ must have a non-`None` `embedding` field.
 
 ```python
 import math
-from astro_context.query import EmbeddingClassifier
-from astro_context.models.query import QueryBundle
+from anchor.query import EmbeddingClassifier
+from anchor.models.query import QueryBundle
 
 # Pre-computed centroid embeddings for each category
 centroids = {
@@ -119,8 +119,8 @@ the query and routes it to the appropriate retriever. This is the primary
 integration point between classifiers and the pipeline.
 
 ```python
-from astro_context.query import KeywordClassifier
-from astro_context.pipeline import classified_retriever_step, ContextPipeline
+from anchor.query import KeywordClassifier
+from anchor.pipeline import classified_retriever_step, ContextPipeline
 
 classifier = KeywordClassifier(
     rules={
@@ -168,9 +168,9 @@ This example shows a complete workflow where queries about code are routed to a
 code-specific retriever and everything else goes to a documentation retriever.
 
 ```python
-from astro_context.query import KeywordClassifier
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline import classified_retriever_step
+from anchor.query import KeywordClassifier
+from anchor.models.query import QueryBundle
+from anchor.pipeline import classified_retriever_step
 
 # 1. Define the classifier
 classifier = KeywordClassifier(

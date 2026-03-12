@@ -6,9 +6,9 @@ import math
 
 import pytest
 
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.classifier import QueryClassifier
-from astro_context.query.classifiers import (
+from anchor.models.query import QueryBundle
+from anchor.protocols.classifier import QueryClassifier
+from anchor.query.classifiers import (
     CallbackClassifier,
     EmbeddingClassifier,
     KeywordClassifier,

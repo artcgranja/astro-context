@@ -1,4 +1,4 @@
-"""Tests for astro_context.retrieval.rerankers (advanced reranker implementations)."""
+"""Tests for anchor.retrieval.rerankers (advanced reranker implementations)."""
 
 from __future__ import annotations
 
@@ -6,12 +6,12 @@ from unittest.mock import patch
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.step import reranker_step
-from astro_context.protocols.reranker import Reranker
-from astro_context.retrieval.rerankers import (
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.step import reranker_step
+from anchor.protocols.reranker import Reranker
+from anchor.retrieval.rerankers import (
     CohereReranker,
     CrossEncoderReranker,
     FlashRankReranker,

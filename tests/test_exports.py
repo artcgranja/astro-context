@@ -7,7 +7,7 @@ class TestTopLevelExports:
     """Verify all expected symbols are importable from the top-level package."""
 
     def test_pipeline_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             ContextPipeline,
             PipelineStep,
             async_postprocessor_step,
@@ -32,7 +32,7 @@ class TestTopLevelExports:
         assert retriever_step is not None
 
     def test_model_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             BudgetAllocation,
             ContextItem,
             ContextResult,
@@ -63,7 +63,7 @@ class TestTopLevelExports:
         assert StepDiagnostic is not None
 
     def test_protocol_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             AsyncPostProcessor,
             AsyncReranker,
             AsyncRetriever,
@@ -93,7 +93,7 @@ class TestTopLevelExports:
         assert VectorStore is not None
 
     def test_exception_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             AstroContextError,
             FormatterError,
             RetrieverError,
@@ -108,7 +108,7 @@ class TestTopLevelExports:
         assert TokenBudgetExceededError is not None
 
     def test_retrieval_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             AsyncCohereReranker,
             AsyncCrossEncoderReranker,
             AsyncDenseRetriever,
@@ -149,26 +149,26 @@ class TestTopLevelExports:
         assert rrf_fuse is not None
 
     def test_formatter_exports(self) -> None:
-        from astro_context import AnthropicFormatter, GenericTextFormatter, OpenAIFormatter
+        from anchor import AnthropicFormatter, GenericTextFormatter, OpenAIFormatter
 
         assert AnthropicFormatter is not None
         assert GenericTextFormatter is not None
         assert OpenAIFormatter is not None
 
     def test_memory_exports(self) -> None:
-        from astro_context import MemoryManager, SlidingWindowMemory
+        from anchor import MemoryManager, SlidingWindowMemory
 
         assert MemoryManager is not None
         assert SlidingWindowMemory is not None
 
     def test_storage_exports(self) -> None:
-        from astro_context import InMemoryContextStore, InMemoryVectorStore
+        from anchor import InMemoryContextStore, InMemoryVectorStore
 
         assert InMemoryContextStore is not None
         assert InMemoryVectorStore is not None
 
     def test_ingestion_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             Chunker,
             CodeChunker,
             DocumentIngester,
@@ -213,12 +213,12 @@ class TestTopLevelExports:
         assert generate_doc_id is not None
 
     def test_token_exports(self) -> None:
-        from astro_context import TiktokenCounter
+        from anchor import TiktokenCounter
 
         assert TiktokenCounter is not None
 
     def test_query_transform_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             AsyncQueryTransformer,
             DecompositionTransformer,
             HyDETransformer,
@@ -239,7 +239,7 @@ class TestTopLevelExports:
         assert query_transform_step is not None
 
     def test_evaluation_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             AggregatedMetrics,
             BatchEvaluator,
             EvaluationDataset,
@@ -268,7 +268,7 @@ class TestTopLevelExports:
         assert RetrievalMetricsCalculator is not None
 
     def test_multimodal_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             CompositeEncoder,
             HTMLTableParser,
             ImageDescriptionEncoder,
@@ -297,7 +297,7 @@ class TestTopLevelExports:
         assert TextEncoder is not None
 
     def test_observability_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             ConsoleSpanExporter,
             CostEntry,
             CostSummary,
@@ -340,7 +340,7 @@ class TestTopLevelExports:
         assert TracingCallback is not None
 
     def test_router_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             CallbackRouter,
             KeywordRouter,
             MetadataRouter,
@@ -355,7 +355,7 @@ class TestTopLevelExports:
         assert RoutedRetriever is not None
 
     def test_cache_exports(self) -> None:
-        from astro_context import (
+        from anchor import (
             CacheBackend,
             InMemoryCacheBackend,
         )
@@ -364,6 +364,6 @@ class TestTopLevelExports:
         assert InMemoryCacheBackend is not None
 
     def test_version(self) -> None:
-        from astro_context import __version__
+        from anchor import __version__
 
         assert __version__ == "0.1.0"

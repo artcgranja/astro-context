@@ -6,11 +6,11 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astro_context.exceptions import StorageError
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import SourceType
-from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.exceptions import StorageError
+from anchor.memory.manager import MemoryManager
+from anchor.models.context import SourceType
+from anchor.models.memory import ConversationTurn, MemoryEntry, MemoryType
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeTokenizer
 
 

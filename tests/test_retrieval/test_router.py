@@ -1,15 +1,15 @@
-"""Tests for astro_context.retrieval.router."""
+"""Tests for anchor.retrieval.router."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.retriever import Retriever
-from astro_context.protocols.router import QueryRouter
-from astro_context.retrieval.router import (
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.protocols.retriever import Retriever
+from anchor.protocols.router import QueryRouter
+from anchor.retrieval.router import (
     CallbackRouter,
     KeywordRouter,
     MetadataRouter,

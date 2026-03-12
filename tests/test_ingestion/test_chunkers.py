@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.ingestion.chunkers import (
+from anchor.ingestion.chunkers import (
     FixedSizeChunker,
     RecursiveCharacterChunker,
     SentenceChunker,
 )
-from astro_context.protocols.ingestion import Chunker
+from anchor.protocols.ingestion import Chunker
 from tests.conftest import FakeTokenizer
 
 

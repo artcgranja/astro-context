@@ -12,9 +12,9 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.storage._base import BaseEntryStoreMixin
-from astro_context.storage.json_file_store import JsonFileMemoryStore
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.storage._base import BaseEntryStoreMixin
+from anchor.storage.json_file_store import JsonFileMemoryStore
+from anchor.storage.json_memory_store import InMemoryEntryStore
 
 
 @pytest.fixture(params=["memory", "json_file"])

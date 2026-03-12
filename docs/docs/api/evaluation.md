@@ -1,6 +1,6 @@
 # Evaluation API Reference
 
-All classes are importable from `astro_context.evaluation`.
+All classes are importable from `anchor.evaluation`.
 For usage examples see the [Evaluation Guide](../guides/evaluation.md).
 
 ---
@@ -11,7 +11,7 @@ Immutable Pydantic model holding metrics for a single retrieval evaluation.
 All values are bounded in `[0.0, 1.0]`.
 
 ```python
-from astro_context.evaluation import RetrievalMetrics
+from anchor.evaluation import RetrievalMetrics
 ```
 
 | Field | Type | Description |
@@ -30,7 +30,7 @@ from astro_context.evaluation import RetrievalMetrics
 Immutable Pydantic model for RAGAS-style RAG evaluation. All values bounded in `[0.0, 1.0]`.
 
 ```python
-from astro_context.evaluation import RAGMetrics
+from anchor.evaluation import RAGMetrics
 ```
 
 | Field | Type | Description |
@@ -47,7 +47,7 @@ from astro_context.evaluation import RAGMetrics
 Combines retrieval and RAG metrics into a single evaluation result.
 
 ```python
-from astro_context.evaluation import EvaluationResult
+from anchor.evaluation import EvaluationResult
 ```
 
 | Field | Type | Description |
@@ -64,7 +64,7 @@ Computes standard IR metrics from ranked results and a known set of relevant
 document IDs. No LLM dependencies.
 
 ```python
-from astro_context.evaluation import RetrievalMetricsCalculator
+from anchor.evaluation import RetrievalMetricsCalculator
 ```
 
 **Constructor:**
@@ -98,8 +98,8 @@ def evaluate(
 | `k` | `int \| None` | `None` | Cutoff override; falls back to instance default |
 
 ```python
-from astro_context.evaluation import RetrievalMetricsCalculator
-from astro_context.models.context import ContextItem, SourceType
+from anchor.evaluation import RetrievalMetricsCalculator
+from anchor.models.context import ContextItem, SourceType
 
 calc = RetrievalMetricsCalculator(k=5)
 items = [ContextItem(id="a", content="x", source=SourceType.RETRIEVAL)]
@@ -115,7 +115,7 @@ RAGAS-style RAG evaluator driven by user-supplied callback functions. Each
 callback returns a float in `[0.0, 1.0]`.
 
 ```python
-from astro_context.evaluation import LLMRAGEvaluator
+from anchor.evaluation import LLMRAGEvaluator
 ```
 
 **Constructor:**
@@ -155,7 +155,7 @@ Dimensions without registered callbacks return `0.0`.
 Orchestrates retrieval and RAG evaluation into a single result.
 
 ```python
-from astro_context.evaluation import PipelineEvaluator
+from anchor.evaluation import PipelineEvaluator
 ```
 
 **Constructor:**
@@ -200,10 +200,10 @@ def evaluate(
 
 ## EvaluationSample (A/B testing)
 
-A single evaluation sample. Defined in `astro_context.evaluation.ab_testing`.
+A single evaluation sample. Defined in `anchor.evaluation.ab_testing`.
 
 ```python
-from astro_context.evaluation import EvaluationSample
+from anchor.evaluation import EvaluationSample
 ```
 
 | Field | Type | Default | Description |
@@ -217,7 +217,7 @@ from astro_context.evaluation import EvaluationSample
 A collection of `EvaluationSample` instances.
 
 ```python
-from astro_context.evaluation import EvaluationDataset
+from anchor.evaluation import EvaluationDataset
 ```
 
 | Field | Type | Default | Description |
@@ -231,7 +231,7 @@ from astro_context.evaluation import EvaluationDataset
 Aggregated retrieval metrics across multiple evaluation samples.
 
 ```python
-from astro_context.evaluation import AggregatedMetrics
+from anchor.evaluation import AggregatedMetrics
 ```
 
 | Field | Type | Default | Description |
@@ -250,7 +250,7 @@ from astro_context.evaluation import AggregatedMetrics
 Result of an A/B test comparing two retrievers.
 
 ```python
-from astro_context.evaluation import ABTestResult
+from anchor.evaluation import ABTestResult
 ```
 
 | Field | Type | Default | Description |
@@ -271,7 +271,7 @@ from astro_context.evaluation import ABTestResult
 Runs an A/B test comparing two retrievers on a shared dataset.
 
 ```python
-from astro_context.evaluation import ABTestRunner
+from anchor.evaluation import ABTestRunner
 ```
 
 **Constructor:**
@@ -299,10 +299,10 @@ ABTestRunner(evaluator: PipelineEvaluator, dataset: EvaluationDataset)
 ## BatchEvaluator
 
 Runs evaluation over an entire dataset and aggregates results. Importable
-from `astro_context.evaluation.batch`.
+from `anchor.evaluation.batch`.
 
 ```python
-from astro_context.evaluation.batch import BatchEvaluator
+from anchor.evaluation.batch import BatchEvaluator
 ```
 
 **Constructor:**
@@ -331,7 +331,7 @@ Returns `AggregatedMetrics` (batch module variant) with `count`,
 A single human relevance judgment for a query-document pair.
 
 ```python
-from astro_context.evaluation import HumanJudgment
+from anchor.evaluation import HumanJudgment
 ```
 
 | Field | Type | Constraints | Description |
@@ -349,7 +349,7 @@ from astro_context.evaluation import HumanJudgment
 Collects human relevance judgments and computes inter-annotator agreement.
 
 ```python
-from astro_context.evaluation import HumanEvaluationCollector
+from anchor.evaluation import HumanEvaluationCollector
 ```
 
 **Constructor:** `HumanEvaluationCollector()` -- no parameters.

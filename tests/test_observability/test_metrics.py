@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from astro_context.observability.metrics import InMemoryMetricsCollector, LoggingMetricsCollector
-from astro_context.observability.models import MetricPoint
-from astro_context.protocols.observability import MetricsCollector
+from anchor.observability.metrics import InMemoryMetricsCollector, LoggingMetricsCollector
+from anchor.observability.models import MetricPoint
+from anchor.protocols.observability import MetricsCollector
 
 
 def _make_metric(

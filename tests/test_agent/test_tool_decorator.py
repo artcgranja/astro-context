@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from astro_context.agent.models import AgentTool
-from astro_context.agent.tool_decorator import tool
+from anchor.agent.models import AgentTool
+from anchor.agent.tool_decorator import tool
 
 
 class TestBareDecorator:

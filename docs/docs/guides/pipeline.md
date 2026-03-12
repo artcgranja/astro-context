@@ -1,6 +1,6 @@
 # Pipeline Guide
 
-The `ContextPipeline` is the heart of astro-context. Think of it as an **assembly
+The `ContextPipeline` is the heart of anchor. Think of it as an **assembly
 line** for LLM context: raw materials (documents, memories, system prompts) enter
 one end, pass through a series of processing steps, and a fully-assembled,
 token-aware context window exits the other end.
@@ -10,7 +10,7 @@ token-aware context window exits the other end.
 The simplest pipeline needs only a token limit and a query:
 
 ```python
-from astro_context import ContextPipeline
+from anchor import ContextPipeline
 
 pipeline = ContextPipeline(max_tokens=8192)
 result = pipeline.build("What is context engineering?")
@@ -23,7 +23,7 @@ print(f"Build time: {result.build_time_ms:.1f}ms")
 You can also pass a `QueryBundle` for richer queries:
 
 ```python
-from astro_context import ContextPipeline, QueryBundle
+from anchor import ContextPipeline, QueryBundle
 
 query = QueryBundle(
     query_str="What is context engineering?",
@@ -44,7 +44,7 @@ The fastest way to add steps is with the built-in factory functions.
 **Retriever step** -- appends items from a retriever:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline, ContextItem, QueryBundle,
     retriever_step, SourceType,
 )
@@ -67,7 +67,7 @@ print(result.window.items[0].content)
 **Filter step** -- removes items that fail a predicate:
 
 ```python
-from astro_context import ContextPipeline, filter_step
+from anchor import ContextPipeline, filter_step
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -78,27 +78,27 @@ pipeline = (
 **Postprocessor step** -- transforms items through a `PostProcessor`:
 
 ```python
-from astro_context import postprocessor_step
+from anchor import postprocessor_step
 ```
 
 **Reranker step** -- re-scores and reorders items:
 
 ```python
-from astro_context import reranker_step
+from anchor import reranker_step
 ```
 
 **Query transform step** -- expands a query into variants, retrieves for each,
 and merges results using Reciprocal Rank Fusion:
 
 ```python
-from astro_context import query_transform_step
+from anchor import query_transform_step
 ```
 
 **Classified retriever step** -- classifies the query and routes to the
 appropriate retriever:
 
 ```python
-from astro_context import classified_retriever_step
+from anchor import classified_retriever_step
 ```
 
 !!! tip "All factory functions"
@@ -117,7 +117,7 @@ by Pydantic AI's `@agent.tool` pattern.
 Register a **synchronous** function as a pipeline step:
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle, SourceType
+from anchor import ContextPipeline, ContextItem, QueryBundle, SourceType
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -150,7 +150,7 @@ Register an **asynchronous** function. Async steps can only run via `abuild()`:
 
 ```python
 import asyncio
-from astro_context import ContextPipeline, ContextItem, QueryBundle, SourceType
+from anchor import ContextPipeline, ContextItem, QueryBundle, SourceType
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -177,7 +177,7 @@ print(result.window.items[0].content)
 so you can chain calls:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline, ContextItem, QueryBundle, SourceType,
     filter_step, GenericTextFormatter, default_rag_budget,
 )
@@ -211,7 +211,7 @@ Sets the output formatter. Ships with `GenericTextFormatter`,
 Attaches a `TokenBudget` for fine-grained per-source allocation:
 
 ```python
-from astro_context import ContextPipeline, default_chat_budget
+from anchor import ContextPipeline, default_chat_budget
 
 pipeline = ContextPipeline(max_tokens=8192).with_budget(default_chat_budget(8192))
 ```
@@ -230,7 +230,7 @@ Attaches a query enricher that rewrites the query using memory context
 **before** pipeline steps execute:
 
 ```python
-from astro_context import ContextPipeline, MemoryContextEnricher
+from anchor import ContextPipeline, MemoryContextEnricher
 
 enricher = MemoryContextEnricher(max_items=3)
 pipeline = ContextPipeline(max_tokens=8192).with_query_enricher(enricher)
@@ -243,7 +243,7 @@ to run inside an async application:
 
 ```python
 import asyncio
-from astro_context import ContextPipeline, ContextItem, QueryBundle, SourceType
+from anchor import ContextPipeline, ContextItem, QueryBundle, SourceType
 
 pipeline = ContextPipeline(max_tokens=4096)
 
@@ -276,7 +276,7 @@ Each step has an `on_error` policy:
   the failing step
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle, SourceType
+from anchor import ContextPipeline, ContextItem, QueryBundle, SourceType
 
 pipeline = ContextPipeline(max_tokens=4096)
 
@@ -299,7 +299,7 @@ Every `ContextResult` includes a `diagnostics` dictionary with detailed
 information about the build:
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle, SourceType
+from anchor import ContextPipeline, ContextItem, QueryBundle, SourceType
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -340,7 +340,7 @@ The `diagnostics` dictionary (`PipelineDiagnostics`) can contain:
 A full pipeline combining retrieval, filtering, system prompts, and budgets:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline, ContextItem, QueryBundle, SourceType,
     retriever_step, filter_step, default_rag_budget, GenericTextFormatter,
 )

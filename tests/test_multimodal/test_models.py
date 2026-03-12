@@ -7,8 +7,8 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
-from astro_context.models.context import SourceType
-from astro_context.multimodal.models import ModalityType, MultiModalContent, MultiModalItem
+from anchor.models.context import SourceType
+from anchor.multimodal.models import ModalityType, MultiModalContent, MultiModalItem
 
 
 class TestModalityType:

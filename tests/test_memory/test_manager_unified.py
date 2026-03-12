@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from astro_context.memory.manager import MemoryManager
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.memory.summary_buffer import SummaryBufferMemory
-from astro_context.models.context import SourceType
-from astro_context.models.memory import ConversationTurn
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.memory.manager import MemoryManager
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.memory.summary_buffer import SummaryBufferMemory
+from anchor.models.context import SourceType
+from anchor.models.memory import ConversationTurn
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeTokenizer
 
 

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
 from tests.conftest import FakeTokenizer
 from tests.test_pipeline.conftest import make_pipeline
 
@@ -160,7 +160,7 @@ class TestMixedDecoratorAndExplicitSteps:
         def first(items: list[ContextItem], query: QueryBundle) -> list[ContextItem]:
             return items
 
-        from astro_context.pipeline.step import PipelineStep
+        from anchor.pipeline.step import PipelineStep
 
         pipeline.add_step(PipelineStep(name="second", fn=lambda items, q: items))
 

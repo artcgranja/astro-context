@@ -6,11 +6,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from astro_context.exceptions import AstroContextError, FormatterError, PipelineExecutionError
-from astro_context.models.context import ContextItem
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep
+from anchor.exceptions import AstroContextError, FormatterError, PipelineExecutionError
+from anchor.models.context import ContextItem
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep
 from tests.test_pipeline.conftest import make_pipeline
 
 # ---------------------------------------------------------------------------
@@ -50,7 +50,7 @@ async def _async_bad_return_step(
 class TestSyncStepExceptionWrapping:
     """A step that raises a generic Exception should be wrapped in AstroContextError."""
 
-    def test_generic_exception_wrapped_in_astro_context_error(self) -> None:
+    def test_generic_exception_wrapped_in_anchor_error(self) -> None:
         pipeline = make_pipeline()
         pipeline.add_step(PipelineStep(name="boom-step", fn=_failing_step))
 
@@ -313,7 +313,7 @@ class TestAsyncStepExceptionWrapping:
     """Same as #1 but for the async path (abuild)."""
 
     @pytest.mark.asyncio
-    async def test_generic_exception_wrapped_in_astro_context_error(self) -> None:
+    async def test_generic_exception_wrapped_in_anchor_error(self) -> None:
         pipeline = make_pipeline()
         pipeline.add_step(
             PipelineStep(name="async-boom", fn=_async_failing_step, is_async=True)
@@ -412,7 +412,7 @@ class TestPipelineExecutionErrorWrapping:
         assert isinstance(exc_info.value.__cause__, RuntimeError)
         assert "unexpected" in str(exc_info.value.__cause__)
 
-    def test_pipeline_execution_error_is_astro_context_error(self) -> None:
+    def test_pipeline_execution_error_is_anchor_error(self) -> None:
         """PipelineExecutionError should be a subclass of AstroContextError."""
         assert issubclass(PipelineExecutionError, AstroContextError)
 

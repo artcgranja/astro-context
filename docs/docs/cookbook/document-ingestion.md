@@ -20,7 +20,7 @@ This example demonstrates:
 ```python
 import math
 
-from astro_context import (
+from anchor import (
     ContextPipeline,
     DenseRetriever,
     DocumentIngester,

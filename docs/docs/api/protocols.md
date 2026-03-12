@@ -1,13 +1,13 @@
 # Protocols API Reference
 
-astro-context uses PEP 544 structural protocols throughout its architecture.
+anchor uses PEP 544 structural protocols throughout its architecture.
 Any class with matching method signatures satisfies a protocol -- no
 inheritance required. All protocols are `@runtime_checkable`.
 
-All protocols are importable from `astro_context`:
+All protocols are importable from `anchor`:
 
 ```python
-from astro_context import Retriever, AsyncRetriever, PostProcessor, Reranker
+from anchor import Retriever, AsyncRetriever, PostProcessor, Reranker
 # ... and all others listed below
 ```
 
@@ -656,7 +656,7 @@ See [Cache API Reference](../api/cache.md) for the built-in implementation.
 To implement any protocol, create a class with matching method signatures:
 
 ```python
-from astro_context import Retriever, ContextItem, QueryBundle
+from anchor import Retriever, ContextItem, QueryBundle
 
 class MyRetriever:
     """Custom retriever -- no inheritance needed."""

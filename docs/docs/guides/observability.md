@@ -1,6 +1,6 @@
 # Observability
 
-astro-context provides built-in tracing, metrics collection, and cost tracking
+anchor provides built-in tracing, metrics collection, and cost tracking
 for pipeline execution. Every span, metric point, and cost entry is a Pydantic
 model -- fully typed and serialisable.
 
@@ -13,7 +13,7 @@ groups all operations from a single pipeline execution; each operation is
 represented as a **span**.
 
 ```python
-from astro_context.observability import Tracer, SpanKind
+from anchor.observability import Tracer, SpanKind
 
 tracer = Tracer()
 
@@ -63,7 +63,7 @@ print(f"Trace took {ended_trace.total_duration_ms:.1f} ms")
 automatically for the overall execution and each individual step.
 
 ```python
-from astro_context.observability import (
+from anchor.observability import (
     TracingCallback,
     InMemorySpanExporter,
     InMemoryMetricsCollector,
@@ -112,7 +112,7 @@ Logs spans as JSON via Python's `logging` module. Useful for development.
 
 ```python
 import logging
-from astro_context.observability import ConsoleSpanExporter
+from anchor.observability import ConsoleSpanExporter
 
 logging.basicConfig(level=logging.INFO)
 exporter = ConsoleSpanExporter(log_level=logging.INFO)
@@ -125,7 +125,7 @@ callback = TracingCallback(exporters=[exporter])
 Stores spans in an in-memory list. Ideal for testing and debugging.
 
 ```python
-from astro_context.observability import InMemorySpanExporter
+from anchor.observability import InMemorySpanExporter
 
 exporter = InMemorySpanExporter()
 
@@ -139,7 +139,7 @@ exporter.clear()  # reset for the next run
 Appends spans as JSON-Lines to a file on disk.
 
 ```python
-from astro_context.observability import FileSpanExporter
+from anchor.observability import FileSpanExporter
 
 exporter = FileSpanExporter(path="traces.jsonl")
 
@@ -152,11 +152,11 @@ Exports spans to an OpenTelemetry collector via OTLP/HTTP. Requires the
 `otlp` extra.
 
 ```bash
-pip install astro-context[otlp]
+pip install anchor[otlp]
 ```
 
 ```python
-from astro_context.observability import OTLPSpanExporter
+from anchor.observability import OTLPSpanExporter
 
 exporter = OTLPSpanExporter(
     endpoint="http://localhost:4318",
@@ -188,7 +188,7 @@ configured.
 Stores metrics in memory with summary statistics.
 
 ```python
-from astro_context.observability import InMemoryMetricsCollector, MetricPoint
+from anchor.observability import InMemoryMetricsCollector, MetricPoint
 
 collector = InMemoryMetricsCollector()
 
@@ -216,7 +216,7 @@ Emits each metric as a structured JSON log message immediately on record.
 
 ```python
 import logging
-from astro_context.observability import LoggingMetricsCollector
+from anchor.observability import LoggingMetricsCollector
 
 logging.basicConfig(level=logging.INFO)
 collector = LoggingMetricsCollector(log_level=logging.INFO)
@@ -228,7 +228,7 @@ Exports metrics to an OpenTelemetry collector via OTLP/HTTP. Requires the
 `otlp` extra.
 
 ```python
-from astro_context.observability import OTLPMetricsExporter
+from anchor.observability import OTLPMetricsExporter
 
 exporter = OTLPMetricsExporter(
     endpoint="http://localhost:4318",
@@ -250,7 +250,7 @@ exporter.shutdown()
 produces aggregated summaries. It is thread-safe.
 
 ```python
-from astro_context.observability import CostTracker
+from anchor.observability import CostTracker
 
 tracker = CostTracker()
 
@@ -287,7 +287,7 @@ tracker.reset()
 cost entries when pipeline steps produce items with cost-related metadata.
 
 ```python
-from astro_context.observability import CostTracker, CostTrackingCallback
+from anchor.observability import CostTracker, CostTrackingCallback
 
 tracker = CostTracker()
 cost_callback = CostTrackingCallback(tracker=tracker)
@@ -319,7 +319,7 @@ The callback looks for these metadata keys on `ContextItem.metadata`:
 ## Full Example: Tracing + Metrics + Cost
 
 ```python
-from astro_context.observability import (
+from anchor.observability import (
     CostTracker,
     CostTrackingCallback,
     InMemoryMetricsCollector,

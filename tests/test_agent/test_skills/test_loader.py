@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.agent.skills.loader import load_skill, load_skills_directory
+from anchor.agent.skills.loader import load_skill, load_skills_directory
 
 FIXTURES = Path(__file__).resolve().parent.parent.parent / "fixtures" / "skills"
 

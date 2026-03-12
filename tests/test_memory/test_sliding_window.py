@@ -1,11 +1,11 @@
-"""Tests for astro_context.memory.sliding_window."""
+"""Tests for anchor.memory.sliding_window."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.models.context import SourceType
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.models.context import SourceType
 from tests.conftest import FakeTokenizer
 
 

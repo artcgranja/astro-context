@@ -1,6 +1,6 @@
-# Contributing to astro-context
+# Contributing to anchor
 
-We welcome contributions to astro-context! This guide explains how to set up your development environment, follow our code conventions, and submit changes.
+We welcome contributions to anchor! This guide explains how to set up your development environment, follow our code conventions, and submit changes.
 
 ## Development Setup
 
@@ -11,8 +11,8 @@ We welcome contributions to astro-context! This guide explains how to set up you
 ### Getting Started
 
 ```bash
-git clone https://github.com/arthurgranja/astro-context.git
-cd astro-context
+git clone https://github.com/arthurgranja/anchor.git
+cd anchor
 uv sync
 ```
 
@@ -126,7 +126,7 @@ def test_retriever_returns_items():
 Follow this checklist:
 
 1. **Define Protocol** (if it's an extension point)
-   - Create `src/astro_context/protocols/{name}.py`
+   - Create `src/anchor/protocols/{name}.py`
    - Define the protocol interface
 
 2. **Implement Core**
@@ -136,7 +136,7 @@ Follow this checklist:
 
 3. **Export Properly**
    - Add to module `__init__.py`
-   - Add to main `src/astro_context/__init__.py`
+   - Add to main `src/anchor/__init__.py`
    - Update `__all__`
 
 4. **Add Tests**
@@ -183,7 +183,7 @@ Closes #123
 
 ## Architecture Overview
 
-astro-context is organized into 14 core modules with 217+ exports:
+anchor is organized into 14 core modules with 217+ exports:
 
 - **Protocols**: Extension points for custom implementations
 - **Pipeline**: Step-based execution framework
@@ -202,7 +202,7 @@ See [Architecture](concepts/architecture.md) for details.
 - **Questions**: Check [Getting Started](getting-started/index.md)
 - **API Reference**: See [API Docs](api/pipeline.md)
 - **Guides**: Browse [Guides](guides/pipeline.md)
-- **Issues**: [GitHub Issues](https://github.com/arthurgranja/astro-context/issues)
+- **Issues**: [GitHub Issues](https://github.com/arthurgranja/anchor/issues)
 
 ## Code Review Expectations
 
@@ -213,4 +213,4 @@ We follow these principles:
 - **Minimal Impact**: Only touch necessary code
 - **Senior Standards**: Code should pass staff engineer review
 
-Thank you for contributing to astro-context!
+Thank you for contributing to anchor!

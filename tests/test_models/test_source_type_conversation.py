@@ -12,17 +12,17 @@ Verifies that:
 
 from __future__ import annotations
 
-from astro_context.formatters.utils import classify_window_items
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.memory.summary_buffer import SummaryBufferMemory
-from astro_context.models.budget_defaults import (
+from anchor.formatters.utils import classify_window_items
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.memory.summary_buffer import SummaryBufferMemory
+from anchor.models.budget_defaults import (
     default_agent_budget,
     default_chat_budget,
     default_rag_budget,
 )
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
-from astro_context.models.memory import ConversationTurn
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.models.context import ContextItem, ContextWindow, SourceType
+from anchor.models.memory import ConversationTurn
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeTokenizer
 
 # ---------------------------------------------------------------------------
@@ -119,7 +119,7 @@ class TestMemoryManagerSourceTypes:
     """MemoryManager produces correct source types for persistent vs conversation."""
 
     def test_persistent_items_have_memory_source(self) -> None:
-        from astro_context.memory.manager import MemoryManager
+        from anchor.memory.manager import MemoryManager
 
         store = InMemoryEntryStore()
         mgr = MemoryManager(
@@ -135,7 +135,7 @@ class TestMemoryManagerSourceTypes:
         assert persistent_items[0].source == SourceType.MEMORY
 
     def test_conversation_items_have_conversation_source(self) -> None:
-        from astro_context.memory.manager import MemoryManager
+        from anchor.memory.manager import MemoryManager
 
         mgr = MemoryManager(conversation_tokens=2000, tokenizer=FakeTokenizer())
         mgr.add_user_message("Hello")
@@ -146,7 +146,7 @@ class TestMemoryManagerSourceTypes:
         assert all(item.source == SourceType.CONVERSATION for item in items)
 
     def test_mixed_persistent_and_conversation(self) -> None:
-        from astro_context.memory.manager import MemoryManager
+        from anchor.memory.manager import MemoryManager
 
         store = InMemoryEntryStore()
         mgr = MemoryManager(

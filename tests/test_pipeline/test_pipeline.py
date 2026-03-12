@@ -1,13 +1,13 @@
-"""Tests for astro_context.pipeline.pipeline."""
+"""Tests for anchor.pipeline.pipeline."""
 
 from __future__ import annotations
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.formatters.generic import GenericTextFormatter
-from astro_context.models.context import ContextItem, ContextResult, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep, retriever_step
+from anchor.formatters.anthropic import AnthropicFormatter
+from anchor.formatters.generic import GenericTextFormatter
+from anchor.models.context import ContextItem, ContextResult, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep, retriever_step
 from tests.conftest import FakeRetriever, FakeTokenizer, make_memory_manager
 from tests.test_pipeline.conftest import make_pipeline
 

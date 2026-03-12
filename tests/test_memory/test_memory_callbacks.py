@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from astro_context.memory.callbacks import MemoryCallback, _fire_memory_callback
-from astro_context.models.memory import ConversationTurn, MemoryEntry
+from anchor.memory.callbacks import MemoryCallback, _fire_memory_callback
+from anchor.models.memory import ConversationTurn, MemoryEntry
 
 # ---------------------------------------------------------------------------
 # Helpers

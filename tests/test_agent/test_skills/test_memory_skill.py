@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from astro_context.agent.skills.memory import memory_skill
-from astro_context.memory.manager import MemoryManager
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.agent.skills.memory import memory_skill
+from anchor.memory.manager import MemoryManager
+from anchor.storage.json_memory_store import InMemoryEntryStore
 
 
 class _Tok:

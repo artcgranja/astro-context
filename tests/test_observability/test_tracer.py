@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from astro_context.observability.models import SpanKind
-from astro_context.observability.tracer import Tracer
+from anchor.observability.models import SpanKind
+from anchor.observability.tracer import Tracer
 
 
 class TestTracerLifecycle:

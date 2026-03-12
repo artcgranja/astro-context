@@ -8,7 +8,7 @@ This tutorial picks up where the [Quickstart](quickstart.md) left off. You
 will add retrieval, hybrid search, provider formatting, token budgets,
 custom steps, async support, query transformation, and diagnostics to your
 pipeline. By the end you will have a solid understanding of every major
-feature in astro-context.
+feature in anchor.
 
 ---
 
@@ -17,7 +17,7 @@ feature in astro-context.
 Add semantic search with dense retrieval:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline,
     QueryBundle,
     ContextItem,
@@ -60,7 +60,7 @@ print(f"Used {result.window.used_tokens}/{result.window.max_tokens} tokens")
 ```
 
 !!! info "Bring your own embeddings"
-    astro-context never calls an embedding provider directly. You supply the
+    anchor never calls an embedding provider directly. You supply the
     `embed_fn` and can use OpenAI, Cohere, local models, or anything else.
 
 ---
@@ -70,7 +70,7 @@ print(f"Used {result.window.used_tokens}/{result.window.max_tokens} tokens")
 Combine dense and sparse retrieval with Reciprocal Rank Fusion:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline,
     ContextItem,
     SourceType,
@@ -114,17 +114,17 @@ pipeline = (
 
 !!! note
     BM25 sparse retrieval requires the optional `bm25` extra:
-    `pip install astro-context[bm25]`
+    `pip install anchor[bm25]`
 
 ---
 
 ## Formatting for Different Providers
 
-astro-context can format the assembled context window for any major LLM
+anchor can format the assembled context window for any major LLM
 provider:
 
 ```python
-from astro_context import AnthropicFormatter, OpenAIFormatter, GenericTextFormatter
+from anchor import AnthropicFormatter, OpenAIFormatter, GenericTextFormatter
 
 # Anthropic format: {"system": "...", "messages": [...]}
 pipeline.with_formatter(AnthropicFormatter())
@@ -150,7 +150,7 @@ For fine-grained control over how tokens are allocated across sources, use
 `TokenBudget` with a preset factory:
 
 ```python
-from astro_context import ContextPipeline, default_chat_budget
+from anchor import ContextPipeline, default_chat_budget
 
 budget = default_chat_budget(max_tokens=8192)
 pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
@@ -190,7 +190,7 @@ Three preset factories are available:
 You can also construct a custom `TokenBudget` directly:
 
 ```python
-from astro_context import TokenBudget, BudgetAllocation, SourceType
+from anchor import TokenBudget, BudgetAllocation, SourceType
 
 budget = TokenBudget(
     total_tokens=8192,
@@ -212,7 +212,7 @@ steps using the `@pipeline.step` decorator. This is especially convenient for
 custom post-processing logic:
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle
+from anchor import ContextPipeline, ContextItem, QueryBundle
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -259,7 +259,7 @@ use `@pipeline.async_step` and call `abuild()` instead of `build()`:
 
 ```python
 import asyncio
-from astro_context import ContextPipeline, ContextItem, SourceType, QueryBundle
+from anchor import ContextPipeline, ContextItem, SourceType, QueryBundle
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -304,7 +304,7 @@ async def db_step(items: list[ContextItem], query: QueryBundle) -> list[ContextI
 ## Query Transformation
 
 Query transformers rewrite or expand the user's query before retrieval.
-astro-context ships with four built-in transformers.
+anchor ships with four built-in transformers.
 
 ### HyDE (Hypothetical Document Embeddings)
 
@@ -313,7 +313,7 @@ The intuition: embedding a plausible answer is closer in vector space to the
 real answer than the question itself.
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline,
     HyDETransformer,
     query_transform_step,
@@ -342,7 +342,7 @@ result = pipeline.build("What causes memory leaks in Python?")
 ```
 
 !!! note
-    astro-context never calls an LLM directly. You provide the generation
+    anchor never calls an LLM directly. You provide the generation
     function (`generate_fn`) and the transformers handle orchestration.
 
 ### Other transformers
@@ -359,7 +359,7 @@ result = pipeline.build("What causes memory leaks in Python?")
 Use `QueryTransformPipeline` to chain multiple transformers:
 
 ```python
-from astro_context import QueryTransformPipeline, HyDETransformer, StepBackTransformer, QueryBundle
+from anchor import QueryTransformPipeline, HyDETransformer, StepBackTransformer, QueryBundle
 
 hyde = HyDETransformer(generate_fn=generate_hypothetical)
 step_back = StepBackTransformer(generate_fn=lambda q: f"General context for: {q}")

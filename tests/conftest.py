@@ -1,4 +1,4 @@
-"""Shared fixtures for astro-context tests."""
+"""Shared fixtures for anchor tests."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from datetime import datetime
 
 import pytest
 
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import ContextItem
-from astro_context.models.memory import MemoryEntry, MemoryType
-from astro_context.models.query import QueryBundle
-from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
+from anchor.memory.manager import MemoryManager
+from anchor.models.context import ContextItem
+from anchor.models.memory import MemoryEntry, MemoryType
+from anchor.models.query import QueryBundle
+from anchor.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 
 
 def make_embedding(seed: int, dim: int = 128) -> list[float]:

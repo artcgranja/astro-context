@@ -18,7 +18,7 @@ This example demonstrates:
 ## Full Example
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline,
     MemoryManager,
     SlidingWindowMemory,
@@ -169,7 +169,7 @@ def on_evict(turns):
 Replace FIFO eviction with importance-based eviction:
 
 ```python
-from astro_context import ImportanceEviction, SlidingWindowMemory
+from anchor import ImportanceEviction, SlidingWindowMemory
 
 window = SlidingWindowMemory(
     max_tokens=4096,

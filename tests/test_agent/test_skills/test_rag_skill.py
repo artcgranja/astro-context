@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import math
 
-from astro_context.agent.skills.rag import rag_skill
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.retrieval.dense import DenseRetriever
-from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
+from anchor.agent.skills.rag import rag_skill
+from anchor.models.context import ContextItem, SourceType
+from anchor.retrieval.dense import DenseRetriever
+from anchor.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 
 
 def _fake_embed(text: str) -> list[float]:

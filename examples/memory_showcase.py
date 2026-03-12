@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Memory Showcase: all memory features in astro-context.
+"""Memory Showcase: all memory features in anchor.
 
 Run with:  python examples/memory_showcase.py
 
@@ -10,7 +10,7 @@ services.
 
 from __future__ import annotations
 
-from astro_context import (
+from anchor import (
     ExponentialRecencyScorer,
     ImportanceEviction,
     LinearRecencyScorer,
@@ -19,7 +19,7 @@ from astro_context import (
     SlidingWindowMemory,
     SummaryBufferMemory,
 )
-from astro_context.models.memory import ConversationTurn
+from anchor.models.memory import ConversationTurn
 
 # ---------------------------------------------------------------------------
 # Shared tokenizer (no external dependency)
@@ -276,7 +276,7 @@ def demo_summary_buffer() -> None:
     )
 
     messages = [
-        ("user", "What is astro-context?"),
+        ("user", "What is anchor?"),
         ("assistant", "A context engineering toolkit for AI apps."),
         ("user", "What does it do?"),
         ("assistant", "It assembles and manages context for LLMs."),
@@ -461,7 +461,7 @@ def demo_recency_scorers() -> None:
 
 def main() -> None:
     print("=" * 60)
-    print("  astro-context Memory Showcase")
+    print("  anchor Memory Showcase")
     print("  Demonstrating all memory features")
     print("=" * 60)
 

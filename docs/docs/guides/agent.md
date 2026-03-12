@@ -33,7 +33,7 @@ Yield text chunks
 ## Quick Start
 
 ```python
-from astro_context import Agent
+from anchor import Agent
 
 agent = (
     Agent(model="claude-haiku-4-5-20251001")
@@ -46,7 +46,7 @@ for chunk in agent.chat("What is context engineering?"):
 
 !!! note
     The Agent requires the `anthropic` package. Install it with
-    `pip install astro-context[anthropic]`.
+    `pip install anchor[anthropic]`.
 
 ## Constructor
 
@@ -78,7 +78,7 @@ Agent(
 All configuration methods return `self` for chaining:
 
 ```python
-from astro_context import Agent, MemoryManager, InMemoryEntryStore
+from anchor import Agent, MemoryManager, InMemoryEntryStore
 
 memory = MemoryManager(store=InMemoryEntryStore())
 
@@ -170,7 +170,7 @@ The `@tool` decorator converts a plain function into an `AgentTool` with
 auto-generated JSON Schema from type hints:
 
 ```python
-from astro_context import tool
+from anchor import tool
 
 @tool
 def get_weather(city: str, units: str = "celsius") -> str:
@@ -188,7 +188,7 @@ The decorator extracts:
 
 ```python
 from pydantic import BaseModel
-from astro_context import tool
+from anchor import tool
 
 class SearchInput(BaseModel):
     query: str
@@ -218,7 +218,7 @@ def search_kb(query: str, max_results: int = 5) -> str:
 `AgentTool` is a frozen Pydantic model:
 
 ```python
-from astro_context import AgentTool
+from anchor import AgentTool
 
 my_tool = AgentTool(
     name="lookup",
@@ -248,7 +248,7 @@ starts with a small tool set and can activate more capabilities as needed.
 ### Skill Model
 
 ```python
-from astro_context import Skill
+from anchor import Skill
 
 my_skill = Skill(
     name="data_analysis",
@@ -299,7 +299,7 @@ agent.with_skill(Skill(
 The `SkillRegistry` manages skill registration and activation state:
 
 ```python
-from astro_context import SkillRegistry, Skill
+from anchor import SkillRegistry, Skill
 
 registry = SkillRegistry()
 registry.register(my_skill)
@@ -321,7 +321,7 @@ tools = registry.active_tools()
 Creates a skill with four CRUD tools for persistent user facts:
 
 ```python
-from astro_context import Agent, MemoryManager, InMemoryEntryStore, memory_skill
+from anchor import Agent, MemoryManager, InMemoryEntryStore, memory_skill
 
 memory = MemoryManager(store=InMemoryEntryStore())
 
@@ -350,7 +350,7 @@ The memory skill provides:
 Creates an on-demand skill with a `search_docs` tool for agentic RAG:
 
 ```python
-from astro_context import Agent, rag_skill
+from anchor import Agent, rag_skill
 
 agent = (
     Agent(model="claude-haiku-4-5-20251001")
@@ -373,7 +373,7 @@ making this **agentic RAG** -- retrieval timing is model-controlled.
 ## Putting It All Together
 
 ```python
-from astro_context import (
+from anchor import (
     Agent, MemoryManager, InMemoryEntryStore,
     memory_skill, rag_skill, tool,
 )

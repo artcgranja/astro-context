@@ -1,6 +1,6 @@
 # Query Transform & Classifier API Reference
 
-API reference for the `astro_context.query` module. For usage patterns and
+API reference for the `anchor.query` module. For usage patterns and
 examples, see the [Query Transform Guide](../guides/query-transform.md) and the
 [Classifiers Guide](../guides/classifiers.md).
 
@@ -10,7 +10,7 @@ examples, see the [Query Transform Guide](../guides/query-transform.md) and the
 
 All transformers expose a `transform(query: QueryBundle) -> list[QueryBundle]`
 method. They accept callback functions for LLM generation so that
-`astro-context` never calls an LLM directly.
+`anchor` never calls an LLM directly.
 
 ### HyDETransformer
 
@@ -283,7 +283,7 @@ Create a pipeline step that transforms the query, retrieves for each variant,
 and merges results via Reciprocal Rank Fusion (RRF).
 
 ```python
-from astro_context.pipeline import query_transform_step
+from anchor.pipeline import query_transform_step
 ```
 
 | Parameter     | Type               | Default  | Description                              |
@@ -301,7 +301,7 @@ Create a pipeline step that classifies the query and routes to the matching
 retriever.
 
 ```python
-from astro_context.pipeline import classified_retriever_step
+from anchor.pipeline import classified_retriever_step
 ```
 
 | Parameter    | Type                    | Default  | Description                                    |

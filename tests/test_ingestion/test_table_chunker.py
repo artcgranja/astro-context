@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from astro_context.ingestion.chunkers import RecursiveCharacterChunker
-from astro_context.ingestion.table_chunker import TableAwareChunker
-from astro_context.protocols.ingestion import Chunker
+from anchor.ingestion.chunkers import RecursiveCharacterChunker
+from anchor.ingestion.table_chunker import TableAwareChunker
+from anchor.protocols.ingestion import Chunker
 from tests.conftest import FakeTokenizer
 
 

@@ -1,10 +1,10 @@
 # Exceptions Reference
 
-All exception classes in astro-context inherit from `AstroContextError`. Import
+All exception classes in anchor inherit from `AstroContextError`. Import
 them directly from the top-level package:
 
 ```python
-from astro_context import (
+from anchor import (
     AstroContextError,
     PipelineExecutionError,
     TokenBudgetExceededError,
@@ -30,7 +30,7 @@ Exception
 
 ## `AstroContextError`
 
-Base exception for all astro-context errors. Catch this to handle any
+Base exception for all anchor errors. Catch this to handle any
 library-level error in a single `except` clause.
 
 ## `PipelineExecutionError`
@@ -52,7 +52,7 @@ class PipelineExecutionError(AstroContextError):
 ### Example
 
 ```python
-from astro_context import ContextPipeline, PipelineExecutionError
+from anchor import ContextPipeline, PipelineExecutionError
 
 try:
     result = pipeline.build("test")

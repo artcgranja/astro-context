@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from astro_context.agent.tool_decorator import tool
+from anchor.agent.tool_decorator import tool
 
 
 @tool

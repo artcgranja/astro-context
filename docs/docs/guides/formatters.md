@@ -1,7 +1,7 @@
 # Formatters Guide
 
 Formatters convert the internal `ContextWindow` into the format expected by a
-specific LLM provider. astro-context ships with three built-in formatters and
+specific LLM provider. anchor ships with three built-in formatters and
 a `Formatter` protocol for building your own.
 
 ## Overview
@@ -21,7 +21,7 @@ Different providers expect different structures:
 Produces a dict ready for the Anthropic Messages API:
 
 ```python
-from astro_context import ContextPipeline, AnthropicFormatter
+from anchor import ContextPipeline, AnthropicFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(AnthropicFormatter())
@@ -79,7 +79,7 @@ Anthropic API. Consecutive messages with the same role are merged automatically.
 Produces a dict with a flat `messages` list for the OpenAI Chat Completions API:
 
 ```python
-from astro_context import ContextPipeline, OpenAIFormatter
+from anchor import ContextPipeline, OpenAIFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(OpenAIFormatter())
@@ -114,7 +114,7 @@ Produces structured plain text with section headers -- useful for non-chat
 models, logging, or debugging:
 
 ```python
-from astro_context import ContextPipeline, GenericTextFormatter
+from anchor import ContextPipeline, GenericTextFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(GenericTextFormatter())
@@ -140,8 +140,8 @@ each separated by blank lines. Empty sections are omitted.
 Implement the `Formatter` protocol to create your own formatter:
 
 ```python
-from astro_context import Formatter, ContextPipeline
-from astro_context.models import ContextWindow
+from anchor import Formatter, ContextPipeline
+from anchor.models import ContextWindow
 
 class GeminiFormatter:
     """Formats context for the Google Gemini API."""

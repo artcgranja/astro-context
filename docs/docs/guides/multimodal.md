@@ -1,6 +1,6 @@
 # Multi-Modal Guide
 
-astro-context supports multi-modal content -- text, images, tables, code, and
+anchor supports multi-modal content -- text, images, tables, code, and
 audio -- through a dedicated content model and encoder system. Multi-modal
 items are converted to text representations for use with the text-based
 context pipeline.
@@ -37,7 +37,7 @@ ContextPipeline
 An enum of supported content types:
 
 ```python
-from astro_context import ModalityType
+from anchor import ModalityType
 
 ModalityType.TEXT    # Plain text
 ModalityType.IMAGE   # Image data
@@ -51,7 +51,7 @@ ModalityType.AUDIO   # Audio data
 Represents a single modality with optional raw binary data:
 
 ```python
-from astro_context import MultiModalContent, ModalityType
+from anchor import MultiModalContent, ModalityType
 
 # Text content
 text = MultiModalContent(
@@ -89,7 +89,7 @@ table = MultiModalContent(
 Groups multiple content pieces into a single retrievable unit:
 
 ```python
-from astro_context import MultiModalItem, MultiModalContent, ModalityType, SourceType
+from anchor import MultiModalItem, MultiModalContent, ModalityType, SourceType
 
 item = MultiModalItem(
     contents=[
@@ -112,7 +112,7 @@ Encoders convert `MultiModalContent` into text for the pipeline.
 Pass-through encoder for text and code content:
 
 ```python
-from astro_context import TextEncoder, MultiModalContent, ModalityType
+from anchor import TextEncoder, MultiModalContent, ModalityType
 
 encoder = TextEncoder()
 content = MultiModalContent(modality=ModalityType.TEXT, content="Hello world")
@@ -124,7 +124,7 @@ text = encoder.encode(content)  # "Hello world"
 Converts table content to Markdown (pass-through if already Markdown):
 
 ```python
-from astro_context import TableEncoder, MultiModalContent, ModalityType
+from anchor import TableEncoder, MultiModalContent, ModalityType
 
 encoder = TableEncoder()
 content = MultiModalContent(
@@ -139,7 +139,7 @@ text = encoder.encode(content)
 Converts images to text descriptions via an optional callback:
 
 ```python
-from astro_context import ImageDescriptionEncoder, MultiModalContent, ModalityType
+from anchor import ImageDescriptionEncoder, MultiModalContent, ModalityType
 
 # Without callback -- uses metadata["description"] or content field
 encoder = ImageDescriptionEncoder()
@@ -163,7 +163,7 @@ The fallback order is:
 Routes encoding to the appropriate sub-encoder based on modality:
 
 ```python
-from astro_context import CompositeEncoder, MultiModalContent, ModalityType
+from anchor import CompositeEncoder, MultiModalContent, ModalityType
 
 # Default setup handles TEXT, TABLE, IMAGE, and CODE
 encoder = CompositeEncoder()
@@ -196,7 +196,7 @@ encoder = CompositeEncoder(encoders={
 Extracts tables from Markdown text using regex:
 
 ```python
-from astro_context import MarkdownTableParser
+from anchor import MarkdownTableParser
 
 parser = MarkdownTableParser()
 tables = parser.extract_tables(b"# Report\n\n| Q1 | Q2 |\n|---|---|\n| 100 | 200 |\n\nSome text.")
@@ -211,7 +211,7 @@ for table in tables:
 Extracts `<table>` elements from HTML and converts them to Markdown:
 
 ```python
-from astro_context import HTMLTableParser
+from anchor import HTMLTableParser
 
 parser = HTMLTableParser()
 html = b"<table><tr><th>Name</th></tr><tr><td>Alice</td></tr></table>"
@@ -230,7 +230,7 @@ Both parsers accept either a `Path` object or raw `bytes`.
 Use `MultiModalConverter` to bridge multi-modal items with the text pipeline:
 
 ```python
-from astro_context import (
+from anchor import (
     MultiModalConverter, MultiModalItem, MultiModalContent,
     CompositeEncoder, ModalityType, SourceType,
 )
@@ -262,7 +262,7 @@ context_items = MultiModalConverter.to_context_items(items, encoder)
 Convert a `ContextItem` back to a `MultiModalItem`:
 
 ```python
-from astro_context import MultiModalConverter, ContextItem, SourceType
+from anchor import MultiModalConverter, ContextItem, SourceType
 
 ctx = ContextItem(content="Hello world", source=SourceType.RETRIEVAL)
 mm_item = MultiModalConverter.from_context_item(ctx, modality=ModalityType.TEXT)

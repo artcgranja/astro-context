@@ -1,12 +1,12 @@
 [project]
-name = "astro-context"
+name = "anchor"
 version = "0.1.0"
 description = "Context engineering toolkit for AI applications"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 authors = [
-    { name = "Astro", email = "astro@astro-context.dev" }
+    { name = "Astro", email = "astro@anchor.dev" }
 ]
 keywords = ["context-engineering", "rag", "llm", "ai", "retrieval", "memory"]
 classifiers = [
@@ -40,16 +40,16 @@ docs = [
     "mkdocs-material>=9,<10",
     "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["astro-context[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
+all = ["anchor[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
 
 [project.scripts]
-astro-context = "astro_context.cli:app"
+anchor = "anchor.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/arthurgranja/astro-context"
-Repository = "https://github.com/arthurgranja/astro-context"
-Documentation = "https://arthurgranja.github.io/astro-context"
-"Bug Tracker" = "https://github.com/arthurgranja/astro-context/issues"
+Homepage = "https://github.com/arthurgranja/anchor"
+Repository = "https://github.com/arthurgranja/anchor"
+Documentation = "https://arthurgranja.github.io/anchor"
+"Bug Tracker" = "https://github.com/arthurgranja/anchor/issues"
 
 [dependency-groups]
 dev = [
@@ -81,7 +81,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "RUF", "C90", "PT", "S
 "examples/**/*.py" = ["S101", "T201"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["astro_context"]
+known-first-party = ["anchor"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -113,7 +113,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["astro_context"]
+source = ["anchor"]
 branch = true
 
 [tool.coverage.report]

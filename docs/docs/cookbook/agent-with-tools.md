@@ -7,7 +7,7 @@ decorator and `SkillRegistry`.
 
 !!! warning "API Key Required"
     The `Agent` class requires the `anthropic` SDK and a valid API key.
-    Install with `pip install astro-context[anthropic]`. The tool creation
+    Install with `pip install anchor[anthropic]`. The tool creation
     and skill registration sections below run without an API key. The
     `agent.chat()` call at the end requires `ANTHROPIC_API_KEY` to be set.
 
@@ -24,7 +24,7 @@ This example demonstrates:
 ## Tool Creation (No API Key Needed)
 
 ```python
-from astro_context import tool, AgentTool
+from anchor import tool, AgentTool
 
 # ---------------------------------------------------------------
 # 1. Basic @tool decorator -- auto-generates schema from type hints
@@ -91,7 +91,7 @@ print(f"OpenAI:    {calculate.to_openai_schema()}")
 ## Skills and SkillRegistry (No API Key Needed)
 
 ```python
-from astro_context import (
+from anchor import (
     tool,
     AgentTool,
     Skill,
@@ -180,7 +180,7 @@ print(f"Active tools: {[t.name for t in active]}")
 ```python
 import math
 
-from astro_context import (
+from anchor import (
     MemoryManager,
     DenseRetriever,
     InMemoryContextStore,
@@ -230,7 +230,7 @@ retriever = DenseRetriever(
 )
 retriever.index([
     ContextItem(
-        content="astro-context supports hybrid retrieval with RRF.",
+        content="anchor supports hybrid retrieval with RRF.",
         source=SourceType.RETRIEVAL,
     ),
     ContextItem(
@@ -255,7 +255,7 @@ print(f"\nSearch result:\n{result}")
 ```python
 import os
 
-from astro_context import (
+from anchor import (
     Agent,
     MemoryManager,
     InMemoryEntryStore,

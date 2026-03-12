@@ -1,4 +1,4 @@
-"""Tests specific to astro_context.storage.json_file_store.JsonFileMemoryStore.
+"""Tests specific to anchor.storage.json_file_store.JsonFileMemoryStore.
 
 Shared behavioral tests (search, filtering, CRUD) have been moved to
 ``test_entry_store_shared.py`` which runs against both store implementations.
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.storage.json_file_store import JsonFileMemoryStore
+from anchor.storage.json_file_store import JsonFileMemoryStore
 from tests.conftest import make_memory_entry as _make_entry
 
 

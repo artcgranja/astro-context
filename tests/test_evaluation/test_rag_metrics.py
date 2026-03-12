@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.evaluation.models import RAGMetrics
-from astro_context.evaluation.rag import LLMRAGEvaluator
-from astro_context.protocols.evaluation import RAGEvaluator
+from anchor.evaluation.models import RAGMetrics
+from anchor.evaluation.rag import LLMRAGEvaluator
+from anchor.protocols.evaluation import RAGEvaluator
 
 
 class TestLLMRAGEvaluator:

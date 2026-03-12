@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.ingestion.hierarchical import ParentChildChunker, ParentExpander
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.protocols.ingestion import Chunker
-from astro_context.protocols.postprocessor import PostProcessor
+from anchor.ingestion.hierarchical import ParentChildChunker, ParentExpander
+from anchor.models.context import ContextItem, SourceType
+from anchor.protocols.ingestion import Chunker
+from anchor.protocols.postprocessor import PostProcessor
 from tests.conftest import FakeTokenizer
 
 

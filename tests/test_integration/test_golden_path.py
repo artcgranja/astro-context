@@ -7,10 +7,10 @@ tiktoken dependency.
 
 from __future__ import annotations
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.context import ContextResult, SourceType
-from astro_context.pipeline.pipeline import ContextPipeline
+from anchor.formatters.anthropic import AnthropicFormatter
+from anchor.memory.manager import MemoryManager
+from anchor.models.context import ContextResult, SourceType
+from anchor.pipeline.pipeline import ContextPipeline
 from tests.conftest import FakeTokenizer
 
 

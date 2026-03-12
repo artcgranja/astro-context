@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from astro_context.agent.agent import Agent
-from astro_context.agent.skills.models import Skill
-from astro_context.agent.tools import AgentTool
+from anchor.agent.agent import Agent
+from anchor.agent.skills.models import Skill
+from anchor.agent.tools import AgentTool
 
 # ---------------------------------------------------------------------------
 # Fake Anthropic types (mirrors from test_agent.py)

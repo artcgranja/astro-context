@@ -1,7 +1,7 @@
 # Evaluation
 
 Measuring the quality of your RAG pipeline is essential for iterating with
-confidence. astro-context ships an evaluation framework that covers three
+confidence. anchor ships an evaluation framework that covers three
 layers:
 
 1. **Retrieval metrics** -- precision, recall, MRR, NDCG, and more.
@@ -19,8 +19,8 @@ delegates to user-supplied callback functions.
 of retrieved items and a set of ground-truth relevant IDs.
 
 ```python
-from astro_context.evaluation import RetrievalMetricsCalculator
-from astro_context.models.context import ContextItem, SourceType
+from anchor.evaluation import RetrievalMetricsCalculator
+from anchor.models.context import ContextItem, SourceType
 
 # Create some retrieved items (ranked order matters)
 retrieved = [
@@ -68,7 +68,7 @@ in `[0.0, 1.0]`. This design keeps the evaluation logic free of any specific
 LLM SDK.
 
 ```python
-from astro_context.evaluation import LLMRAGEvaluator
+from anchor.evaluation import LLMRAGEvaluator
 
 # Define scoring callbacks (replace with real LLM-based logic)
 def faithfulness_fn(answer: str, contexts: list[str]) -> float:
@@ -120,12 +120,12 @@ print(f"Context recall:    {rag_metrics.context_recall}")
 single `EvaluationResult`.
 
 ```python
-from astro_context.evaluation import (
+from anchor.evaluation import (
     PipelineEvaluator,
     RetrievalMetricsCalculator,
     LLMRAGEvaluator,
 )
-from astro_context.models.context import ContextItem, SourceType
+from anchor.models.context import ContextItem, SourceType
 
 calc = RetrievalMetricsCalculator(k=10)
 rag_eval = LLMRAGEvaluator(
@@ -182,7 +182,7 @@ paired t-test on precision@k.
 ### Building a dataset
 
 ```python
-from astro_context.evaluation import EvaluationSample, EvaluationDataset
+from anchor.evaluation import EvaluationSample, EvaluationDataset
 
 samples = [
     EvaluationSample(query="sort a list", relevant_ids=["d1", "d2"]),
@@ -196,7 +196,7 @@ dataset = EvaluationDataset(samples=samples, name="search-quality-v1")
 ### Running the test
 
 ```python
-from astro_context.evaluation import ABTestRunner, PipelineEvaluator
+from anchor.evaluation import ABTestRunner, PipelineEvaluator
 
 evaluator = PipelineEvaluator()
 runner = ABTestRunner(evaluator=evaluator, dataset=dataset)
@@ -231,12 +231,12 @@ for metric, data in result.per_metric_comparison.items():
 producing aggregated statistics including percentiles and per-sample results.
 
 ```python
-from astro_context.evaluation.batch import (
+from anchor.evaluation.batch import (
     BatchEvaluator,
     EvaluationDataset,
     EvaluationSample,
 )
-from astro_context.evaluation import PipelineEvaluator
+from anchor.evaluation import PipelineEvaluator
 
 dataset = EvaluationDataset(
     name="regression-suite",
@@ -264,7 +264,7 @@ print(f"Min recall:     {agg.min_recall:.3f}")
 ```
 
 !!! note
-    `BatchEvaluator` uses `EvaluationSample` from `astro_context.evaluation.batch`,
+    `BatchEvaluator` uses `EvaluationSample` from `anchor.evaluation.batch`,
     which includes `expected_ids`, `ground_truth_answer`, and `contexts` fields.
     The A/B testing module uses its own `EvaluationSample` with `relevant_ids`.
 
@@ -278,7 +278,7 @@ inter-annotator agreement via Cohen's kappa.
 ### Collecting judgments
 
 ```python
-from astro_context.evaluation import HumanJudgment, HumanEvaluationCollector
+from anchor.evaluation import HumanJudgment, HumanEvaluationCollector
 
 collector = HumanEvaluationCollector()
 
@@ -340,13 +340,13 @@ A typical evaluation workflow combines human-labeled data, batch evaluation,
 and A/B testing:
 
 ```python
-from astro_context.evaluation import (
+from anchor.evaluation import (
     ABTestRunner,
     HumanEvaluationCollector,
     HumanJudgment,
     PipelineEvaluator,
 )
-from astro_context.evaluation.batch import BatchEvaluator
+from anchor.evaluation.batch import BatchEvaluator
 
 # 1. Collect human judgments
 collector = HumanEvaluationCollector()

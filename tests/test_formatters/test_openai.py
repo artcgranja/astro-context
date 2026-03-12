@@ -1,9 +1,9 @@
-"""Tests for astro_context.formatters.openai."""
+"""Tests for anchor.formatters.openai."""
 
 from __future__ import annotations
 
-from astro_context.formatters.openai import OpenAIFormatter
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.formatters.openai import OpenAIFormatter
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestOpenAIFormatter:

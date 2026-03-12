@@ -1,13 +1,13 @@
-"""Tests for astro_context.retrieval.dense."""
+"""Tests for anchor.retrieval.dense."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 from tests.conftest import make_embedding
 from tests.test_retrieval.conftest import make_dense_retriever
 

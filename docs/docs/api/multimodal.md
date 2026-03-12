@@ -3,10 +3,10 @@
 The multi-modal module provides content models, encoders, table parsers,
 and a converter for bridging multi-modal items with the text-based pipeline.
 
-All classes are importable from `astro_context`:
+All classes are importable from `anchor`:
 
 ```python
-from astro_context import (
+from anchor import (
     ModalityType, MultiModalContent, MultiModalItem, MultiModalConverter,
     TextEncoder, TableEncoder, ImageDescriptionEncoder, CompositeEncoder,
     MarkdownTableParser, HTMLTableParser,

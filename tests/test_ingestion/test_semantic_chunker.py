@@ -6,8 +6,8 @@ import math
 
 import pytest
 
-from astro_context.ingestion.chunkers import SemanticChunker
-from astro_context.protocols.ingestion import Chunker
+from anchor.ingestion.chunkers import SemanticChunker
+from anchor.protocols.ingestion import Chunker
 from tests.conftest import FakeTokenizer
 
 

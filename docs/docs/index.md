@@ -1,5 +1,5 @@
 ---
-title: astro-context
+title: anchor
 description: Context engineering toolkit for AI applications
 hide:
   - toc
@@ -11,7 +11,7 @@ hide:
 
 <div class="hero" markdown>
 
-# astro-context
+# anchor
 
 ### Context is the product. The LLM is just the consumer.
 
@@ -19,24 +19,24 @@ The Python toolkit for context engineering -- assemble RAG, memory, tools,
 and system prompts into a single, token-aware pipeline.
 
 [Get Started :material-arrow-right:](getting-started/index.md){ .md-button .md-button--primary }
-[View on GitHub :material-github:](https://github.com/arthurgranja/astro-context){ .md-button }
+[View on GitHub :material-github:](https://github.com/arthurgranja/anchor){ .md-button }
 
-[![PyPI version](https://img.shields.io/pypi/v/astro-context?color=blue)](https://pypi.org/project/astro-context/)
+[![PyPI version](https://img.shields.io/pypi/v/anchor?color=blue)](https://pypi.org/project/anchor/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/arthurgranja/astro-context/blob/main/LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/arthurgranja/astro-context/ci.yml?label=tests)](https://github.com/arthurgranja/astro-context/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](https://github.com/arthurgranja/anchor/blob/main/LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/arthurgranja/anchor/ci.yml?label=tests)](https://github.com/arthurgranja/anchor/actions)
 
 </div>
 
 ---
 
-## Why astro-context?
+## Why anchor?
 
 Most AI frameworks focus on the LLM call. But the real challenge is assembling the
 right **context** -- the system prompt, conversation memory, retrieved documents,
 and tool outputs that the model actually sees.
 
-astro-context gives you a single, composable pipeline that manages all of it
+anchor gives you a single, composable pipeline that manages all of it
 within a strict token budget. No duct-taping RAG, memory, and tools together.
 Build intelligent context pipelines in minutes.
 
@@ -133,21 +133,21 @@ Build intelligent context pipelines in minutes.
 === "pip"
 
     ```bash
-    pip install astro-context
+    pip install anchor
     ```
 
 === "uv"
 
     ```bash
-    uv add astro-context
+    uv add anchor
     ```
 
 === "Extras"
 
     ```bash
-    pip install astro-context[bm25]   # BM25 sparse retrieval (rank-bm25)
-    pip install astro-context[cli]    # CLI tools (typer + rich)
-    pip install astro-context[all]    # Everything
+    pip install anchor[bm25]   # BM25 sparse retrieval (rank-bm25)
+    pip install anchor[cli]    # CLI tools (typer + rich)
+    pip install anchor[all]    # Everything
     ```
 
 ---
@@ -157,7 +157,7 @@ Build intelligent context pipelines in minutes.
 Build your first context pipeline:
 
 ```python
-from astro_context import ContextPipeline, MemoryManager, AnthropicFormatter
+from anchor import ContextPipeline, MemoryManager, AnthropicFormatter
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -200,10 +200,10 @@ graph LR
     K --> M[diagnostics]
     K --> N[overflow_items]
 
-    style B fill:#7c4dff,color:#fff,stroke:none
-    style H fill:#7c4dff,color:#fff,stroke:none
-    style J fill:#ffab00,color:#000,stroke:none
-    style K fill:#7c4dff,color:#fff,stroke:none
+    style B fill:#3b82f6,color:#fff,stroke:none
+    style H fill:#3b82f6,color:#fff,stroke:none
+    style J fill:#6B8E6B,color:#fff,stroke:none
+    style K fill:#3b82f6,color:#fff,stroke:none
 ```
 
 Every `ContextItem` carries a **priority** (1--10). When the total exceeds
@@ -214,7 +214,7 @@ fit are tracked in `result.overflow_items`.
 
 ## Comparison
 
-| Feature | LangChain | LlamaIndex | mem0 | **astro-context** |
+| Feature | LangChain | LlamaIndex | mem0 | **anchor** |
 |:--------|:---------:|:----------:|:----:|:-----------------:|
 | Hybrid RAG (Dense + BM25 + RRF) | :material-circle-half-full: partial | :material-check: yes | :material-close: no | :material-check-bold: **yes** |
 | Token-aware Memory | :material-circle-half-full: partial | :material-close: no | :material-check: yes | :material-check-bold: **yes** |
@@ -233,7 +233,7 @@ For fine-grained control over how tokens are allocated across sources,
 use the preset budget factories:
 
 ```python
-from astro_context import ContextPipeline, default_chat_budget
+from anchor import ContextPipeline, default_chat_budget
 
 budget = default_chat_budget(max_tokens=8192)
 pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
@@ -259,7 +259,7 @@ Three presets are available:
 Register pipeline steps with decorators instead of factory functions:
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle
+from anchor import ContextPipeline, ContextItem, QueryBundle
 
 pipeline = ContextPipeline(max_tokens=8192)
 

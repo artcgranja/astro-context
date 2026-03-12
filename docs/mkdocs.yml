@@ -1,8 +1,8 @@
-site_name: astro-context
+site_name: anchor
 site_description: Context engineering toolkit for AI applications
-site_url: https://arthurgranja.github.io/astro-context/
-repo_url: https://github.com/arthurgranja/astro-context
-repo_name: arthurgranja/astro-context
+site_url: https://arthurgranja.github.io/anchor/
+repo_url: https://github.com/arthurgranja/anchor
+repo_name: arthurgranja/anchor
 copyright: Copyright &copy; 2026 Astro — MIT License
 edit_uri: edit/main/docs/docs/
 
@@ -13,21 +13,23 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
-      accent: amber
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: deep purple
-      accent: amber
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   font:
-    text: Inter
-    code: JetBrains Mono
+    text: ""
+    code: Fira Code
+  icon:
+    logo: material/anchor
   features:
     - announce.dismiss
     - content.action.edit
@@ -154,7 +156,7 @@ markdown_extensions:
       normalize_issue_symbols: true
       repo_url_shorthand: true
       user: arthurgranja
-      repo: astro-context
+      repo: anchor
   - pymdownx.mark
   - pymdownx.smartsymbols
   - pymdownx.snippets:
@@ -177,9 +179,9 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/arthurgranja/astro-context
+      link: https://github.com/arthurgranja/anchor
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/astro-context/
+      link: https://pypi.org/project/anchor/
   generator: false
   version:
     provider: mike

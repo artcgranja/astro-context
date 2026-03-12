@@ -1,16 +1,16 @@
-# SKILL.md Loader for astro-context
+# SKILL.md Loader for anchor
 
 **Date:** 2026-03-12
 **Status:** Approved
-**Scope:** Add SKILL.md loading support to astro-context's agent skill system
+**Scope:** Add SKILL.md loading support to anchor's agent skill system
 
 ## Summary
 
-Add a SKILL.md loader that parses the open Agent Skills standard (agentskills.io) into native `Skill` instances, enabling astro-context agents to consume skills from the 2026 cross-platform skill ecosystem alongside existing Python-native skills.
+Add a SKILL.md loader that parses the open Agent Skills standard (agentskills.io) into native `Skill` instances, enabling anchor agents to consume skills from the 2026 cross-platform skill ecosystem alongside existing Python-native skills.
 
 ## Context
 
-The SKILL.md format (published by Anthropic, Dec 2025) is the de facto standard for AI coding assistant skills in 2026, adopted by Claude Code, Codex, Copilot, Cursor, Windsurf, and Antigravity. astro-context already has a progressive tool disclosure system (`Skill`, `SkillRegistry`, `@tool` decorator) that aligns naturally with SKILL.md's design.
+The SKILL.md format (published by Anthropic, Dec 2025) is the de facto standard for AI coding assistant skills in 2026, adopted by Claude Code, Codex, Copilot, Cursor, Windsurf, and Antigravity. anchor already has a progressive tool disclosure system (`Skill`, `SkillRegistry`, `@tool` decorator) that aligns naturally with SKILL.md's design.
 
 No other context engineering toolkit bridges development-time SKILL.md files with runtime agent skills. This is a differentiator.
 
@@ -43,7 +43,7 @@ No other context engineering toolkit bridges development-time SKILL.md files wit
 The loader performs three steps:
 
 1. **Parse** -- Read SKILL.md, split on `---` delimiters to extract frontmatter (key-value pairs) and markdown body. No PyYAML dependency.
-2. **Discover tools** -- If `tools.py` exists in the skill directory, import it using `importlib.util.spec_from_file_location` + `module_from_spec` + `exec_module`. Scan module-level attributes for `AgentTool` instances (the `@tool` decorator returns `AgentTool`). The imported module is added to `sys.modules` with a namespaced key (`astro_context.skills.<skill_name>.tools`) to avoid collisions.
+2. **Discover tools** -- If `tools.py` exists in the skill directory, import it using `importlib.util.spec_from_file_location` + `module_from_spec` + `exec_module`. Scan module-level attributes for `AgentTool` instances (the `@tool` decorator returns `AgentTool`). The imported module is added to `sys.modules` with a namespaced key (`anchor.skills.<skill_name>.tools`) to avoid collisions.
 3. **Build Skill** -- Gather all tools into a tuple, then create the frozen `Skill(...)` instance in a single call (no mutation after construction).
 
 **Tool Discovery Details:**
@@ -152,7 +152,7 @@ Instructions guiding the agent through: understand goal, ask clarifying question
 
 | File | Purpose |
 |------|---------|
-| `src/astro_context/agent/skills/loader.py` | SKILL.md parser + tool discovery |
+| `src/anchor/agent/skills/loader.py` | SKILL.md parser + tool discovery |
 | `tests/agent/skills/test_loader.py` | Unit tests for loader |
 | `tests/agent/skills/test_loader_integration.py` | Integration tests |
 | `tests/fixtures/skills/brainstorm/SKILL.md` | Test brainstorming skill |
@@ -166,10 +166,10 @@ Instructions guiding the agent through: understand goal, ask clarifying question
 
 | File | Change |
 |------|--------|
-| `src/astro_context/agent/skills/registry.py` | Add `load_from_path()`, `load_from_directory()` |
-| `src/astro_context/agent/agent.py` | Add `with_skills_directory()`, `with_skill_from_path()` |
-| `src/astro_context/agent/skills/__init__.py` | Export loader functions |
-| `src/astro_context/agent/__init__.py` | Export loader functions |
+| `src/anchor/agent/skills/registry.py` | Add `load_from_path()`, `load_from_directory()` |
+| `src/anchor/agent/agent.py` | Add `with_skills_directory()`, `with_skill_from_path()` |
+| `src/anchor/agent/skills/__init__.py` | Export loader functions |
+| `src/anchor/agent/__init__.py` | Export loader functions |
 
 ## Testing Strategy
 

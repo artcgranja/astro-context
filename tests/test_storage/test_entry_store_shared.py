@@ -10,8 +10,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from astro_context.models.memory import MemoryType
-from astro_context.storage._base import BaseEntryStoreMixin
+from anchor.models.memory import MemoryType
+from anchor.storage._base import BaseEntryStoreMixin
 from tests.conftest import make_memory_entry as _make_entry
 
 # ---------------------------------------------------------------------------

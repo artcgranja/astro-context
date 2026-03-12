@@ -35,7 +35,7 @@ isolation from retrieval.
 The result is context that is assembled _ad hoc_ -- without token
 awareness, without priority ranking, and without diagnostics.
 
-| Feature | LangChain | LlamaIndex | mem0 | **astro-context** |
+| Feature | LangChain | LlamaIndex | mem0 | **anchor** |
 |---------|:---------:|:----------:|:----:|:-----------------:|
 | Hybrid RAG (Dense + BM25 + RRF) | partial | yes | no | **yes** |
 | Token-aware Memory | partial | no | yes | **yes** |
@@ -44,9 +44,9 @@ awareness, without priority ranking, and without diagnostics.
 | Protocol-based Plugins | no | partial | no | **yes** |
 | Zero-config Defaults | no | no | yes | **yes** |
 
-## The astro-context Philosophy
+## The anchor Philosophy
 
-astro-context is built on three design principles that set it apart.
+anchor is built on three design principles that set it apart.
 
 ### 1. Model-Agnostic by Design
 
@@ -70,7 +70,7 @@ def my_embed_fn(text: str) -> list[float]:
 
 ### 2. Token-Aware Everything
 
-Every component in astro-context is token-aware:
+Every component in anchor is token-aware:
 
 - **ContextItem** carries a `token_count` field.
 - **ContextWindow** tracks `used_tokens` and `remaining_tokens`.
@@ -84,12 +84,12 @@ remain and what was dropped.
 
 ### 3. Protocol-Based Plugins
 
-Instead of deep inheritance hierarchies, astro-context uses Python Protocols
+Instead of deep inheritance hierarchies, anchor uses Python Protocols
 (PEP 544) for all extension points. Any object with the right method
 signatures works -- no base class required.
 
 ```python
-from astro_context.protocols import Retriever
+from anchor.protocols import Retriever
 
 # This class satisfies the Retriever protocol without inheriting anything
 class MyRetriever:
@@ -106,9 +106,9 @@ test with simple stubs.
     of inheritance. See the [Protocols](protocols.md) concept page for
     details.
 
-## What astro-context Is Not
+## What anchor Is Not
 
-astro-context is **not**:
+anchor is **not**:
 
 - An LLM wrapper -- it never generates text.
 - A vector database -- it provides in-memory stores for development and
@@ -122,7 +122,7 @@ receives the best possible context within its token budget.
 ## Core Data Flow
 
 ```
- Your Data Sources          astro-context              Your LLM Call
+ Your Data Sources          anchor              Your LLM Call
  +-----------------+     +------------------+     +------------------+
  | Vector DB       | --> |                  |     |                  |
  | Conversation    | --> | ContextPipeline  | --> | Anthropic / OpenAI|

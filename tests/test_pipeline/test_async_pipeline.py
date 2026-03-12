@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.models.context import ContextItem, ContextResult, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.step import (
+from anchor.models.context import ContextItem, ContextResult, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.step import (
     PipelineStep,
     async_postprocessor_step,
     async_retriever_step,

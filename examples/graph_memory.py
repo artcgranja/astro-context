@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Graph Memory: entity-relationship tracking in astro-context.
+"""Graph Memory: entity-relationship tracking in anchor.
 
 Run with:  python examples/graph_memory.py
 
@@ -10,7 +10,7 @@ API keys or external services.
 
 from __future__ import annotations
 
-from astro_context import (
+from anchor import (
     ContextPipeline,
     InMemoryEntryStore,
     MemoryEntry,
@@ -371,7 +371,7 @@ def demo_graph_pipeline(graph: SimpleGraphMemory, memories: dict[str, MemoryEntr
 
 def main() -> None:
     print("=" * 60)
-    print("  astro-context Graph Memory Showcase")
+    print("  anchor Graph Memory Showcase")
     print("  Entity-relationship tracking and graph retrieval")
     print("=" * 60)
 

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.evaluation.ab_testing import EvaluationDataset
-from astro_context.evaluation.human import HumanEvaluationCollector, HumanJudgment
-from astro_context.protocols.evaluation import HumanEvaluator
+from anchor.evaluation.ab_testing import EvaluationDataset
+from anchor.evaluation.human import HumanEvaluationCollector, HumanJudgment
+from anchor.protocols.evaluation import HumanEvaluator
 
 
 class TestHumanJudgment:

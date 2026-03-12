@@ -1,12 +1,12 @@
 ---
 title: API Reference
-description: Complete API reference for every astro-context module.
+description: Complete API reference for every anchor module.
 ---
 
 # API Reference
 
 Auto-generated documentation for all public classes, functions, and protocols.
-Each page corresponds to a top-level module in the `astro_context` package.
+Each page corresponds to a top-level module in the `anchor` package.
 
 | Module | Key exports |
 |--------|-------------|

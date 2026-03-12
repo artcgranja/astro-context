@@ -3,11 +3,11 @@
 The agent module provides the `Agent` class, `AgentTool` model, `@tool`
 decorator, and the skills system for progressive tool disclosure.
 
-All classes are importable from `astro_context`:
+All classes are importable from `anchor`:
 
 ```python
-from astro_context import Agent, AgentTool, tool, Skill, SkillRegistry
-from astro_context import memory_skill, rag_skill, memory_tools, rag_tools
+from anchor import Agent, AgentTool, tool, Skill, SkillRegistry
+from anchor import memory_skill, rag_skill, memory_tools, rag_tools
 ```
 
 ---
@@ -123,7 +123,7 @@ Async variant of `chat()`. Uses `pipeline.abuild()` and async streaming.
 ### Example
 
 ```python
-from astro_context import Agent, tool
+from anchor import Agent, tool
 
 @tool
 def greet(name: str) -> str:
@@ -244,7 +244,7 @@ def tool(
 ### Examples
 
 ```python
-from astro_context import tool
+from anchor import tool
 
 # Bare usage
 @tool

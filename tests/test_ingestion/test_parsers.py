@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.exceptions import IngestionError
-from astro_context.ingestion.parsers import (
+from anchor.exceptions import IngestionError
+from anchor.ingestion.parsers import (
     HTMLParser,
     MarkdownParser,
     PDFParser,
     PlainTextParser,
 )
-from astro_context.protocols.ingestion import DocumentParser
+from anchor.protocols.ingestion import DocumentParser
 
 
 class TestPlainTextParser:

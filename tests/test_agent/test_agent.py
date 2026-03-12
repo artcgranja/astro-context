@@ -8,10 +8,10 @@ from collections.abc import AsyncIterator, Iterator
 from typing import Any
 from unittest.mock import patch
 
-from astro_context.agent.agent import Agent
-from astro_context.agent.tools import AgentTool
-from astro_context.memory.manager import MemoryManager
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.agent.agent import Agent
+from anchor.agent.tools import AgentTool
+from anchor.memory.manager import MemoryManager
+from anchor.storage.json_memory_store import InMemoryEntryStore
 
 # ---------------------------------------------------------------------------
 # Fake Anthropic types for testing (no anthropic dependency needed)
@@ -625,7 +625,7 @@ def test_retry_on_rate_limit():
     # Patch _retryable_errors to catch our lightweight error class
     with (
         patch.object(Agent, "_retryable_errors", return_value=(_TransientError,)),
-        patch("astro_context.agent.agent.time.sleep") as mock_sleep,
+        patch("anchor.agent.agent.time.sleep") as mock_sleep,
     ):
         chunks = list(agent.chat("Hi"))
 

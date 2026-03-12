@@ -6,13 +6,13 @@ import math
 
 import pytest
 
-from astro_context.ingestion.chunkers import (
+from anchor.ingestion.chunkers import (
     FixedSizeChunker,
     RecursiveCharacterChunker,
     SemanticChunker,
     SentenceChunker,
 )
-from astro_context.ingestion.hierarchical import ParentChildChunker, ParentExpander
+from anchor.ingestion.hierarchical import ParentChildChunker, ParentExpander
 from tests.conftest import FakeTokenizer
 
 

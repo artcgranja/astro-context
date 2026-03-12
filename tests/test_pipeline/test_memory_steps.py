@@ -1,22 +1,22 @@
-"""Tests for astro_context.pipeline.memory_steps."""
+"""Tests for anchor.pipeline.memory_steps."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from astro_context.memory.extractor import CallbackExtractor
-from astro_context.memory.graph_memory import SimpleGraphMemory
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import ConversationTurn, MemoryEntry
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.memory_steps import (
+from anchor.memory.extractor import CallbackExtractor
+from anchor.memory.graph_memory import SimpleGraphMemory
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.memory import ConversationTurn, MemoryEntry
+from anchor.models.query import QueryBundle
+from anchor.pipeline.memory_steps import (
     auto_promotion_step,
     create_eviction_promoter,
     graph_retrieval_step,
 )
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import retriever_step
-from astro_context.storage.json_memory_store import InMemoryEntryStore
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import retriever_step
+from anchor.storage.json_memory_store import InMemoryEntryStore
 from tests.conftest import FakeRetriever, FakeTokenizer
 
 # ---------------------------------------------------------------------------
@@ -812,7 +812,7 @@ class TestIntegrationGraphRetrievalWithPipeline:
         store = InMemoryEntryStore()
         extractor = CallbackExtractor(extract_fn=_simple_extract_fn)
 
-        from astro_context.memory.manager import MemoryManager
+        from anchor.memory.manager import MemoryManager
 
         memory = MemoryManager(conversation_tokens=2000, tokenizer=tokenizer)
         memory.add_user_message("I prefer dark mode")

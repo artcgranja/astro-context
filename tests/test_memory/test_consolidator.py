@@ -1,13 +1,13 @@
-"""Tests for astro_context.memory.consolidator."""
+"""Tests for anchor.memory.consolidator."""
 
 from __future__ import annotations
 
 import math
 from collections.abc import Callable
 
-from astro_context.memory.consolidator import SimilarityConsolidator
-from astro_context.models.memory import MemoryEntry
-from astro_context.protocols.memory import MemoryOperation
+from anchor.memory.consolidator import SimilarityConsolidator
+from anchor.models.memory import MemoryEntry
+from anchor.protocols.memory import MemoryOperation
 
 
 def _fake_embed(text: str) -> list[float]:

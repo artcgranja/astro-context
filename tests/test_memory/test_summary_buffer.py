@@ -1,12 +1,12 @@
-"""Tests for astro_context.memory.summary_buffer."""
+"""Tests for anchor.memory.summary_buffer."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.memory.summary_buffer import SummaryBufferMemory
-from astro_context.models.context import SourceType
-from astro_context.models.memory import ConversationTurn
+from anchor.memory.summary_buffer import SummaryBufferMemory
+from anchor.models.context import SourceType
+from anchor.models.memory import ConversationTurn
 from tests.conftest import FakeTokenizer
 
 

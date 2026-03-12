@@ -4,7 +4,7 @@ icon: material/rocket-launch
 
 # Getting Started
 
-Get up and running with **astro-context** in minutes. This section walks you
+Get up and running with **anchor** in minutes. This section walks you
 through installation, a minimal first example, and a comprehensive tutorial
 covering all the major features.
 
@@ -14,7 +14,7 @@ covering all the major features.
 
     ---
 
-    Install astro-context with pip or uv, choose optional extras, and verify
+    Install anchor with pip or uv, choose optional extras, and verify
     everything works.
 
     [:octicons-arrow-right-24: Installation](installation.md)

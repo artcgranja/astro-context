@@ -1,6 +1,6 @@
 # Memory API Reference
 
-All classes below are importable from `astro_context` directly.
+All classes below are importable from `anchor` directly.
 For the conceptual guide, see [Memory Guide](../guides/memory.md).
 
 ---
@@ -392,8 +392,8 @@ CallbackExtractor(
 **Example**
 
 ```python
-from astro_context import CallbackExtractor, MemoryType
-from astro_context.models.memory import ConversationTurn
+from anchor import CallbackExtractor, MemoryType
+from anchor.models.memory import ConversationTurn
 
 def my_extractor(turns):
     return [{"content": f"Discussed: {turns[0].content[:40]}", "tags": ["topic"]}]

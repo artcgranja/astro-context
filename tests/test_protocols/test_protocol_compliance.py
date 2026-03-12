@@ -9,17 +9,17 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import patch
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.formatters.base import Formatter
-from astro_context.formatters.generic import GenericTextFormatter
-from astro_context.formatters.openai import OpenAIFormatter
-from astro_context.models.context import ContextItem, ContextWindow
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.postprocessor import AsyncPostProcessor, PostProcessor
-from astro_context.protocols.retriever import AsyncRetriever, Retriever
-from astro_context.protocols.storage import ContextStore, DocumentStore, VectorStore
-from astro_context.protocols.tokenizer import Tokenizer
-from astro_context.storage.memory_store import (
+from anchor.formatters.anthropic import AnthropicFormatter
+from anchor.formatters.base import Formatter
+from anchor.formatters.generic import GenericTextFormatter
+from anchor.formatters.openai import OpenAIFormatter
+from anchor.models.context import ContextItem, ContextWindow
+from anchor.models.query import QueryBundle
+from anchor.protocols.postprocessor import AsyncPostProcessor, PostProcessor
+from anchor.protocols.retriever import AsyncRetriever, Retriever
+from anchor.protocols.storage import ContextStore, DocumentStore, VectorStore
+from anchor.protocols.tokenizer import Tokenizer
+from anchor.storage.memory_store import (
     InMemoryContextStore,
     InMemoryDocumentStore,
     InMemoryVectorStore,
@@ -33,10 +33,10 @@ class TestRetrieverProtocol:
     def test_dense_retriever_is_retriever(self) -> None:
         """DenseRetriever satisfies the Retriever protocol."""
         with patch(
-            "astro_context.retrieval.dense.get_default_counter",
+            "anchor.retrieval.dense.get_default_counter",
             return_value=FakeTokenizer(),
         ):
-            from astro_context.retrieval.dense import DenseRetriever
+            from anchor.retrieval.dense import DenseRetriever
 
             store = InMemoryContextStore()
             vstore = InMemoryVectorStore()
@@ -46,10 +46,10 @@ class TestRetrieverProtocol:
     def test_sparse_retriever_is_retriever(self) -> None:
         """SparseRetriever satisfies the Retriever protocol."""
         with patch(
-            "astro_context.retrieval.sparse.get_default_counter",
+            "anchor.retrieval.sparse.get_default_counter",
             return_value=FakeTokenizer(),
         ):
-            from astro_context.retrieval.sparse import SparseRetriever
+            from anchor.retrieval.sparse import SparseRetriever
 
             retriever = SparseRetriever()
             assert isinstance(retriever, Retriever)
@@ -61,7 +61,7 @@ class TestRetrieverProtocol:
             def retrieve(self, query: QueryBundle, top_k: int = 10) -> list[ContextItem]:
                 return []
 
-        from astro_context.retrieval.hybrid import HybridRetriever
+        from anchor.retrieval.hybrid import HybridRetriever
 
         retriever = HybridRetriever(retrievers=[FakeSubRetriever()])
         assert isinstance(retriever, Retriever)
@@ -144,7 +144,7 @@ class TestFormatterProtocol:
 
     def test_custom_formatter_works_in_pipeline(self) -> None:
         """A custom formatter (no inheritance) works in the pipeline."""
-        from astro_context.pipeline.pipeline import ContextPipeline
+        from anchor.pipeline.pipeline import ContextPipeline
 
         class MyFormatter:
             @property

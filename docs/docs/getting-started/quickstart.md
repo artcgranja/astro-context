@@ -10,7 +10,7 @@ prompt and a memory manager.
 ## Minimal pipeline
 
 ```python
-from astro_context import ContextPipeline, QueryBundle, MemoryManager
+from anchor import ContextPipeline, QueryBundle, MemoryManager
 
 # Create pipeline with memory
 memory = MemoryManager(conversation_tokens=4096)

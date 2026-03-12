@@ -1,14 +1,14 @@
-"""Tests for astro_context.formatters.utils."""
+"""Tests for anchor.formatters.utils."""
 
 from __future__ import annotations
 
-from astro_context.formatters.utils import (
+from anchor.formatters.utils import (
     ClassifiedItems,
     classify_window_items,
     ensure_alternating_roles,
     get_message_role,
 )
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestGetMessageRole:

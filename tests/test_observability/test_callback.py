@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.observability.callback import TracingCallback, _infer_span_kind
-from astro_context.observability.exporters import InMemorySpanExporter
-from astro_context.observability.metrics import InMemoryMetricsCollector
-from astro_context.observability.models import SpanKind
-from astro_context.observability.tracer import Tracer
-from astro_context.pipeline.callbacks import PipelineCallback
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.observability.callback import TracingCallback, _infer_span_kind
+from anchor.observability.exporters import InMemorySpanExporter
+from anchor.observability.metrics import InMemoryMetricsCollector
+from anchor.observability.models import SpanKind
+from anchor.observability.tracer import Tracer
+from anchor.pipeline.callbacks import PipelineCallback
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep
 
 
 def _make_item(content: str = "test", score: float = 0.5) -> ContextItem:

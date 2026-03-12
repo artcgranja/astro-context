@@ -9,15 +9,15 @@ Shows how overflow is handled when the total context exceeds the budget.
 
 from __future__ import annotations
 
-from astro_context.memory.manager import MemoryManager
-from astro_context.models.budget import BudgetAllocation, TokenBudget
-from astro_context.models.budget_defaults import (
+from anchor.memory.manager import MemoryManager
+from anchor.models.budget import BudgetAllocation, TokenBudget
+from anchor.models.budget_defaults import (
     default_agent_budget,
     default_chat_budget,
     default_rag_budget,
 )
-from astro_context.models.context import SourceType
-from astro_context.pipeline.pipeline import ContextPipeline
+from anchor.models.context import SourceType
+from anchor.pipeline.pipeline import ContextPipeline
 
 # ---------------------------------------------------------------------------
 # Simple whitespace tokenizer (avoids tiktoken dependency)

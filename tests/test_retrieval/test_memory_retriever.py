@@ -1,4 +1,4 @@
-"""Tests for astro_context.retrieval.memory_retriever.ScoredMemoryRetriever."""
+"""Tests for anchor.retrieval.memory_retriever.ScoredMemoryRetriever."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.memory import MemoryEntry, MemoryType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.retriever import Retriever
-from astro_context.retrieval.memory_retriever import MemoryRetrieverAdapter, ScoredMemoryRetriever
-from astro_context.storage.json_memory_store import InMemoryEntryStore
-from astro_context.storage.memory_store import InMemoryVectorStore
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.memory import MemoryEntry, MemoryType
+from anchor.models.query import QueryBundle
+from anchor.protocols.retriever import Retriever
+from anchor.retrieval.memory_retriever import MemoryRetrieverAdapter, ScoredMemoryRetriever
+from anchor.storage.json_memory_store import InMemoryEntryStore
+from anchor.storage.memory_store import InMemoryVectorStore
 from tests.conftest import make_embedding
 from tests.conftest import make_memory_entry as _make_entry
 

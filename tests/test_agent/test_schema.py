@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from astro_context.agent.schema import (
+from anchor.agent.schema import (
     build_input_model,
     clean_schema,
     parse_docstring_args,

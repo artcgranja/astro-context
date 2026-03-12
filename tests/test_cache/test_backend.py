@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import time
 
-from astro_context.cache.backend import InMemoryCacheBackend
-from astro_context.protocols.cache import CacheBackend
+from anchor.cache.backend import InMemoryCacheBackend
+from anchor.protocols.cache import CacheBackend
 
 
 class TestInMemoryCacheBackend:

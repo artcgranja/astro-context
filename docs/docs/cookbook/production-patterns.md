@@ -1,6 +1,6 @@
 # Production Patterns
 
-Battle-tested patterns for deploying astro-context in production: error handling,
+Battle-tested patterns for deploying anchor in production: error handling,
 observability, performance tuning, and testing strategies.
 
 ---
@@ -13,7 +13,7 @@ and callbacks to keep your system running even when individual steps fail.
 ### Step-Level Error Policies
 
 ```python
-from astro_context import ContextPipeline, retriever_step, filter_step
+from anchor import ContextPipeline, retriever_step, filter_step
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -45,9 +45,9 @@ pipeline = (
 ```python
 import logging
 
-from astro_context import ContextPipeline, TracingCallback
+from anchor import ContextPipeline, TracingCallback
 
-logger = logging.getLogger("astro_context")
+logger = logging.getLogger("anchor")
 
 class ErrorAlertCallback(TracingCallback):
     """Send alerts when pipeline steps fail."""
@@ -88,7 +88,7 @@ and cost. Start with a preset and tune from there.
 ### Built-in Presets
 
 ```python
-from astro_context import ContextPipeline, TokenBudget
+from anchor import ContextPipeline, TokenBudget
 
 # Presets for common model context windows
 pipeline_fast = ContextPipeline(max_tokens=TokenBudget.SMALL)    # 4,096 tokens
@@ -102,7 +102,7 @@ pipeline_xl   = ContextPipeline(max_tokens=TokenBudget.XL)       # 65,536 tokens
 For fine-grained control, allocate tokens across sources:
 
 ```python
-from astro_context import ContextPipeline, TokenBudgetConfig
+from anchor import ContextPipeline, TokenBudgetConfig
 
 budget = TokenBudgetConfig(
     total=16384,
@@ -145,7 +145,7 @@ if diag["token_utilization"] < 0.3:
 ### Eviction Strategies
 
 ```python
-from astro_context import (
+from anchor import (
     MemoryManager,
     SlidingWindowMemory,
     ImportanceEviction,
@@ -206,7 +206,7 @@ print(f"Garbage collected {removed} stale facts")
 ### Weight Tuning
 
 ```python
-from astro_context import HybridRetriever, DenseRetriever, SparseRetriever
+from anchor import HybridRetriever, DenseRetriever, SparseRetriever
 
 # Start with 70/30 dense/sparse and tune based on benchmarks
 hybrid = HybridRetriever(
@@ -239,7 +239,7 @@ print(f"Best weights: dense={best_weights[0]}, sparse={best_weights[1]}")
 ### Reranker Selection
 
 ```python
-from astro_context import CrossEncoderReranker, reranker_step
+from anchor import CrossEncoderReranker, reranker_step
 
 # Word-overlap scorer (fast, no API needed)
 def overlap_scorer(query: str, doc: str) -> float:
@@ -272,7 +272,7 @@ fast_reranker = CrossEncoderReranker(score_fn=overlap_scorer, top_k=10)
 
 ```python
 import time
-from astro_context import ContextPipeline, TracingCallback
+from anchor import ContextPipeline, TracingCallback
 
 class ProductionTracer(TracingCallback):
     """Full lifecycle tracing for production monitoring."""
@@ -308,7 +308,7 @@ class ProductionTracer(TracingCallback):
 ### CostTracker
 
 ```python
-from astro_context import CostTracker
+from anchor import CostTracker
 
 tracker = CostTracker()
 
@@ -330,8 +330,8 @@ print(f"Per-step breakdown: {tracker.step_costs}")
 ### OpenTelemetry (OTLP) Export
 
 ```python
-from astro_context import ContextPipeline
-from astro_context.observability import OTLPExporter
+from anchor import ContextPipeline
+from anchor.observability import OTLPExporter
 
 # Export traces to your OTLP-compatible backend
 exporter = OTLPExporter(
@@ -353,7 +353,7 @@ pipeline = (
     builds to upstream HTTP requests.
 
 !!! note "OTLP Dependencies"
-    OTLP export requires `pip install astro-context[otlp]`.
+    OTLP export requires `pip install anchor[otlp]`.
 
 ---
 
@@ -363,7 +363,7 @@ pipeline = (
 
 ```python
 import pytest
-from astro_context import ContextItem, QueryBundle, SourceType
+from anchor import ContextItem, QueryBundle, SourceType
 
 def test_quality_filter():
     """Test that the quality filter removes low-score items."""
@@ -458,7 +458,7 @@ def test_pipeline_handles_empty_retrieval():
 
 ```python
 import asyncio
-from astro_context import ContextPipeline, async_retriever_step
+from anchor import ContextPipeline, async_retriever_step
 
 # Use async steps for I/O-bound operations (API calls, database queries)
 pipeline = (
@@ -475,7 +475,7 @@ result = await pipeline.abuild(query)
 
 ```python
 from functools import lru_cache
-from astro_context import ContextItem, QueryBundle
+from anchor import ContextItem, QueryBundle
 
 class CachedRetriever:
     """Wraps a retriever with an LRU cache for repeated queries."""
@@ -498,7 +498,7 @@ class CachedRetriever:
 ### Lazy Loading Heavy Dependencies
 
 ```python
-from astro_context import ContextPipeline
+from anchor import ContextPipeline
 
 class LazyEmbeddingRetriever:
     """Load the embedding model only on first use."""

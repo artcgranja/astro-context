@@ -1,8 +1,8 @@
 # Models API Reference
 
-API reference for all core data models in astro-context. Every model listed here
+API reference for all core data models in anchor. Every model listed here
 is a Pydantic `BaseModel` (unless otherwise noted) and can be imported directly
-from `astro_context`.
+from `anchor`.
 
 ---
 
@@ -12,7 +12,7 @@ The atomic unit of context flowing through the pipeline. Items are **frozen**
 (immutable after creation) to prevent context poisoning bugs.
 
 ```python
-from astro_context import ContextItem
+from anchor import ContextItem
 
 class ContextItem(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -45,7 +45,7 @@ class ContextItem(BaseModel):
 ### Example
 
 ```python
-from astro_context import ContextItem, SourceType
+from anchor import ContextItem, SourceType
 
 item = ContextItem(
     content="Context engineering is the discipline of building dynamic systems.",
@@ -159,7 +159,7 @@ without an explicit allocation.
 ### Example
 
 ```python
-from astro_context import TokenBudget, BudgetAllocation, SourceType
+from anchor import TokenBudget, BudgetAllocation, SourceType
 
 budget = TokenBudget(
     total_tokens=8192,
@@ -210,7 +210,7 @@ not positive.
 The origin type of a context item. A `StrEnum`.
 
 ```python
-from astro_context import SourceType
+from anchor import SourceType
 ```
 
 | Value | String | Description |
@@ -266,7 +266,7 @@ A single turn in a conversation.
 A persistent memory entry with relevance tracking.
 
 ```python
-from astro_context import MemoryEntry
+from anchor import MemoryEntry
 
 class MemoryEntry(BaseModel):
     id: str                          # Auto-generated UUID

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from astro_context.models.memory import ConversationTurn
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.query_transform import QueryTransformer
-from astro_context.query.rewriter import ContextualQueryTransformer, ConversationRewriter
-from astro_context.query.transformers import HyDETransformer
+from anchor.models.memory import ConversationTurn
+from anchor.models.query import QueryBundle
+from anchor.protocols.query_transform import QueryTransformer
+from anchor.query.rewriter import ContextualQueryTransformer, ConversationRewriter
+from anchor.query.transformers import HyDETransformer
 
 
 class TestConversationRewriter:

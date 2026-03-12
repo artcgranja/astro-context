@@ -1,9 +1,9 @@
-"""Tests for astro_context.formatters.anthropic."""
+"""Tests for anchor.formatters.anthropic."""
 
 from __future__ import annotations
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.formatters.anthropic import AnthropicFormatter
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestAnthropicFormatter:

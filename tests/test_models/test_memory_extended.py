@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime, timedelta
 
-from astro_context.models.memory import ConversationTurn, MemoryEntry, MemoryType
+from anchor.models.memory import ConversationTurn, MemoryEntry, MemoryType
 
 # ---------------------------------------------------------------------------
 # MemoryType enum

@@ -1,6 +1,6 @@
 ---
 title: FAQ
-description: Frequently asked questions about astro-context
+description: Frequently asked questions about anchor
 ---
 
 # Frequently Asked Questions
@@ -9,28 +9,28 @@ description: Frequently asked questions about astro-context
 
 ## General
 
-??? question "What is astro-context?"
-    astro-context is a Python library for context engineering -- the discipline
+??? question "What is anchor?"
+    anchor is a Python library for context engineering -- the discipline
     of building systems that provide the right information to language models at
     the right time. It provides pipelines for assembling context from multiple
     sources (retrieval, memory, system prompts) and formatting it for any LLM
     provider.
 
-??? question "How is astro-context different from LangChain or LlamaIndex?"
-    astro-context focuses specifically on the context assembly layer rather than
+??? question "How is anchor different from LangChain or LlamaIndex?"
+    anchor focuses specifically on the context assembly layer rather than
     being a full application framework. It is lightweight, protocol-based (no
     heavy inheritance hierarchies), and gives you fine-grained control over token
     budgets, priority-based overflow, and provider-specific formatting. You can
     use it alongside LangChain or LlamaIndex if you want.
 
-??? question "Is astro-context production-ready?"
+??? question "Is anchor production-ready?"
     Yes. It is designed for production use with built-in error handling policies
     (`on_error="skip"`), observability callbacks (`TracingCallback`, `CostTracker`),
     comprehensive diagnostics, and thorough test coverage. See the
     [Production Patterns](cookbook/production-patterns.md) cookbook for deployment
     guidance.
 
-??? question "Does astro-context require an API key?"
+??? question "Does anchor require an API key?"
     No. The core library (pipelines, memory, retrieval, formatting) works entirely
     locally with no API calls. An API key is only needed if you use the `Agent`
     class (which calls the Anthropic API) or if you use an embedding function that
@@ -41,30 +41,30 @@ description: Frequently asked questions about astro-context
 ## Installation
 
 ??? question "What Python version is required?"
-    astro-context requires Python 3.10 or later.
+    anchor requires Python 3.10 or later.
 
 ??? question "How do I install optional dependencies?"
     Use extras to install optional dependencies:
 
     ```bash
     # BM25 sparse retrieval
-    pip install astro-context[bm25]
+    pip install anchor[bm25]
 
     # Anthropic Agent support
-    pip install astro-context[anthropic]
+    pip install anchor[anthropic]
 
     # PDF parsing
-    pip install astro-context[pdf]
+    pip install anchor[pdf]
 
     # OpenTelemetry export
-    pip install astro-context[otlp]
+    pip install anchor[otlp]
 
     # Everything
-    pip install astro-context[all]
+    pip install anchor[all]
     ```
 
-??? question "Can I install astro-context in a Jupyter notebook?"
-    Yes. Run `!pip install astro-context` in a cell. All examples in the
+??? question "Can I install anchor in a Jupyter notebook?"
+    Yes. Run `!pip install anchor` in a cell. All examples in the
     documentation are designed to work in notebooks.
 
 ---
@@ -126,7 +126,7 @@ description: Frequently asked questions about astro-context
 ## Memory
 
 ??? question "What eviction strategies are available?"
-    astro-context provides several eviction strategies for `SlidingWindowMemory`:
+    anchor provides several eviction strategies for `SlidingWindowMemory`:
 
     - **FIFO** (default): removes the oldest turns first
     - **ImportanceEviction**: keeps high-importance turns longer based on a scoring function
@@ -136,7 +136,7 @@ description: Frequently asked questions about astro-context
     Use a persistent `MemoryEntryStore` instead of `InMemoryEntryStore`:
 
     ```python
-    from astro_context import MemoryManager, JsonFileMemoryStore
+    from anchor import MemoryManager, JsonFileMemoryStore
 
     memory = MemoryManager(
         conversation_tokens=4096,
@@ -190,9 +190,9 @@ description: Frequently asked questions about astro-context
     exact keyword matching where dense embeddings might miss specific terms.
 
     ```python
-    from astro_context import SparseRetriever
+    from anchor import SparseRetriever
 
-    sparse = SparseRetriever()  # requires pip install astro-context[bm25]
+    sparse = SparseRetriever()  # requires pip install anchor[bm25]
     sparse.index(items)
     results = sparse.retrieve(query, top_k=10)
     ```
@@ -250,7 +250,7 @@ description: Frequently asked questions about astro-context
     Yes. Use `TokenBudgetConfig` for fine-grained allocation:
 
     ```python
-    from astro_context import TokenBudgetConfig
+    from anchor import TokenBudgetConfig
 
     budget = TokenBudgetConfig(
         total=16384,
@@ -269,7 +269,7 @@ description: Frequently asked questions about astro-context
     Swap the formatter on the pipeline:
 
     ```python
-    from astro_context import (
+    from anchor import (
         AnthropicFormatter,
         OpenAIFormatter,
         GenericTextFormatter,
@@ -289,7 +289,7 @@ description: Frequently asked questions about astro-context
     Yes. Implement the `Formatter` protocol:
 
     ```python
-    from astro_context import Formatter, ContextWindow
+    from anchor import Formatter, ContextWindow
 
     class MyFormatter:
         def format(self, window: ContextWindow) -> dict:
@@ -325,7 +325,7 @@ description: Frequently asked questions about astro-context
     Install the BM25 extra:
 
     ```bash
-    pip install astro-context[bm25]
+    pip install anchor[bm25]
     ```
 
 ??? question "I'm getting `TokenBudgetExceeded` errors"
@@ -362,11 +362,11 @@ description: Frequently asked questions about astro-context
        to measure and compare configurations
 
 ??? question "How do I enable debug logging?"
-    Set the log level for the `astro_context` logger:
+    Set the log level for the `anchor` logger:
 
     ```python
     import logging
-    logging.getLogger("astro_context").setLevel(logging.DEBUG)
+    logging.getLogger("anchor").setLevel(logging.DEBUG)
     ```
 
     This logs step-by-step pipeline execution, token counting, and eviction events.

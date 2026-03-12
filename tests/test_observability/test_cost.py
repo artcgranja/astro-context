@@ -6,9 +6,9 @@ import threading
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.observability.cost import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.observability.cost import (
     CostEntry,
     CostSummary,
     CostTracker,

@@ -1,6 +1,6 @@
 # System Architecture
 
-This page describes the internal architecture of `astro-context` -- how the
+This page describes the internal architecture of `anchor` -- how the
 `ContextPipeline` assembles context from multiple sources, ranks it by
 priority, enforces token budgets, and produces a formatted result.
 
@@ -39,7 +39,7 @@ as `ContextItem` objects with `source=SourceType.SYSTEM` and `priority=10`
 (the highest default priority). They are always included first.
 
 ```python
-from astro_context import ContextPipeline
+from anchor import ContextPipeline
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -105,7 +105,7 @@ a `token_count`, then assembles the `ContextWindow`:
 4. Items that do not fit are tracked as `overflow_items`.
 
 ```python
-from astro_context import ContextWindow, ContextItem, SourceType
+from anchor import ContextWindow, ContextItem, SourceType
 
 window = ContextWindow(max_tokens=4096)
 overflow = window.add_items_by_priority([
@@ -287,7 +287,7 @@ The pipeline fires events at key points via `PipelineCallback` objects.
 Register callbacks with `pipeline.add_callback()`:
 
 ```python
-from astro_context.pipeline.callbacks import PipelineCallback
+from anchor.pipeline.callbacks import PipelineCallback
 
 class TimingLogger:
     def on_step_end(self, step_name, items, time_ms):

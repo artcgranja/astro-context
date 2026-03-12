@@ -1,6 +1,6 @@
 # Ingestion API Reference
 
-API reference for the `astro_context.ingestion` module. For usage patterns and
+API reference for the `anchor.ingestion` module. For usage patterns and
 examples, see the [Ingestion Guide](../guides/ingestion.md).
 
 ---
@@ -261,7 +261,7 @@ Metadata produced: `filename`, `extension`, `title`.
 Parse PDF files using `pypdf`. Supported extensions: `.pdf`.
 
 !!! note
-    Requires the `pdf` optional extra: `pip install astro-context[pdf]`.
+    Requires the `pdf` optional extra: `pip install anchor[pdf]`.
     Raises `IngestionError` if `pypdf` is not installed.
 
 Metadata produced: `filename`, `extension`, `page_count`, `title`, `author`.

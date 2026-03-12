@@ -5,20 +5,20 @@ embedding retrieval with sparse BM25 retrieval using Reciprocal Rank
 Fusion (RRF).
 
 Uses a simple whitespace tokenizer and sin-based fake embeddings so the
-example runs without any external dependencies beyond astro-context.
+example runs without any external dependencies beyond anchor.
 """
 
 from __future__ import annotations
 
 import math
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import retriever_step
-from astro_context.retrieval.dense import DenseRetriever
-from astro_context.retrieval.hybrid import HybridRetriever
-from astro_context.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import retriever_step
+from anchor.retrieval.dense import DenseRetriever
+from anchor.retrieval.hybrid import HybridRetriever
+from anchor.storage.memory_store import InMemoryContextStore, InMemoryVectorStore
 
 # ---------------------------------------------------------------------------
 # Simple helpers (no external dependencies)

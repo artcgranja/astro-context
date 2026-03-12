@@ -1,11 +1,11 @@
-"""Tests for astro_context.models.context."""
+"""Tests for anchor.models.context."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from astro_context.models.context import (
+from anchor.models.context import (
     ContextItem,
     ContextResult,
     ContextWindow,

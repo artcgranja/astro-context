@@ -15,7 +15,7 @@ Parse --> Chunk --> Enrich --> Index
 ## Quick Start
 
 ```python
-from astro_context.ingestion import DocumentIngester
+from anchor.ingestion import DocumentIngester
 
 ingester = DocumentIngester()
 
@@ -36,12 +36,12 @@ items = ingester.ingest_directory("docs/", extensions=[".md", ".txt"])
 file extensions and delegates chunking to any `Chunker` implementation.
 
 ```python
-from astro_context.ingestion import (
+from anchor.ingestion import (
     DocumentIngester,
     SentenceChunker,
     MetadataEnricher,
 )
-from astro_context.models.context import SourceType
+from anchor.models.context import SourceType
 
 def add_category(text, idx, total, meta):
     meta["category"] = "documentation"
@@ -92,7 +92,7 @@ Splits text into fixed-size chunks measured by token count, with configurable
 overlap.
 
 ```python
-from astro_context.ingestion import FixedSizeChunker
+from anchor.ingestion import FixedSizeChunker
 
 chunker = FixedSizeChunker(chunk_size=128, overlap=20)
 chunks = chunker.chunk("A very long document text...")
@@ -111,7 +111,7 @@ section exceeds the token budget. Separator hierarchy:
 `"\n\n"` --> `"\n"` --> `". "` --> `" "`.
 
 ```python
-from astro_context.ingestion import RecursiveCharacterChunker
+from anchor.ingestion import RecursiveCharacterChunker
 
 chunker = RecursiveCharacterChunker(chunk_size=256, overlap=30)
 chunks = chunker.chunk("Paragraph one.\n\nParagraph two.\n\nParagraph three.")
@@ -130,7 +130,7 @@ Groups sentences to fill chunks up to the token budget. Overlap is measured in
 sentences rather than tokens.
 
 ```python
-from astro_context.ingestion import SentenceChunker
+from anchor.ingestion import SentenceChunker
 
 chunker = SentenceChunker(chunk_size=256, overlap=1)
 chunks = chunker.chunk("First sentence. Second sentence. Third sentence.")
@@ -149,7 +149,7 @@ adjacent cosine similarity drops below a threshold are split into separate chunk
 
 ```python
 import math
-from astro_context.ingestion import SemanticChunker
+from anchor.ingestion import SemanticChunker
 
 # Deterministic embed function for demonstration
 def embed_fn(texts: list[str]) -> list[list[float]]:
@@ -184,7 +184,7 @@ no boundaries are detected.
 Supported languages: Python, JavaScript, TypeScript, Go, Rust.
 
 ```python
-from astro_context.ingestion import CodeChunker
+from anchor.ingestion import CodeChunker
 
 chunker = CodeChunker(language="python", chunk_size=256)
 code = '''
@@ -214,7 +214,7 @@ prose to an inner chunker. Oversized tables are split row-by-row with the header
 preserved.
 
 ```python
-from astro_context.ingestion import TableAwareChunker
+from anchor.ingestion import TableAwareChunker
 
 chunker = TableAwareChunker(chunk_size=256)
 text = """
@@ -243,7 +243,7 @@ small child chunks for retrieval. Use `chunk_with_metadata()` to get child chunk
 with `parent_id` and `parent_text` in their metadata.
 
 ```python
-from astro_context.ingestion import ParentChildChunker
+from anchor.ingestion import ParentChildChunker
 
 chunker = ParentChildChunker(
     parent_chunk_size=512,
@@ -284,13 +284,13 @@ Parsers implement the `DocumentParser` protocol and return `(text, metadata)` tu
 
 !!! note
     `PDFParser` requires the optional `pdf` extra:
-    `pip install astro-context[pdf]`
+    `pip install anchor[pdf]`
 
 `DocumentIngester` auto-selects the parser by file extension. Override via the
 `parsers` constructor argument:
 
 ```python
-from astro_context.ingestion import DocumentIngester, PlainTextParser
+from anchor.ingestion import DocumentIngester, PlainTextParser
 
 ingester = DocumentIngester(
     parsers={".log": PlainTextParser()},
@@ -312,7 +312,7 @@ ingester = DocumentIngester(
 Chain multiple enrichment functions that run in order during ingestion.
 
 ```python
-from astro_context.ingestion import MetadataEnricher
+from anchor.ingestion import MetadataEnricher
 
 def tag_language(text, idx, total, meta):
     meta["language"] = "en"
@@ -334,8 +334,8 @@ enricher.add(lambda text, idx, total, meta: {**meta, "version": "1.0"})
 their parent text, deduplicating by `parent_id`.
 
 ```python
-from astro_context.ingestion import ParentExpander
-from astro_context.pipeline import postprocessor_step
+from anchor.ingestion import ParentExpander
+from anchor.pipeline import postprocessor_step
 
 expander = ParentExpander(keep_child=True)
 step = postprocessor_step("expand-parents", expander)
@@ -352,7 +352,7 @@ step = postprocessor_step("expand-parents", expander)
 
 ```python
 import math
-from astro_context.ingestion import (
+from anchor.ingestion import (
     DocumentIngester,
     SemanticChunker,
     MetadataEnricher,

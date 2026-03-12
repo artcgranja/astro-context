@@ -1,10 +1,10 @@
 # Formatters API Reference
 
 Formatters convert a `ContextWindow` into the format expected by a specific
-LLM provider. All formatters are importable from `astro_context`:
+LLM provider. All formatters are importable from `anchor`:
 
 ```python
-from astro_context import (
+from anchor import (
     Formatter, AnthropicFormatter, OpenAIFormatter, GenericTextFormatter,
 )
 ```
@@ -85,7 +85,7 @@ Anthropic API.
 ### Example
 
 ```python
-from astro_context import ContextPipeline, AnthropicFormatter
+from anchor import ContextPipeline, AnthropicFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(AnthropicFormatter(enable_caching=True))
@@ -136,7 +136,7 @@ role to prevent privilege escalation from untrusted content.
 ### Example
 
 ```python
-from astro_context import ContextPipeline, OpenAIFormatter
+from anchor import ContextPipeline, OpenAIFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(OpenAIFormatter())
@@ -194,7 +194,7 @@ Empty sections are omitted.
 ### Example
 
 ```python
-from astro_context import ContextPipeline, GenericTextFormatter
+from anchor import ContextPipeline, GenericTextFormatter
 
 pipeline = ContextPipeline(max_tokens=8192)
 pipeline.with_formatter(GenericTextFormatter())

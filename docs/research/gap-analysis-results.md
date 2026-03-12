@@ -1,4 +1,4 @@
-# Gap Analysis Results — astro-context vs. Modern Best Practices
+# Gap Analysis Results — anchor vs. Modern Best Practices
 
 Generated: 2026-02-20
 

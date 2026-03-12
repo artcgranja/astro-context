@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.evaluation.ab_testing import (
+from anchor.evaluation.ab_testing import (
     ABTestResult,
     ABTestRunner,
     AggregatedMetrics,
@@ -13,9 +13,9 @@ from astro_context.evaluation.ab_testing import (
     _normal_cdf,
     _t_test_paired,
 )
-from astro_context.evaluation.evaluator import PipelineEvaluator
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
+from anchor.evaluation.evaluator import PipelineEvaluator
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
 
 
 def _item(doc_id: str) -> ContextItem:
@@ -415,7 +415,7 @@ class TestABTestRunnerIntegration:
 
     def test_human_to_dataset_through_ab_runner(self) -> None:
         """Human judgments -> EvaluationDataset -> ABTestRunner end-to-end."""
-        from astro_context.evaluation.human import HumanEvaluationCollector, HumanJudgment
+        from anchor.evaluation.human import HumanEvaluationCollector, HumanJudgment
 
         collector = HumanEvaluationCollector()
         # Create judgments for 5 queries, each with one relevant doc

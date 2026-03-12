@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from astro_context.models.context import ContextItem, ContextResult, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import PipelineStep
+from anchor.models.context import ContextItem, ContextResult, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import PipelineStep
 from tests.conftest import FakeRetriever, FakeTokenizer
 
 # ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ class TestCallbackSafetyCorrectResult:
 
         pipeline = _make_pipeline()
         pipeline.add_callback(ExplodingCallback())
-        from astro_context.pipeline.step import retriever_step
+        from anchor.pipeline.step import retriever_step
 
         pipeline.add_step(retriever_step("search", retriever))
 

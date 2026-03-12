@@ -1,9 +1,9 @@
-"""Tests for astro_context.memory.eviction."""
+"""Tests for anchor.memory.eviction."""
 
 from __future__ import annotations
 
-from astro_context.memory.eviction import FIFOEviction, ImportanceEviction, PairedEviction
-from astro_context.models.memory import ConversationTurn
+from anchor.memory.eviction import FIFOEviction, ImportanceEviction, PairedEviction
+from anchor.models.memory import ConversationTurn
 
 
 def _make_turn(role: str, content: str, token_count: int) -> ConversationTurn:

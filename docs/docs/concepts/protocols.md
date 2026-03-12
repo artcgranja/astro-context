@@ -1,7 +1,7 @@
 # Protocol-Based Architecture
 
-astro-context uses Python Protocols (PEP 544) to define all extension
-points. This page explains what protocols are, why astro-context chose them
+anchor uses Python Protocols (PEP 544) to define all extension
+points. This page explains what protocols are, why anchor chose them
 over class inheritance, and how to implement your own.
 
 ## What Are Protocols?
@@ -48,7 +48,7 @@ chain. If it has the right methods, it works.
 
 ## Protocol Families
 
-astro-context defines protocols across seven families. Every protocol is
+anchor defines protocols across seven families. Every protocol is
 `@runtime_checkable`, so you can use `isinstance()` checks at runtime.
 
 ### Retrieval Protocols
@@ -149,8 +149,8 @@ To implement a protocol, just write a class with the matching methods.
 Here is a concrete example implementing the `Retriever` protocol:
 
 ```python
-from astro_context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
+from anchor import ContextItem, SourceType
+from anchor.models.query import QueryBundle
 
 
 class KeywordRetriever:
@@ -181,8 +181,8 @@ This class works with `retriever_step()` and `ContextPipeline` without
 importing any base class:
 
 ```python
-from astro_context import ContextPipeline
-from astro_context.pipeline.step import retriever_step
+from anchor import ContextPipeline
+from anchor.pipeline.step import retriever_step
 
 retriever = KeywordRetriever(["Python is great", "RAG combines retrieval with generation"])
 pipeline = ContextPipeline(max_tokens=8192).add_step(retriever_step("keyword", retriever))
@@ -192,7 +192,7 @@ result = pipeline.build("What is RAG?")
 !!! tip "Runtime checking"
     All protocols are `@runtime_checkable`, so you can verify at runtime:
     ```python
-    from astro_context.protocols import Retriever
+    from anchor.protocols import Retriever
     assert isinstance(retriever, Retriever)  # True
     ```
 

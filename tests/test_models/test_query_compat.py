@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from astro_context.models.memory import ConversationTurn
-from astro_context.models.query import QueryBundle
+from anchor.models.memory import ConversationTurn
+from anchor.models.query import QueryBundle
 
 
 class TestQueryBundleChatHistoryCompat:

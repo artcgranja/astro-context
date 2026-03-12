@@ -1,7 +1,7 @@
 # Storage API Reference
 
 Complete API reference for all storage protocols and implementations in
-astro-context.
+anchor.
 
 For a usage guide, see [Storage Guide](../guides/storage.md).
 

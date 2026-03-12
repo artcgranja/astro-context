@@ -6,8 +6,8 @@ with correct cache_control placement on the last block only.
 
 from __future__ import annotations
 
-from astro_context.formatters.anthropic import AnthropicFormatter
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.formatters.anthropic import AnthropicFormatter
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestMultiBlockSystemBlocks:

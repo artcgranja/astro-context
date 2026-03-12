@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.multimodal.converter import MultiModalConverter
-from astro_context.multimodal.encoders import CompositeEncoder
-from astro_context.multimodal.models import ModalityType, MultiModalContent, MultiModalItem
+from anchor.models.context import ContextItem, SourceType
+from anchor.multimodal.converter import MultiModalConverter
+from anchor.multimodal.encoders import CompositeEncoder
+from anchor.multimodal.models import ModalityType, MultiModalContent, MultiModalItem
 
 
 class TestMultiModalConverterToContextItem:

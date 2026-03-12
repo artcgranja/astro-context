@@ -1,12 +1,12 @@
-"""Tests for astro_context.models.budget."""
+"""Tests for anchor.models.budget."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from astro_context.models.budget import BudgetAllocation, TokenBudget
-from astro_context.models.context import SourceType
+from anchor.models.budget import BudgetAllocation, TokenBudget
+from anchor.models.context import SourceType
 
 
 class TestTokenBudgetCreation:

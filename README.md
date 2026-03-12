@@ -1,4 +1,4 @@
-# astro-context
+# anchor
 
 **Context engineering toolkit for AI applications.**
 
@@ -9,23 +9,23 @@ Stop duct-taping RAG, memory, and tools together. Build intelligent context pipe
 ## Install
 
 ```bash
-pip install astro-context
+pip install anchor
 ```
 
 ## Documentation
 
-Full documentation at [arthurgranja.github.io/astro-context](https://arthurgranja.github.io/astro-context/)
+Full documentation at [arthurgranja.github.io/anchor](https://arthurgranja.github.io/anchor/)
 
-- [Getting Started](https://arthurgranja.github.io/astro-context/getting-started/)
-- [Architecture](https://arthurgranja.github.io/astro-context/concepts/architecture/)
-- [Pipeline Guide](https://arthurgranja.github.io/astro-context/guides/pipeline/)
-- [API Reference](https://arthurgranja.github.io/astro-context/api/pipeline/)
-- [Examples](https://arthurgranja.github.io/astro-context/examples/rag-pipeline/)
+- [Getting Started](https://arthurgranja.github.io/anchor/getting-started/)
+- [Architecture](https://arthurgranja.github.io/anchor/concepts/architecture/)
+- [Pipeline Guide](https://arthurgranja.github.io/anchor/guides/pipeline/)
+- [API Reference](https://arthurgranja.github.io/anchor/api/pipeline/)
+- [Examples](https://arthurgranja.github.io/anchor/examples/rag-pipeline/)
 
 ## 30 Seconds to Your First Context Pipeline
 
 ```python
-from astro_context import ContextPipeline, QueryBundle, MemoryManager, AnthropicFormatter
+from anchor import ContextPipeline, QueryBundle, MemoryManager, AnthropicFormatter
 
 pipeline = (
     ContextPipeline(max_tokens=8192)
@@ -46,9 +46,9 @@ print(result.diagnostics)        # Token usage, timing, overflow info
 > result = pipeline.build(QueryBundle(query_str="What is context engineering?"))
 > ```
 
-## Why astro-context?
+## Why anchor?
 
-| Feature | LangChain | LlamaIndex | mem0 | **astro-context** |
+| Feature | LangChain | LlamaIndex | mem0 | **anchor** |
 |---------|:---------:|:----------:|:----:|:-----------------:|
 | Hybrid RAG (Dense + BM25 + RRF) | partial | yes | no | **yes** |
 | Token-aware Memory | partial | no | yes | **yes** |
@@ -72,7 +72,7 @@ print(result.diagnostics)        # Token usage, timing, overflow info
 
 ```python
 import math
-from astro_context import (
+from anchor import (
     ContextPipeline, ContextItem, QueryBundle, SourceType,
     DenseRetriever, HybridRetriever,
     InMemoryContextStore, InMemoryVectorStore,
@@ -115,7 +115,7 @@ result = pipeline.build(query)
 ## Memory Management
 
 ```python
-from astro_context import ContextPipeline, QueryBundle, MemoryManager
+from anchor import ContextPipeline, QueryBundle, MemoryManager
 
 memory = MemoryManager(conversation_tokens=4096)
 memory.add_user_message("Help me migrate from MySQL to Postgres")
@@ -130,7 +130,7 @@ result = pipeline.build(QueryBundle(query_str="What are the risks?"))
 ## Provider Formatting
 
 ```python
-from astro_context import AnthropicFormatter, OpenAIFormatter
+from anchor import AnthropicFormatter, OpenAIFormatter
 
 # Anthropic: {"system": "...", "messages": [...]}
 result = pipeline.with_formatter(AnthropicFormatter()).build(query)
@@ -144,7 +144,7 @@ result = pipeline.with_formatter(OpenAIFormatter()).build(query)
 Instead of `add_step()` with factory functions, you can use the `@pipeline.step` decorator to register pipeline steps directly:
 
 ```python
-from astro_context import ContextPipeline, ContextItem, QueryBundle
+from anchor import ContextPipeline, ContextItem, QueryBundle
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -172,7 +172,7 @@ For pipelines that include async steps (e.g., database lookups, API calls), use 
 
 ```python
 import asyncio
-from astro_context import ContextPipeline, ContextItem, SourceType, QueryBundle
+from anchor import ContextPipeline, ContextItem, SourceType, QueryBundle
 
 pipeline = ContextPipeline(max_tokens=8192)
 
@@ -236,7 +236,7 @@ When the total context exceeds `max_tokens`, the pipeline fills from highest pri
 For fine-grained control over how tokens are allocated across sources, use `TokenBudget`:
 
 ```python
-from astro_context import ContextPipeline, TokenBudget, default_chat_budget
+from anchor import ContextPipeline, TokenBudget, default_chat_budget
 
 # Use a preset budget (allocates tokens across system, memory, retrieval, etc.)
 budget = default_chat_budget(max_tokens=8192)
@@ -254,24 +254,24 @@ Each budget supports `reserve_tokens` to guarantee room for the LLM response, an
 ## Optional Dependencies
 
 ```bash
-pip install astro-context[bm25]   # BM25 sparse retrieval (rank-bm25)
-pip install astro-context[cli]    # CLI tools (typer + rich)
-pip install astro-context[all]    # Everything
+pip install anchor[bm25]   # BM25 sparse retrieval (rank-bm25)
+pip install anchor[cli]    # CLI tools (typer + rich)
+pip install anchor[all]    # Everything
 ```
 
 ## CLI
 
 ```bash
-pip install astro-context[cli]
-astro-context info       # Show installation info
-astro-context --help     # See all commands
+pip install anchor[cli]
+anchor info       # Show installation info
+anchor --help     # See all commands
 ```
 
 ## Development
 
 ```bash
-git clone https://github.com/arthurgranja/astro-context.git
-cd astro-context
+git clone https://github.com/arthurgranja/anchor.git
+cd anchor
 uv sync           # Install all dependencies
 uv run pytest     # Run tests (1088 tests, 94% coverage)
 uv run ruff check src/ tests/  # Lint
@@ -279,7 +279,7 @@ uv run ruff check src/ tests/  # Lint
 
 ## Roadmap
 
-- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API + [Full documentation site](https://arthurgranja.github.io/astro-context/)
+- **v0.1.0** (current) -- Hybrid RAG + Memory + Pipeline + Formatters + Async pipeline + Decorator API + [Full documentation site](https://arthurgranja.github.io/anchor/)
 - **v0.2.0** -- MCP Bridge, progressive summarization, persistent storage backends
 - **v0.3.0** -- GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
 - **v1.0.0** -- Production-grade APIs, plugin ecosystem

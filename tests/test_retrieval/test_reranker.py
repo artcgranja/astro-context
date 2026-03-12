@@ -1,11 +1,11 @@
-"""Tests for astro_context.retrieval.reranker.ScoreReranker."""
+"""Tests for anchor.retrieval.reranker.ScoreReranker."""
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.postprocessor import PostProcessor
-from astro_context.retrieval.reranker import ScoreReranker
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.protocols.postprocessor import PostProcessor
+from anchor.retrieval.reranker import ScoreReranker
 
 # ---------------------------------------------------------------------------
 # Helpers

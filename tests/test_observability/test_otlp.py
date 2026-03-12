@@ -9,8 +9,8 @@ from unittest.mock import patch
 
 import pytest
 
-from astro_context.observability.models import Span, SpanKind, TraceRecord
-from astro_context.observability.otlp import (
+from anchor.observability.models import Span, SpanKind, TraceRecord
+from anchor.observability.otlp import (
     OTLPMetricsExporter,
     OTLPSpanExporter,
     _convert_record_to_spans,
@@ -42,7 +42,7 @@ class TestOTLPSpanExporter:
     def test_import_error_custom_endpoint(self) -> None:
         """Verify ImportError even with custom parameters."""
         with patch("builtins.__import__", side_effect=_block_otel_import), pytest.raises(
-            ImportError, match="pip install astro-context"
+            ImportError, match="pip install anchor"
         ):
             OTLPSpanExporter(
                 endpoint="http://collector:4318",
@@ -64,7 +64,7 @@ class TestOTLPMetricsExporter:
     def test_import_error_custom_endpoint(self) -> None:
         """Verify ImportError even with custom parameters."""
         with patch("builtins.__import__", side_effect=_block_otel_import), pytest.raises(
-            ImportError, match="pip install astro-context"
+            ImportError, match="pip install anchor"
         ):
             OTLPMetricsExporter(
                 endpoint="http://collector:4318",

@@ -6,13 +6,13 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from astro_context.observability.exporters import (
+from anchor.observability.exporters import (
     ConsoleSpanExporter,
     FileSpanExporter,
     InMemorySpanExporter,
 )
-from astro_context.observability.models import Span, SpanKind
-from astro_context.protocols.observability import SpanExporter
+from anchor.observability.models import Span, SpanKind
+from anchor.protocols.observability import SpanExporter
 
 
 def _make_span(

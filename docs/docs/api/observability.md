@@ -1,6 +1,6 @@
 # Observability API Reference
 
-All classes are importable from `astro_context.observability`.
+All classes are importable from `anchor.observability`.
 For usage examples see the [Observability Guide](../guides/observability.md).
 
 ---
@@ -10,7 +10,7 @@ For usage examples see the [Observability Guide](../guides/observability.md).
 String enum representing the category of a traced operation.
 
 ```python
-from astro_context.observability import SpanKind
+from anchor.observability import SpanKind
 ```
 
 | Value | String | Description |
@@ -31,7 +31,7 @@ Immutable Pydantic model representing a single traced operation. Spans form a
 tree via `parent_span_id`.
 
 ```python
-from astro_context.observability import Span
+from anchor.observability import Span
 ```
 
 | Field | Type | Default | Description |
@@ -55,7 +55,7 @@ from astro_context.observability import Span
 Immutable Pydantic model grouping all spans from a single pipeline execution.
 
 ```python
-from astro_context.observability import TraceRecord
+from anchor.observability import TraceRecord
 ```
 
 | Field | Type | Default | Description |
@@ -74,7 +74,7 @@ from astro_context.observability import TraceRecord
 Immutable Pydantic model for a single metric measurement.
 
 ```python
-from astro_context.observability import MetricPoint
+from anchor.observability import MetricPoint
 ```
 
 | Field | Type | Default | Description |
@@ -91,7 +91,7 @@ from astro_context.observability import MetricPoint
 Creates and manages spans within traces.
 
 ```python
-from astro_context.observability import Tracer
+from anchor.observability import Tracer
 ```
 
 **Constructor:** `Tracer()` -- no parameters.
@@ -130,7 +130,7 @@ from astro_context.observability import Tracer
 Pipeline callback that automatically traces execution via spans.
 
 ```python
-from astro_context.observability import TracingCallback
+from anchor.observability import TracingCallback
 ```
 
 **Constructor:**
@@ -171,7 +171,7 @@ TracingCallback(
 Exports spans as structured JSON to Python's logging system.
 
 ```python
-from astro_context.observability import ConsoleSpanExporter
+from anchor.observability import ConsoleSpanExporter
 ```
 
 **Constructor:** `ConsoleSpanExporter(log_level: int = logging.INFO)`
@@ -185,7 +185,7 @@ from astro_context.observability import ConsoleSpanExporter
 Stores spans in memory for testing and debugging.
 
 ```python
-from astro_context.observability import InMemorySpanExporter
+from anchor.observability import InMemorySpanExporter
 ```
 
 **Constructor:** `InMemorySpanExporter()`
@@ -203,7 +203,7 @@ from astro_context.observability import InMemorySpanExporter
 Writes spans as JSON-Lines to a file in append mode.
 
 ```python
-from astro_context.observability import FileSpanExporter
+from anchor.observability import FileSpanExporter
 ```
 
 **Constructor:** `FileSpanExporter(path: str | Path)`
@@ -221,19 +221,19 @@ from astro_context.observability import FileSpanExporter
 Exports spans to an OpenTelemetry collector via OTLP/HTTP.
 
 ```python
-from astro_context.observability import OTLPSpanExporter
+from anchor.observability import OTLPSpanExporter
 ```
 
 !!! warning
     Requires `opentelemetry-exporter-otlp-proto-http` and
-    `opentelemetry-sdk`. Install with `pip install astro-context[otlp]`.
+    `opentelemetry-sdk`. Install with `pip install anchor[otlp]`.
 
 **Constructor:**
 
 ```python
 OTLPSpanExporter(
     endpoint: str = "http://localhost:4318",
-    service_name: str = "astro-context",
+    service_name: str = "anchor",
     headers: dict[str, str] | None = None,
 )
 ```
@@ -241,7 +241,7 @@ OTLPSpanExporter(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `endpoint` | `str` | `"http://localhost:4318"` | OTLP collector URL |
-| `service_name` | `str` | `"astro-context"` | OTel resource service name |
+| `service_name` | `str` | `"anchor"` | OTel resource service name |
 | `headers` | `dict[str, str] \| None` | `None` | Auth headers |
 
 **`export(spans: list[Span]) -> None`** -- converts and exports spans.
@@ -257,7 +257,7 @@ OTLPSpanExporter(
 Stores metric points in memory with summary statistics.
 
 ```python
-from astro_context.observability import InMemoryMetricsCollector
+from anchor.observability import InMemoryMetricsCollector
 ```
 
 **Constructor:** `InMemoryMetricsCollector()`
@@ -279,7 +279,7 @@ from astro_context.observability import InMemoryMetricsCollector
 Logs each metric as structured JSON via Python's logging module.
 
 ```python
-from astro_context.observability import LoggingMetricsCollector
+from anchor.observability import LoggingMetricsCollector
 ```
 
 **Constructor:** `LoggingMetricsCollector(log_level: int = logging.INFO)`
@@ -295,19 +295,19 @@ from astro_context.observability import LoggingMetricsCollector
 Exports metrics to an OpenTelemetry collector via OTLP/HTTP.
 
 ```python
-from astro_context.observability import OTLPMetricsExporter
+from anchor.observability import OTLPMetricsExporter
 ```
 
 !!! warning
     Requires `opentelemetry-exporter-otlp-proto-http` and
-    `opentelemetry-sdk`. Install with `pip install astro-context[otlp]`.
+    `opentelemetry-sdk`. Install with `pip install anchor[otlp]`.
 
 **Constructor:**
 
 ```python
 OTLPMetricsExporter(
     endpoint: str = "http://localhost:4318",
-    service_name: str = "astro-context",
+    service_name: str = "anchor",
     headers: dict[str, str] | None = None,
 )
 ```
@@ -315,7 +315,7 @@ OTLPMetricsExporter(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `endpoint` | `str` | `"http://localhost:4318"` | OTLP collector URL |
-| `service_name` | `str` | `"astro-context"` | OTel resource service name |
+| `service_name` | `str` | `"anchor"` | OTel resource service name |
 | `headers` | `dict[str, str] \| None` | `None` | Auth headers |
 
 **`record(metric: MetricPoint) -> None`** -- records as an OTel gauge. Raises `TypeError` if not a `MetricPoint`.
@@ -331,7 +331,7 @@ OTLPMetricsExporter(
 Immutable Pydantic model for a single cost record.
 
 ```python
-from astro_context.observability import CostEntry
+from anchor.observability import CostEntry
 ```
 
 | Field | Type | Default | Description |
@@ -349,7 +349,7 @@ from astro_context.observability import CostEntry
 Immutable Pydantic model for aggregated cost.
 
 ```python
-from astro_context.observability import CostSummary
+from anchor.observability import CostSummary
 ```
 
 | Field | Type | Default | Description |
@@ -368,7 +368,7 @@ from astro_context.observability import CostSummary
 Thread-safe tracker for accumulating cost entries.
 
 ```python
-from astro_context.observability import CostTracker
+from anchor.observability import CostTracker
 ```
 
 **Constructor:** `CostTracker()` -- no parameters.
@@ -403,7 +403,7 @@ Computes `cost_usd = input_tokens * cost_per_input_token + output_tokens * cost_
 Pipeline callback that records cost entries from step execution metadata.
 
 ```python
-from astro_context.observability import CostTrackingCallback
+from anchor.observability import CostTrackingCallback
 ```
 
 **Constructor:** `CostTrackingCallback(tracker: CostTracker)`

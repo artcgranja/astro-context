@@ -1,6 +1,6 @@
 ---
 title: Guides
-description: Practical how-to guides for every astro-context subsystem.
+description: Practical how-to guides for every anchor subsystem.
 ---
 
 # Guides

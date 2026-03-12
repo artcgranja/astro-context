@@ -5,9 +5,9 @@ from __future__ import annotations
 import threading
 from collections.abc import Callable
 
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.memory.summary_buffer import SummaryBufferMemory
-from astro_context.models.memory import ConversationTurn
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.memory.summary_buffer import SummaryBufferMemory
+from anchor.models.memory import ConversationTurn
 from tests.conftest import FakeTokenizer
 
 NUM_THREADS = 10

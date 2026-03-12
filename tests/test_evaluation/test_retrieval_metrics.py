@@ -6,10 +6,10 @@ import math
 
 import pytest
 
-from astro_context.evaluation.models import RetrievalMetrics
-from astro_context.evaluation.retrieval import RetrievalMetricsCalculator
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.protocols.evaluation import RetrievalEvaluator
+from anchor.evaluation.models import RetrievalMetrics
+from anchor.evaluation.retrieval import RetrievalMetricsCalculator
+from anchor.models.context import ContextItem, SourceType
+from anchor.protocols.evaluation import RetrievalEvaluator
 
 
 def _item(doc_id: str) -> ContextItem:

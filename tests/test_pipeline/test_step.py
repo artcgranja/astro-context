@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.step import query_transform_step
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.step import query_transform_step
 from tests.conftest import FakeRetriever
 
 

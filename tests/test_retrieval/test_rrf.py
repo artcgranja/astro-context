@@ -1,11 +1,11 @@
-"""Tests for astro_context.retrieval._rrf."""
+"""Tests for anchor.retrieval._rrf."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.retrieval._rrf import rrf_fuse
+from anchor.models.context import ContextItem, SourceType
+from anchor.retrieval._rrf import rrf_fuse
 
 
 def _make_item(item_id: str, content: str, score: float = 0.5) -> ContextItem:

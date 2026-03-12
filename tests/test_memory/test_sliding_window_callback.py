@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.models.memory import ConversationTurn
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.models.memory import ConversationTurn
 from tests.conftest import FakeTokenizer
 
 

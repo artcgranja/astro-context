@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.models.budget import TokenBudget
-from astro_context.models.budget_defaults import (
+from anchor.models.budget import TokenBudget
+from anchor.models.budget_defaults import (
     default_agent_budget,
     default_chat_budget,
     default_rag_budget,
 )
-from astro_context.models.context import SourceType
+from anchor.models.context import SourceType
 
 # ---------------------------------------------------------------------------
 # default_chat_budget

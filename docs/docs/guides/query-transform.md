@@ -10,7 +10,7 @@ User Query --> Transform --> [Query 1, Query 2, ...] --> Retrieve --> Merge
 ```
 
 All transformers accept **callback functions** for LLM generation so that
-`astro-context` never calls an LLM directly. You supply your own generation
+`anchor` never calls an LLM directly. You supply your own generation
 function and the transformer handles orchestration.
 
 ## Transformer Overview
@@ -33,8 +33,8 @@ query and uses that as the retrieval query. The intuition is that a hypothetical
 answer is closer in embedding space to the real answer than the question itself.
 
 ```python
-from astro_context.query import HyDETransformer
-from astro_context.models.query import QueryBundle
+from anchor.query import HyDETransformer
+from anchor.models.query import QueryBundle
 
 def generate_hypothetical(query: str) -> str:
     # In production, call your LLM here
@@ -57,8 +57,8 @@ Generates multiple query variations for broader retrieval coverage. The original
 query is always included as the first element.
 
 ```python
-from astro_context.query import MultiQueryTransformer
-from astro_context.models.query import QueryBundle
+from anchor.query import MultiQueryTransformer
+from anchor.models.query import QueryBundle
 
 def generate_variations(query: str, count: int) -> list[str]:
     return [f"variation {i}: {query}" for i in range(count)]
@@ -79,8 +79,8 @@ compound questions where answering the original requires synthesizing informatio
 from multiple sources.
 
 ```python
-from astro_context.query import DecompositionTransformer
-from astro_context.models.query import QueryBundle
+from anchor.query import DecompositionTransformer
+from anchor.models.query import QueryBundle
 
 def decompose(query: str) -> list[str]:
     return [
@@ -105,8 +105,8 @@ Generates a more abstract version of the query alongside the original. The
 questions.
 
 ```python
-from astro_context.query import StepBackTransformer
-from astro_context.models.query import QueryBundle
+from anchor.query import StepBackTransformer
+from anchor.models.query import QueryBundle
 
 def step_back(query: str) -> str:
     return "What are the general principles of information retrieval?"
@@ -130,12 +130,12 @@ is applied to every query produced by the previous stage, producing a flat list 
 unique queries at the end (deduplicated by `query_str`).
 
 ```python
-from astro_context.query import (
+from anchor.query import (
     QueryTransformPipeline,
     MultiQueryTransformer,
     StepBackTransformer,
 )
-from astro_context.models.query import QueryBundle
+from anchor.models.query import QueryBundle
 
 def gen_variations(query: str, count: int) -> list[str]:
     return [f"v{i}: {query}" for i in range(count)]
@@ -174,9 +174,9 @@ the `QueryBundle` carries non-empty `chat_history`, the `rewrite_fn` is called.
 If history is empty, the original query passes through unchanged.
 
 ```python
-from astro_context.query import ConversationRewriter
-from astro_context.models.query import QueryBundle
-from astro_context.models.memory import ConversationTurn
+from anchor.query import ConversationRewriter
+from anchor.models.query import QueryBundle
+from anchor.models.memory import ConversationTurn
 
 def rewrite(query: str, history: list[ConversationTurn]) -> str:
     context = "; ".join(f"{t.role}: {t.content}" for t in history)
@@ -201,9 +201,9 @@ Wraps another transformer, prepending a summary of conversation history to the
 query string before delegation.
 
 ```python
-from astro_context.query import ContextualQueryTransformer, HyDETransformer
-from astro_context.models.query import QueryBundle
-from astro_context.models.memory import ConversationTurn
+from anchor.query import ContextualQueryTransformer, HyDETransformer
+from anchor.models.query import QueryBundle
+from anchor.models.memory import ConversationTurn
 
 def gen_hyde(query: str) -> str:
     return f"Hypothetical: {query}"
@@ -234,8 +234,8 @@ retrieval pipeline. The step transforms the query, retrieves for each variant
 using the provided retriever, and merges results via Reciprocal Rank Fusion.
 
 ```python
-from astro_context.query import MultiQueryTransformer
-from astro_context.pipeline import query_transform_step
+from anchor.query import MultiQueryTransformer
+from anchor.pipeline import query_transform_step
 
 def gen_variations(query: str, count: int) -> list[str]:
     return [f"v{i}: {query}" for i in range(count)]
@@ -257,7 +257,7 @@ step = query_transform_step(
 The step can then be added to a `ContextPipeline`:
 
 ```python
-from astro_context.pipeline import ContextPipeline
+from anchor.pipeline import ContextPipeline
 
 pipeline = ContextPipeline(steps=[step])
 ```

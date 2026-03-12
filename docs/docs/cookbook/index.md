@@ -1,6 +1,6 @@
 ---
 title: Cookbook
-description: Practical recipes and patterns for building with astro-context
+description: Practical recipes and patterns for building with anchor
 ---
 
 # Cookbook
@@ -70,7 +70,7 @@ guide with working code you can copy into your project.
 
     ---
 
-    Battle-tested patterns for deploying astro-context in production: error handling,
+    Battle-tested patterns for deploying anchor in production: error handling,
     observability, performance tuning, and testing strategies.
 
     [:octicons-arrow-right-24: Production Patterns](production-patterns.md)

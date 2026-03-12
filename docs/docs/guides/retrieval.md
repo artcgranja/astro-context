@@ -1,6 +1,6 @@
 # Retrieval Guide
 
-astro-context ships with three retrieval strategies that cover the most common
+anchor ships with three retrieval strategies that cover the most common
 search paradigms: **dense** (embedding-based), **sparse** (BM25), and
 **hybrid** (Reciprocal Rank Fusion). All retrievers implement the `Retriever`
 protocol and can be plugged into a `ContextPipeline`.
@@ -34,7 +34,7 @@ alone because dense and sparse signals are complementary.
 `VectorStore` and retrieves them via similarity search.
 
 ```python
-from astro_context.retrieval import DenseRetriever
+from anchor.retrieval import DenseRetriever
 
 retriever = DenseRetriever(
     vector_store=vector_store,
@@ -64,7 +64,7 @@ vector in the `VectorStore`, and saves the full `ContextItem` in the
 ### Retrieving
 
 ```python
-from astro_context.models.query import QueryBundle
+from anchor.models.query import QueryBundle
 
 query = QueryBundle(query_str="How does authentication work?")
 results = retriever.retrieve(query, top_k=5)
@@ -86,11 +86,11 @@ uses it directly. Otherwise it calls `embed_fn` on the query text.
 !!! warning
     The `rank-bm25` package is required. Install it with:
     ```
-    pip install astro-context[bm25]
+    pip install anchor[bm25]
     ```
 
 ```python
-from astro_context.retrieval import SparseRetriever
+from anchor.retrieval import SparseRetriever
 
 retriever = SparseRetriever(
     tokenize_fn=None,   # Optional custom tokenizer
@@ -126,7 +126,7 @@ the corpus. Zero-score items are excluded from results.
 **Reciprocal Rank Fusion (RRF)**.
 
 ```python
-from astro_context.retrieval import HybridRetriever
+from anchor.retrieval import HybridRetriever
 
 hybrid = HybridRetriever(
     retrievers=[dense_retriever, sparse_retriever],
@@ -166,7 +166,7 @@ For cases where you want to fuse ranked lists outside of `HybridRetriever`,
 use the standalone `rrf_fuse()` function.
 
 ```python
-from astro_context.retrieval import rrf_fuse
+from anchor.retrieval import rrf_fuse
 
 fused = rrf_fuse(
     ranked_lists=[dense_results, sparse_results],
@@ -195,7 +195,7 @@ user-provided function. It implements the older `process()` interface (not the
 `Reranker` protocol).
 
 ```python
-from astro_context.retrieval import ScoreReranker
+from anchor.retrieval import ScoreReranker
 
 reranker = ScoreReranker(
     score_fn=my_scorer,   # Callable[[str, str], float]
@@ -224,16 +224,16 @@ dense and sparse strategies, and fuses results with hybrid retrieval.
 ```python
 import math
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.retrieval import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.retrieval import (
     DenseRetriever,
     HybridRetriever,
     ScoreReranker,
     SparseRetriever,
     rrf_fuse,
 )
-from astro_context.storage import InMemoryContextStore, InMemoryVectorStore
+from anchor.storage import InMemoryContextStore, InMemoryVectorStore
 
 
 # --- Deterministic embedding function (for demonstration) ---

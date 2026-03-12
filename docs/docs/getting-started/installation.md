@@ -14,46 +14,46 @@ icon: material/download
 === "pip"
 
     ```bash
-    pip install astro-context
+    pip install anchor
     ```
 
 === "uv"
 
     ```bash
-    uv add astro-context
+    uv add anchor
     ```
 
 ## Optional extras
 
-astro-context ships with several optional dependency groups. Install only
+anchor ships with several optional dependency groups. Install only
 what you need, or grab everything at once.
 
 === "pip"
 
     ```bash
-    pip install astro-context[bm25]       # BM25 sparse retrieval
-    pip install astro-context[cli]        # CLI tools (typer + rich)
-    pip install astro-context[flashrank]  # FlashRank reranker
-    pip install astro-context[anthropic]  # Anthropic token counting
-    pip install astro-context[otlp]       # OpenTelemetry export
-    pip install astro-context[all]        # Everything above
+    pip install anchor[bm25]       # BM25 sparse retrieval
+    pip install anchor[cli]        # CLI tools (typer + rich)
+    pip install anchor[flashrank]  # FlashRank reranker
+    pip install anchor[anthropic]  # Anthropic token counting
+    pip install anchor[otlp]       # OpenTelemetry export
+    pip install anchor[all]        # Everything above
     ```
 
 === "uv"
 
     ```bash
-    uv add astro-context[bm25]
-    uv add astro-context[cli]
-    uv add astro-context[flashrank]
-    uv add astro-context[anthropic]
-    uv add astro-context[otlp]
-    uv add astro-context[all]
+    uv add anchor[bm25]
+    uv add anchor[cli]
+    uv add anchor[flashrank]
+    uv add anchor[anthropic]
+    uv add anchor[otlp]
+    uv add anchor[all]
     ```
 
 | Extra | What it adds | When you need it |
 |-------|-------------|-----------------|
 | `bm25` | `rank-bm25` | Sparse / keyword retrieval with `SparseRetriever` |
-| `cli` | `typer`, `rich` | Using the `astro-context` CLI |
+| `cli` | `typer`, `rich` | Using the `anchor` CLI |
 | `flashrank` | `FlashRank` | Client-side reranking without an API call |
 | `anthropic` | `anthropic` | Accurate token counting for Claude models |
 | `otlp` | `opentelemetry-*` | Exporting traces and metrics via OTLP |
@@ -64,33 +64,33 @@ what you need, or grab everything at once.
 After installing, confirm the package is available:
 
 ```bash
-python -c "import astro_context; print(astro_context.__version__)"
+python -c "import anchor; print(anchor.__version__)"
 ```
 
 If you installed the `cli` extra you can also run:
 
 ```bash
-astro-context --version
+anchor --version
 ```
 
 ## Development setup
 
-To work on astro-context itself, clone the repository and install in
+To work on anchor itself, clone the repository and install in
 editable mode with all extras:
 
 === "pip"
 
     ```bash
-    git clone https://github.com/arthurgranja/astro-context.git
-    cd astro-context
+    git clone https://github.com/arthurgranja/anchor.git
+    cd anchor
     pip install -e ".[all,dev]"
     ```
 
 === "uv"
 
     ```bash
-    git clone https://github.com/arthurgranja/astro-context.git
-    cd astro-context
+    git clone https://github.com/arthurgranja/anchor.git
+    cd anchor
     uv sync --all-extras
     ```
 

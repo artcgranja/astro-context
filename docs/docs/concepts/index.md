@@ -1,11 +1,11 @@
 ---
 title: Concepts
-description: Core ideas and design philosophy behind astro-context.
+description: Core ideas and design philosophy behind anchor.
 ---
 
 # Concepts
 
-Understanding the **why** behind astro-context helps you use the library
+Understanding the **why** behind anchor helps you use the library
 effectively and extend it with confidence. These pages cover the foundational
 ideas, the system architecture, and the contracts that make everything
 pluggable.

@@ -27,7 +27,7 @@ The top-level budget model defines the total token capacity and how it is
 divided.
 
 ```python
-from astro_context import TokenBudget, BudgetAllocation, SourceType
+from anchor import TokenBudget, BudgetAllocation, SourceType
 
 budget = TokenBudget(
     total_tokens=8192,
@@ -54,7 +54,7 @@ If the sum exceeds the total, a `ValueError` is raised at construction time.
 Defines how many tokens a single source type may consume.
 
 ```python
-from astro_context import BudgetAllocation, SourceType
+from anchor import BudgetAllocation, SourceType
 
 alloc = BudgetAllocation(
     source=SourceType.RETRIEVAL,
@@ -112,7 +112,7 @@ The `reserve_tokens` field subtracts tokens from the effective `max_tokens`
 of the pipeline. This guarantees space for the LLM's response.
 
 ```python
-from astro_context import ContextPipeline, TokenBudget
+from anchor import ContextPipeline, TokenBudget
 
 budget = TokenBudget(total_tokens=8192, reserve_tokens=1200)
 pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
@@ -163,7 +163,7 @@ types. Each accepts a `max_tokens` parameter and returns a configured
 Optimized for conversational applications with moderate retrieval.
 
 ```python
-from astro_context import default_chat_budget
+from anchor import default_chat_budget
 
 budget = default_chat_budget(max_tokens=8192)
 ```
@@ -182,7 +182,7 @@ budget = default_chat_budget(max_tokens=8192)
 Optimized for RAG-heavy applications where retrieval dominates.
 
 ```python
-from astro_context import default_rag_budget
+from anchor import default_rag_budget
 
 budget = default_rag_budget(max_tokens=8192)
 ```
@@ -201,7 +201,7 @@ budget = default_rag_budget(max_tokens=8192)
 Optimized for agentic applications with tool usage.
 
 ```python
-from astro_context import default_agent_budget
+from anchor import default_agent_budget
 
 budget = default_agent_budget(max_tokens=8192)
 ```
@@ -226,7 +226,7 @@ budget = default_agent_budget(max_tokens=8192)
 Attach a budget to the pipeline with `.with_budget()`:
 
 ```python
-from astro_context import ContextPipeline, default_rag_budget
+from anchor import ContextPipeline, default_rag_budget
 
 budget = default_rag_budget(max_tokens=8192)
 pipeline = (

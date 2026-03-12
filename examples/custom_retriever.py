@@ -9,10 +9,10 @@ No inheritance is needed -- any object with a
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.pipeline import ContextPipeline
-from astro_context.pipeline.step import retriever_step
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.pipeline.pipeline import ContextPipeline
+from anchor.pipeline.step import retriever_step
 
 # ---------------------------------------------------------------------------
 # Simple whitespace tokenizer (avoids tiktoken dependency)
@@ -49,7 +49,7 @@ KNOWLEDGE_BASE = [
 class KeywordRetriever:
     """A simple keyword-matching retriever that satisfies the Retriever protocol.
 
-    This demonstrates the protocol-based extensibility of astro-context:
+    This demonstrates the protocol-based extensibility of anchor:
     no base class inheritance is required. Just implement the ``retrieve``
     method with the correct signature.
     """
@@ -124,7 +124,7 @@ def main() -> None:
     print(f"Build time: {result.build_time_ms:.1f}ms")
 
     # 5. Verify it satisfies the protocol (optional runtime check)
-    from astro_context.protocols.retriever import Retriever
+    from anchor.protocols.retriever import Retriever
 
     print(f"Satisfies Retriever protocol: {isinstance(retriever, Retriever)}")
 

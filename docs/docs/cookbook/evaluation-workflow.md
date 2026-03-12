@@ -20,7 +20,7 @@ This example demonstrates:
 ```python
 import math
 
-from astro_context import (
+from anchor import (
     ContextItem,
     DenseRetriever,
     HybridRetriever,
@@ -31,7 +31,7 @@ from astro_context import (
     RetrievalMetricsCalculator,
     PipelineEvaluator,
 )
-from astro_context.evaluation.ab_testing import (
+from anchor.evaluation.ab_testing import (
     ABTestRunner,
     EvaluationDataset,
     EvaluationSample,

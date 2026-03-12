@@ -1,6 +1,6 @@
 # Storage Guide
 
-astro-context uses **protocol-based** storage. Any object that matches the
+anchor uses **protocol-based** storage. Any object that matches the
 required method signatures can serve as a store -- no inheritance needed.
 The library ships with in-memory implementations for development and a
 JSON-file-backed store for lightweight persistence.
@@ -22,7 +22,7 @@ so you can use `isinstance()` checks at runtime.
 Import protocols from:
 
 ```python
-from astro_context.protocols.storage import (
+from anchor.protocols.storage import (
     VectorStore,
     ContextStore,
     DocumentStore,
@@ -40,7 +40,7 @@ Brute-force cosine similarity search. Suitable for development and testing
 with small datasets.
 
 ```python
-from astro_context.storage import InMemoryVectorStore
+from anchor.storage import InMemoryVectorStore
 
 store = InMemoryVectorStore()
 store.add_embedding("item-1", [0.1, 0.2, 0.3], metadata={"source": "docs"})
@@ -59,8 +59,8 @@ results = store.search([0.1, 0.2, 0.3], top_k=5)
 Dict-backed store for `ContextItem` objects. Thread-safe.
 
 ```python
-from astro_context.storage import InMemoryContextStore
-from astro_context.models.context import ContextItem, SourceType
+from anchor.storage import InMemoryContextStore
+from anchor.models.context import ContextItem, SourceType
 
 store = InMemoryContextStore()
 item = ContextItem(content="Hello world", source=SourceType.RETRIEVAL)
@@ -78,7 +78,7 @@ Dict-backed store for raw document text. Useful for storing original documents
 before chunking and indexing.
 
 ```python
-from astro_context.storage import InMemoryDocumentStore
+from anchor.storage import InMemoryDocumentStore
 
 store = InMemoryDocumentStore()
 store.add_document("doc-1", "Full document text...", metadata={"author": "team"})
@@ -93,8 +93,8 @@ store.delete_document("doc-1")         # True
 In-memory store for `MemoryEntry` objects with filtering and search.
 
 ```python
-from astro_context.storage import InMemoryEntryStore
-from astro_context.models.memory import MemoryEntry
+from anchor.storage import InMemoryEntryStore
+from anchor.models.memory import MemoryEntry
 
 store = InMemoryEntryStore()
 entry = MemoryEntry(content="User prefers dark mode")
@@ -125,8 +125,8 @@ results = store.search_filtered(
 It uses atomic writes (temp file + rename) to prevent corruption.
 
 ```python
-from astro_context.storage import JsonFileMemoryStore
-from astro_context.models.memory import MemoryEntry
+from anchor.storage import JsonFileMemoryStore
+from anchor.models.memory import MemoryEntry
 
 store = JsonFileMemoryStore("memories.json", auto_save=True)
 
@@ -203,7 +203,7 @@ class RedisVectorStore:
 You can verify protocol conformance at runtime:
 
 ```python
-from astro_context.protocols.storage import VectorStore
+from anchor.protocols.storage import VectorStore
 
 store = RedisVectorStore(redis_client)
 assert isinstance(store, VectorStore)  # True -- structural subtyping

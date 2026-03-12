@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.pipeline.pipeline import ContextPipeline
+from anchor.models.context import ContextItem, SourceType
+from anchor.pipeline.pipeline import ContextPipeline
 from tests.conftest import FakeTokenizer
 
 

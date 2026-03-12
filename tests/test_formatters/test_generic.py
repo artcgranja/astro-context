@@ -1,9 +1,9 @@
-"""Tests for astro_context.formatters.generic."""
+"""Tests for anchor.formatters.generic."""
 
 from __future__ import annotations
 
-from astro_context.formatters.generic import GenericTextFormatter
-from astro_context.models.context import ContextItem, ContextWindow, SourceType
+from anchor.formatters.generic import GenericTextFormatter
+from anchor.models.context import ContextItem, ContextWindow, SourceType
 
 
 class TestGenericTextFormatter:

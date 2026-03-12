@@ -1,6 +1,6 @@
 # Best Practices Summary: Context Engineering & AI Pipelines (2025-2026)
 
-Compiled from 6 parallel research agents. Use this as the reference for comparing against astro-context's current implementation.
+Compiled from 6 parallel research agents. Use this as the reference for comparing against anchor's current implementation.
 
 ---
 
@@ -154,9 +154,9 @@ Compiled from 6 parallel research agents. Use this as the reference for comparin
 
 ---
 
-## Gaps to Evaluate Against astro-context
+## Gaps to Evaluate Against anchor
 
-### Currently Implemented in astro-context
+### Currently Implemented in anchor
 - [x] Priority-based context assembly (ContextWindow.add_items_by_priority)
 - [x] Sliding window memory (SlidingWindowMemory)
 - [x] Token counting (tiktoken via TokenCounter)

@@ -1,4 +1,4 @@
-"""Tests for astro_context.memory.decay."""
+"""Tests for anchor.memory.decay."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from astro_context.memory.decay import (
+from anchor.memory.decay import (
     EbbinghausDecay,
     ExponentialRecencyScorer,
     LinearDecay,
     LinearRecencyScorer,
 )
-from astro_context.models.memory import MemoryEntry
+from anchor.models.memory import MemoryEntry
 
 
 def _make_entry(

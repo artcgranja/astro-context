@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.agent.skills.models import Skill
-from astro_context.agent.tools import AgentTool
+from anchor.agent.skills.models import Skill
+from anchor.agent.tools import AgentTool
 
 
 def _noop() -> str:

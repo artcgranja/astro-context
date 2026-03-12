@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.retrieval.hybrid import HybridRetriever
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.retrieval.hybrid import HybridRetriever
 from tests.conftest import FakeRetriever
 
 # ---------------------------------------------------------------------------

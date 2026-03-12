@@ -1,4 +1,4 @@
-"""Tests for astro_context.cli.
+"""Tests for anchor.cli.
 
 Exercises the Typer CLI app via CliRunner, covering the version flag,
 info command, index command (success and error paths), and query command.
@@ -11,8 +11,8 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
-from astro_context import __version__
-from astro_context.cli import app
+from anchor import __version__
+from anchor.cli import app
 
 runner = CliRunner()
 
@@ -33,7 +33,7 @@ class TestMainCallback:
         """--version before a subcommand prints the version and exits."""
         result = runner.invoke(app, ["--version", "info"])
         assert result.exit_code == 0
-        assert "astro-context" in result.output
+        assert "anchor" in result.output
         assert __version__ in result.output
 
     def test_short_version_flag(self) -> None:
@@ -150,7 +150,7 @@ class TestIndexCommandFileTooLarge:
         large_file.write_text("x", encoding="utf-8")
 
         # Mock _MAX_FILE_SIZE to 0 so any file is "too large"
-        with patch("astro_context.cli._MAX_FILE_SIZE", 0):
+        with patch("anchor.cli._MAX_FILE_SIZE", 0):
             result = runner.invoke(app, ["index", str(large_file)])
 
         assert result.exit_code == 1
@@ -164,7 +164,7 @@ class TestIndexCommandFileTooLarge:
         file_size = test_file.stat().st_size
 
         # Set limit to exactly the file size -- the check is >, not >=
-        with patch("astro_context.cli._MAX_FILE_SIZE", file_size):
+        with patch("anchor.cli._MAX_FILE_SIZE", file_size):
             result = runner.invoke(app, ["index", str(test_file)])
 
         assert result.exit_code == 0

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import math
 
-from astro_context.models.context import ContextItem, SourceType
-from astro_context.models.query import QueryBundle
-from astro_context.protocols.late_interaction import TokenLevelEncoder
-from astro_context.protocols.retriever import Retriever
-from astro_context.retrieval.late_interaction import (
+from anchor.models.context import ContextItem, SourceType
+from anchor.models.query import QueryBundle
+from anchor.protocols.late_interaction import TokenLevelEncoder
+from anchor.protocols.retriever import Retriever
+from anchor.retrieval.late_interaction import (
     LateInteractionRetriever,
     LateInteractionScorer,
     MaxSimScorer,

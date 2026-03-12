@@ -5,9 +5,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from astro_context.multimodal.models import ModalityType
-from astro_context.multimodal.tables import HTMLTableParser, MarkdownTableParser
-from astro_context.protocols.multimodal import TableExtractor
+from anchor.multimodal.models import ModalityType
+from anchor.multimodal.tables import HTMLTableParser, MarkdownTableParser
+from anchor.protocols.multimodal import TableExtractor
 
 
 class TestMarkdownTableParser:

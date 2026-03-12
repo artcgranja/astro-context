@@ -1,10 +1,10 @@
-"""Tests for astro_context._math module (cosine_similarity and clamp)."""
+"""Tests for anchor._math module (cosine_similarity and clamp)."""
 
 from __future__ import annotations
 
 import pytest
 
-from astro_context._math import clamp, cosine_similarity
+from anchor._math import clamp, cosine_similarity
 
 # ---------------------------------------------------------------------------
 # cosine_similarity

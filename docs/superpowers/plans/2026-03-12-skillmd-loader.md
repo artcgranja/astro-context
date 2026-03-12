@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add SKILL.md loading support to astro-context so agents can consume cross-platform skills alongside native Python skills.
+**Goal:** Add SKILL.md loading support to anchor so agents can consume cross-platform skills alongside native Python skills.
 
 **Architecture:** A `loader.py` module parses SKILL.md frontmatter + markdown into native `Skill` instances. Tool discovery imports `tools.py` via `importlib`. The `SkillRegistry` and `Agent` get thin wrapper methods for loading. No new dependencies.
 
@@ -18,7 +18,7 @@
 
 | File | Responsibility |
 |------|---------------|
-| `src/astro_context/agent/skills/loader.py` | Parse SKILL.md frontmatter, discover tools from `tools.py`, build `Skill` instances |
+| `src/anchor/agent/skills/loader.py` | Parse SKILL.md frontmatter, discover tools from `tools.py`, build `Skill` instances |
 | `tests/test_agent/test_skills/test_loader.py` | Unit tests for loader parsing, validation, tool discovery |
 | `tests/test_agent/test_skills/test_loader_integration.py` | Integration tests for registry + agent loading |
 | `tests/fixtures/skills/brainstorm/SKILL.md` | Valid hybrid skill fixture (instructions + tools) |
@@ -32,10 +32,10 @@
 
 | File | Change |
 |------|--------|
-| `src/astro_context/agent/skills/registry.py` | Add `load_from_path()`, `load_from_directory()` |
-| `src/astro_context/agent/agent.py` | Add `with_skills_directory()`, `with_skill_from_path()` |
-| `src/astro_context/agent/skills/__init__.py` | Export `load_skill`, `load_skills_directory` |
-| `src/astro_context/agent/__init__.py` | Export `load_skill`, `load_skills_directory` |
+| `src/anchor/agent/skills/registry.py` | Add `load_from_path()`, `load_from_directory()` |
+| `src/anchor/agent/agent.py` | Add `with_skills_directory()`, `with_skill_from_path()` |
+| `src/anchor/agent/skills/__init__.py` | Export `load_skill`, `load_skills_directory` |
+| `src/anchor/agent/__init__.py` | Export `load_skill`, `load_skills_directory` |
 
 ---
 
@@ -83,7 +83,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from astro_context.agent.tool_decorator import tool
+from anchor.agent.tool_decorator import tool
 
 
 @tool
@@ -144,7 +144,7 @@ git commit -m "test: add SKILL.md test fixtures for loader"
 ### Task 2: Implement Frontmatter Parser (TDD)
 
 **Files:**
-- Create: `src/astro_context/agent/skills/loader.py`
+- Create: `src/anchor/agent/skills/loader.py`
 - Create: `tests/test_agent/test_skills/test_loader.py`
 
 - [ ] **Step 1: Write failing tests for frontmatter parsing**
@@ -158,7 +158,7 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.agent.skills.loader import load_skill, load_skills_directory
+from anchor.agent.skills.loader import load_skill, load_skills_directory
 
 FIXTURES = Path(__file__).resolve().parent.parent.parent / "fixtures" / "skills"
 
@@ -250,7 +250,7 @@ Write to `tests/test_agent/test_skills/test_loader.py`.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py -v`
 Expected: FAIL with `ModuleNotFoundError` (loader.py doesn't exist yet)
 
 - [ ] **Step 3: Implement frontmatter parser in loader.py**
@@ -271,10 +271,10 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from astro_context.agent.skills.models import Skill
+from anchor.agent.skills.models import Skill
 
 if TYPE_CHECKING:
-    from astro_context.agent.models import AgentTool
+    from anchor.agent.models import AgentTool
 
 logger = logging.getLogger(__name__)
 
@@ -346,13 +346,13 @@ def _validate_description(description: str) -> None:
 
 def _discover_tools(skill_dir: Path, skill_name: str) -> tuple[AgentTool, ...]:
     """Import tools.py from skill directory and collect AgentTool instances."""
-    from astro_context.agent.models import AgentTool as AgentToolCls
+    from anchor.agent.models import AgentTool as AgentToolCls
 
     tools_path = skill_dir / "tools.py"
     if not tools_path.exists():
         return ()
 
-    module_name = f"astro_context.skills.{skill_name}.tools"
+    module_name = f"anchor.skills.{skill_name}.tools"
     logger.info("Loading tools from %s as %s", tools_path, module_name)
 
     try:
@@ -462,17 +462,17 @@ def load_skills_directory(path: str | Path) -> list[Skill]:
     return skills
 ```
 
-Write to `src/astro_context/agent/skills/loader.py`.
+Write to `src/anchor/agent/skills/loader.py`.
 
 - [ ] **Step 4: Run parsing tests to verify they pass**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py -v`
 Expected: All `TestLoadSkillParsing` and `TestLoadSkillValidation` tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/astro_context/agent/skills/loader.py tests/test_agent/test_skills/test_loader.py
+git add src/anchor/agent/skills/loader.py tests/test_agent/test_skills/test_loader.py
 git commit -m "feat: add SKILL.md loader with frontmatter parsing and validation"
 ```
 
@@ -519,7 +519,7 @@ class TestToolDiscovery:
 
 - [ ] **Step 2: Run tests to verify tool discovery passes**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py::TestToolDiscovery -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py::TestToolDiscovery -v`
 Expected: All 4 tests PASS (loader already handles this)
 
 - [ ] **Step 3: Commit**
@@ -570,7 +570,7 @@ class TestLoadSkillsDirectory:
 
 - [ ] **Step 2: Run tests to verify they pass**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py::TestLoadSkillsDirectory -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py::TestLoadSkillsDirectory -v`
 Expected: All 4 tests PASS
 
 - [ ] **Step 3: Commit**
@@ -587,7 +587,7 @@ git commit -m "test: add directory loading tests for SKILL.md loader"
 ### Task 5: SkillRegistry Extensions (TDD)
 
 **Files:**
-- Modify: `src/astro_context/agent/skills/registry.py`
+- Modify: `src/anchor/agent/skills/registry.py`
 - Create: `tests/test_agent/test_skills/test_loader_integration.py`
 
 - [ ] **Step 1: Write failing integration tests for registry loading**
@@ -601,9 +601,9 @@ from pathlib import Path
 
 import pytest
 
-from astro_context.agent.skills.models import Skill
-from astro_context.agent.skills.registry import SkillRegistry
-from astro_context.agent.tools import AgentTool
+from anchor.agent.skills.models import Skill
+from anchor.agent.skills.registry import SkillRegistry
+from anchor.agent.tools import AgentTool
 
 FIXTURES = Path(__file__).resolve().parent.parent.parent / "fixtures" / "skills"
 
@@ -680,12 +680,12 @@ Write to `tests/test_agent/test_skills/test_loader_integration.py`.
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py -v`
 Expected: FAIL with `AttributeError: 'SkillRegistry' object has no attribute 'load_from_path'`
 
 - [ ] **Step 3: Add load_from_path and load_from_directory to SkillRegistry**
 
-First, add these imports to the top of `src/astro_context/agent/skills/registry.py` (after the existing imports):
+First, add these imports to the top of `src/anchor/agent/skills/registry.py` (after the existing imports):
 
 ```python
 import logging
@@ -702,7 +702,7 @@ Then add the following methods after the existing `reset` method and before `# -
 
         Returns the loaded :class:`Skill`.
         """
-        from astro_context.agent.skills.loader import load_skill
+        from anchor.agent.skills.loader import load_skill
 
         skill = load_skill(Path(path))
         self.register(skill)
@@ -713,7 +713,7 @@ Then add the following methods after the existing `reset` method and before `# -
 
         Skips skills that fail to load or have duplicate names.
         """
-        from astro_context.agent.skills.loader import load_skills_directory
+        from anchor.agent.skills.loader import load_skills_directory
 
         loaded = load_skills_directory(Path(path))
         registered: list[Skill] = []
@@ -730,18 +730,18 @@ The `import logging`, `from pathlib import Path`, and `logger` were already adde
 
 - [ ] **Step 4: Run integration tests to verify they pass**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py -v`
 Expected: All tests PASS
 
 - [ ] **Step 5: Run existing registry tests to verify no regressions**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_registry.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_registry.py -v`
 Expected: All existing tests still PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/astro_context/agent/skills/registry.py tests/test_agent/test_skills/test_loader_integration.py
+git add src/anchor/agent/skills/registry.py tests/test_agent/test_skills/test_loader_integration.py
 git commit -m "feat: add load_from_path and load_from_directory to SkillRegistry"
 ```
 
@@ -750,7 +750,7 @@ git commit -m "feat: add load_from_path and load_from_directory to SkillRegistry
 ### Task 6: Agent Convenience Methods (TDD)
 
 **Files:**
-- Modify: `src/astro_context/agent/agent.py`
+- Modify: `src/anchor/agent/agent.py`
 - Modify: `tests/test_agent/test_skills/test_loader_integration.py`
 
 - [ ] **Step 1: Add Agent integration tests**
@@ -758,7 +758,7 @@ git commit -m "feat: add load_from_path and load_from_directory to SkillRegistry
 Append to `tests/test_agent/test_skills/test_loader_integration.py`:
 
 ```python
-from astro_context.agent.agent import Agent
+from anchor.agent.agent import Agent
 
 
 class _FakeClient:
@@ -798,12 +798,12 @@ class TestAgentSkillLoading:
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py::TestAgentSkillLoading -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py::TestAgentSkillLoading -v`
 Expected: FAIL with `AttributeError: 'Agent' object has no attribute 'with_skills_directory'`
 
 - [ ] **Step 3: Add convenience methods to Agent**
 
-First, add `from pathlib import Path` to the module-level imports at the top of `src/astro_context/agent/agent.py`:
+First, add `from pathlib import Path` to the module-level imports at the top of `src/anchor/agent/agent.py`:
 
 ```python
 from pathlib import Path
@@ -829,18 +829,18 @@ The `from pathlib import Path` import was already added above.
 
 - [ ] **Step 4: Run Agent integration tests to verify they pass**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py::TestAgentSkillLoading -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader_integration.py::TestAgentSkillLoading -v`
 Expected: All 4 tests PASS
 
 - [ ] **Step 5: Run existing Agent tests to verify no regressions**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_agent.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_agent.py -v`
 Expected: All existing tests still PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/astro_context/agent/agent.py tests/test_agent/test_skills/test_loader_integration.py
+git add src/anchor/agent/agent.py tests/test_agent/test_skills/test_loader_integration.py
 git commit -m "feat: add with_skills_directory and with_skill_from_path to Agent"
 ```
 
@@ -849,38 +849,38 @@ git commit -m "feat: add with_skills_directory and with_skill_from_path to Agent
 ### Task 7: Update Exports
 
 **Files:**
-- Modify: `src/astro_context/agent/skills/__init__.py`
-- Modify: `src/astro_context/agent/__init__.py`
+- Modify: `src/anchor/agent/skills/__init__.py`
+- Modify: `src/anchor/agent/__init__.py`
 
 - [ ] **Step 1: Update skills __init__.py**
 
-Add to `src/astro_context/agent/skills/__init__.py`:
+Add to `src/anchor/agent/skills/__init__.py`:
 
 ```python
-from astro_context.agent.skills.loader import load_skill, load_skills_directory
+from anchor.agent.skills.loader import load_skill, load_skills_directory
 ```
 
 And update `__all__` to include `"load_skill"` and `"load_skills_directory"`.
 
 - [ ] **Step 2: Update agent __init__.py**
 
-Add to `src/astro_context/agent/__init__.py`:
+Add to `src/anchor/agent/__init__.py`:
 
 ```python
-from astro_context.agent.skills import load_skill, load_skills_directory
+from anchor.agent.skills import load_skill, load_skills_directory
 ```
 
 And update `__all__` to include `"load_skill"` and `"load_skills_directory"`.
 
 - [ ] **Step 3: Run export tests to check imports work**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run python -c "from astro_context.agent import load_skill, load_skills_directory; print('OK')"`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run python -c "from anchor.agent import load_skill, load_skills_directory; print('OK')"`
 Expected: prints `OK`
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/astro_context/agent/skills/__init__.py src/astro_context/agent/__init__.py
+git add src/anchor/agent/skills/__init__.py src/anchor/agent/__init__.py
 git commit -m "feat: export load_skill and load_skills_directory from agent module"
 ```
 
@@ -936,7 +936,7 @@ Write to `examples/skills/brainstorm/SKILL.md`.
 ```python
 """Tools for the brainstorm skill.
 
-Example of a SKILL.md skill with Python tools for astro-context.
+Example of a SKILL.md skill with Python tools for anchor.
 """
 
 from __future__ import annotations
@@ -944,7 +944,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from astro_context.agent.tool_decorator import tool
+from anchor.agent.tool_decorator import tool
 
 
 @tool
@@ -981,20 +981,20 @@ git commit -m "docs: add example brainstorming SKILL.md skill"
 
 - [ ] **Step 1: Run all loader tests**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py tests/test_agent/test_skills/test_loader_integration.py -v`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest tests/test_agent/test_skills/test_loader.py tests/test_agent/test_skills/test_loader_integration.py -v`
 Expected: All tests PASS
 
 - [ ] **Step 2: Run full test suite for regressions**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run pytest --tb=short -q`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run pytest --tb=short -q`
 Expected: All 1088+ tests PASS, no regressions
 
 - [ ] **Step 3: Run linter**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run ruff check src/astro_context/agent/skills/loader.py`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run ruff check src/anchor/agent/skills/loader.py`
 Expected: No errors
 
 - [ ] **Step 4: Run type checker**
 
-Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/optimistic-lamport && uv run mypy src/astro_context/agent/skills/loader.py`
+Run: `cd /Users/arthurgranja/github/anchor/.claude/worktrees/optimistic-lamport && uv run mypy src/anchor/agent/skills/loader.py`
 Expected: No errors

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.exceptions import RetrieverError
-from astro_context.models.context import ContextItem
-from astro_context.models.memory import ConversationTurn
-from astro_context.models.query import QueryBundle
-from astro_context.pipeline.step import classified_retriever_step
-from astro_context.query.classifiers import KeywordClassifier
-from astro_context.query.rewriter import ConversationRewriter
+from anchor.exceptions import RetrieverError
+from anchor.models.context import ContextItem
+from anchor.models.memory import ConversationTurn
+from anchor.models.query import QueryBundle
+from anchor.pipeline.step import classified_retriever_step
+from anchor.query.classifiers import KeywordClassifier
+from anchor.query.rewriter import ConversationRewriter
 from tests.conftest import FakeRetriever
 
 

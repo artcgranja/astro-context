@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from astro_context.multimodal.encoders import (
+from anchor.multimodal.encoders import (
     CompositeEncoder,
     ImageDescriptionEncoder,
     TableEncoder,
     TextEncoder,
 )
-from astro_context.multimodal.models import ModalityType, MultiModalContent
-from astro_context.protocols.multimodal import ModalityEncoder
+from anchor.multimodal.models import ModalityType, MultiModalContent
+from anchor.protocols.multimodal import ModalityEncoder
 
 
 class TestTextEncoder:

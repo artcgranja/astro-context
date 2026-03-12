@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from astro_context.memory.decay import ExponentialRecencyScorer, LinearRecencyScorer
-from astro_context.memory.eviction import FIFOEviction, ImportanceEviction, PairedEviction
-from astro_context.memory.sliding_window import SlidingWindowMemory
-from astro_context.models.context import SourceType
-from astro_context.models.memory import ConversationTurn
+from anchor.memory.decay import ExponentialRecencyScorer, LinearRecencyScorer
+from anchor.memory.eviction import FIFOEviction, ImportanceEviction, PairedEviction
+from anchor.memory.sliding_window import SlidingWindowMemory
+from anchor.models.context import SourceType
+from anchor.models.memory import ConversationTurn
 from tests.conftest import FakeTokenizer
 
 

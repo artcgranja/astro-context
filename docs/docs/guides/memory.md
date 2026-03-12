@@ -1,6 +1,6 @@
 # Memory Management
 
-astro-context provides a layered memory system that tracks conversation
+anchor provides a layered memory system that tracks conversation
 history, stores persistent facts, and integrates both into the context
 pipeline. This guide covers every component -- from the coordinator down
 to decay functions and garbage collection.
@@ -31,7 +31,7 @@ MemoryManager
 retrieving context.
 
 ```python
-from astro_context import MemoryManager
+from anchor import MemoryManager
 
 manager = MemoryManager(conversation_tokens=4096)
 manager.add_user_message("What is context engineering?")
@@ -44,7 +44,7 @@ print(len(items))  # 2 context items from conversation history
 Pass a custom conversation backend to switch strategies:
 
 ```python
-from astro_context import MemoryManager, SummaryBufferMemory
+from anchor import MemoryManager, SummaryBufferMemory
 
 def compact(turns):
     return "; ".join(t.content[:40] for t in turns)
@@ -63,7 +63,7 @@ A rolling window of conversation turns within a token budget. When a new
 turn would exceed the limit, oldest turns are evicted first.
 
 ```python
-from astro_context import SlidingWindowMemory
+from anchor import SlidingWindowMemory
 
 window = SlidingWindowMemory(max_tokens=1024)
 window.add_turn("user", "Hello!")
@@ -86,7 +86,7 @@ window = SlidingWindowMemory(max_tokens=512, on_evict=on_evict)
 ### Custom Eviction Policy and Recency Scorer
 
 ```python
-from astro_context import (
+from anchor import (
     SlidingWindowMemory, ImportanceEviction, ExponentialRecencyScorer,
 )
 
@@ -108,7 +108,7 @@ must be provided.
 ### Simple Compaction
 
 ```python
-from astro_context import SummaryBufferMemory
+from anchor import SummaryBufferMemory
 
 def compact(turns):
     return "Summary: " + "; ".join(t.content[:60] for t in turns)
@@ -125,7 +125,7 @@ print(mem.summary)  # None until eviction occurs
 incremental refinement:
 
 ```python
-from astro_context import SummaryBufferMemory
+from anchor import SummaryBufferMemory
 
 def progressive(turns, previous_summary):
     new_content = "; ".join(t.content[:40] for t in turns)
@@ -146,7 +146,7 @@ An in-memory directed graph for entity-relationship tracking without an
 external graph database.
 
 ```python
-from astro_context import SimpleGraphMemory
+from anchor import SimpleGraphMemory
 
 graph = SimpleGraphMemory()
 graph.add_entity("alice", {"type": "person", "role": "engineer"})
@@ -178,7 +178,7 @@ Three built-in policies implement the `EvictionPolicy` protocol.
 **FIFOEviction** -- evicts oldest turns first (matches the default):
 
 ```python
-from astro_context import FIFOEviction, SlidingWindowMemory
+from anchor import FIFOEviction, SlidingWindowMemory
 
 window = SlidingWindowMemory(max_tokens=1024, eviction_policy=FIFOEviction())
 ```
@@ -186,7 +186,7 @@ window = SlidingWindowMemory(max_tokens=1024, eviction_policy=FIFOEviction())
 **ImportanceEviction** -- evicts lowest-scoring turns first:
 
 ```python
-from astro_context import ImportanceEviction
+from anchor import ImportanceEviction
 
 policy = ImportanceEviction(importance_fn=lambda turn: len(turn.content) / 100.0)
 ```
@@ -195,7 +195,7 @@ policy = ImportanceEviction(importance_fn=lambda turn: len(turn.content) / 100.0
 questions remain:
 
 ```python
-from astro_context import PairedEviction, SlidingWindowMemory
+from anchor import PairedEviction, SlidingWindowMemory
 
 window = SlidingWindowMemory(max_tokens=1024, eviction_policy=PairedEviction())
 ```
@@ -209,7 +209,7 @@ The garbage collector uses them to prune forgotten memories.
 grows with access count:
 
 ```python
-from astro_context import EbbinghausDecay
+from anchor import EbbinghausDecay
 decay = EbbinghausDecay(base_strength=1.0, reinforcement_factor=0.5)
 ```
 
@@ -217,14 +217,14 @@ decay = EbbinghausDecay(base_strength=1.0, reinforcement_factor=0.5)
 `half_life_hours` the retention is 0.5:
 
 ```python
-from astro_context import LinearDecay
+from anchor import LinearDecay
 decay = LinearDecay(half_life_hours=168.0)  # 7 days
 ```
 
 **Recency scorers** control position-based scores within a sliding window:
 
 ```python
-from astro_context import ExponentialRecencyScorer, LinearRecencyScorer
+from anchor import ExponentialRecencyScorer, LinearRecencyScorer
 
 exp_scorer = ExponentialRecencyScorer(decay_rate=2.0)
 print(exp_scorer.score(0, 10))   # ~0.0 (oldest)
@@ -242,7 +242,7 @@ skipped based on content hashing and cosine similarity.
 
 ```python
 import math
-from astro_context import SimilarityConsolidator, MemoryEntry
+from anchor import SimilarityConsolidator, MemoryEntry
 
 def embed_fn(text: str) -> list[float]:
     return [math.sin(i + len(text)) for i in range(8)]
@@ -273,7 +273,7 @@ for action, entry in results:
 Prunes expired and decayed entries from a `GarbageCollectableStore`.
 
 ```python
-from astro_context import MemoryGarbageCollector, EbbinghausDecay, InMemoryEntryStore
+from anchor import MemoryGarbageCollector, EbbinghausDecay, InMemoryEntryStore
 
 store = InMemoryEntryStore()
 gc = MemoryGarbageCollector(store=store, decay=EbbinghausDecay())
@@ -299,7 +299,7 @@ Both phases fire `MemoryCallback` hooks for observability.
 Content-hash deduplication prevents storing the same content twice.
 
 ```python
-from astro_context import MemoryManager, MemoryType, InMemoryEntryStore
+from anchor import MemoryManager, MemoryType, InMemoryEntryStore
 
 store = InMemoryEntryStore()
 manager = MemoryManager(persistent_store=store)
@@ -339,8 +339,8 @@ class MyCallback:
 `CallbackExtractor` delegates memory extraction to a user function:
 
 ```python
-from astro_context import CallbackExtractor, MemoryType
-from astro_context.models.memory import ConversationTurn
+from anchor import CallbackExtractor, MemoryType
+from anchor.models.memory import ConversationTurn
 
 def my_extractor(turns):
     return [
@@ -360,7 +360,7 @@ A memory-aware pipeline with summarization, persistent facts, and
 garbage collection:
 
 ```python
-from astro_context import (
+from anchor import (
     ContextPipeline, MemoryManager, SummaryBufferMemory,
     MemoryGarbageCollector, EbbinghausDecay, InMemoryEntryStore,
     QueryBundle,
