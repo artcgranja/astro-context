@@ -41,7 +41,7 @@ reranker = CohereReranker(rerank_fn=cohere_rerank, top_k=10)
 Local cross-encoder reranking using `flashrank`. The model is lazily loaded.
 
 !!! warning
-    Requires: `pip install anchor[flashrank]`
+    Requires: `pip install astro-anchor[flashrank]`
 
 ```python
 from anchor.retrieval import FlashRankReranker

@@ -200,7 +200,7 @@ Combine dense and sparse retrievers with Reciprocal Rank Fusion:
 ```python
 from anchor import HybridRetriever, SparseRetriever
 
-sparse = SparseRetriever()  # requires pip install anchor[bm25]
+sparse = SparseRetriever()  # requires pip install astro-anchor[bm25]
 sparse.index(items)
 
 hybrid = HybridRetriever(

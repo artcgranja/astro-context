@@ -86,7 +86,7 @@ uses it directly. Otherwise it calls `embed_fn` on the query text.
 !!! warning
     The `rank-bm25` package is required. Install it with:
     ```
-    pip install anchor[bm25]
+    pip install astro-anchor[bm25]
     ```
 
 ```python

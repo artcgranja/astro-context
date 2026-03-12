@@ -19,9 +19,9 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/v/anchor?color=3b82f6&style=flat-square" alt="PyPI"></a>
-  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/dm/anchor?color=64748b&style=flat-square" alt="Downloads"></a>
-  <a href="https://pypi.org/project/anchor/"><img src="https://img.shields.io/pypi/pyversions/anchor?color=6B8E6B&style=flat-square" alt="Python"></a>
+  <a href="https://pypi.org/project/astro-anchor/"><img src="https://img.shields.io/pypi/v/astro-anchor?color=3b82f6&style=flat-square" alt="PyPI"></a>
+  <a href="https://pypi.org/project/astro-anchor/"><img src="https://img.shields.io/pypi/dm/astro-anchor?color=64748b&style=flat-square" alt="Downloads"></a>
+  <a href="https://pypi.org/project/astro-anchor/"><img src="https://img.shields.io/pypi/pyversions/astro-anchor?color=6B8E6B&style=flat-square" alt="Python"></a>
   <a href="https://github.com/arthurgranja/anchor/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arthurgranja/anchor?color=64748b&style=flat-square" alt="License"></a>
   <a href="https://github.com/arthurgranja/anchor"><img src="https://img.shields.io/github/stars/arthurgranja/anchor?style=flat-square&color=3b82f6" alt="Stars"></a>
 </p>
@@ -45,19 +45,19 @@ Stop duct-taping RAG, memory, and tools together. **anchor** gives you a single,
 ## Quick Install
 
 ```bash
-pip install anchor
+pip install astro-anchor
 ```
 
 <details>
 <summary>Optional extras</summary>
 
 ```bash
-pip install anchor[bm25]        # BM25 sparse retrieval
-pip install anchor[anthropic]   # Anthropic Claude support
-pip install anchor[cli]         # CLI tools (typer + rich)
-pip install anchor[flashrank]   # FlashRank reranking
-pip install anchor[otlp]        # OpenTelemetry tracing
-pip install anchor[all]         # Everything
+pip install astro-anchor[bm25]        # BM25 sparse retrieval
+pip install astro-anchor[anthropic]   # Anthropic Claude support
+pip install astro-anchor[cli]         # CLI tools (typer + rich)
+pip install astro-anchor[flashrank]   # FlashRank reranking
+pip install astro-anchor[otlp]        # OpenTelemetry tracing
+pip install astro-anchor[all]         # Everything
 ```
 
 </details>

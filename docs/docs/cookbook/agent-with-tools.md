@@ -7,7 +7,7 @@ decorator and `SkillRegistry`.
 
 !!! warning "API Key Required"
     The `Agent` class requires the `anthropic` SDK and a valid API key.
-    Install with `pip install anchor[anthropic]`. The tool creation
+    Install with `pip install astro-anchor[anthropic]`. The tool creation
     and skill registration sections below run without an API key. The
     `agent.chat()` call at the end requires `ANTHROPIC_API_KEY` to be set.
 

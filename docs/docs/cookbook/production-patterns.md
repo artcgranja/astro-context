@@ -353,7 +353,7 @@ pipeline = (
     builds to upstream HTTP requests.
 
 !!! note "OTLP Dependencies"
-    OTLP export requires `pip install anchor[otlp]`.
+    OTLP export requires `pip install astro-anchor[otlp]`.
 
 ---
 

@@ -339,7 +339,7 @@ from anchor.storage import (
 from anchor.tokens import TiktokenCounter
 
 try:
-    __version__ = version("anchor")
+    __version__ = version("astro-anchor")
 except PackageNotFoundError:
     __version__ = "0.0.0-dev"
 

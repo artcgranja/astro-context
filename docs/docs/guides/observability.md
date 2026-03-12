@@ -152,7 +152,7 @@ Exports spans to an OpenTelemetry collector via OTLP/HTTP. Requires the
 `otlp` extra.
 
 ```bash
-pip install anchor[otlp]
+pip install astro-anchor[otlp]
 ```
 
 ```python

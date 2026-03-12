@@ -182,7 +182,7 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/arthurgranja/anchor
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/anchor/
+      link: https://pypi.org/project/astro-anchor/
   generator: false
   version:
     provider: mike

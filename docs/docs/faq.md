@@ -48,23 +48,23 @@ description: Frequently asked questions about anchor
 
     ```bash
     # BM25 sparse retrieval
-    pip install anchor[bm25]
+    pip install astro-anchor[bm25]
 
     # Anthropic Agent support
-    pip install anchor[anthropic]
+    pip install astro-anchor[anthropic]
 
     # PDF parsing
-    pip install anchor[pdf]
+    pip install astro-anchor[pdf]
 
     # OpenTelemetry export
-    pip install anchor[otlp]
+    pip install astro-anchor[otlp]
 
     # Everything
-    pip install anchor[all]
+    pip install astro-anchor[all]
     ```
 
 ??? question "Can I install anchor in a Jupyter notebook?"
-    Yes. Run `!pip install anchor` in a cell. All examples in the
+    Yes. Run `!pip install astro-anchor` in a cell. All examples in the
     documentation are designed to work in notebooks.
 
 ---
@@ -192,7 +192,7 @@ description: Frequently asked questions about anchor
     ```python
     from anchor import SparseRetriever
 
-    sparse = SparseRetriever()  # requires pip install anchor[bm25]
+    sparse = SparseRetriever()  # requires pip install astro-anchor[bm25]
     sparse.index(items)
     results = sparse.retrieve(query, top_k=10)
     ```
@@ -325,7 +325,7 @@ description: Frequently asked questions about anchor
     Install the BM25 extra:
 
     ```bash
-    pip install anchor[bm25]
+    pip install astro-anchor[bm25]
     ```
 
 ??? question "I'm getting `TokenBudgetExceeded` errors"

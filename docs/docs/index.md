@@ -136,7 +136,7 @@ Build intelligent context pipelines in minutes.
 === "pip"
 
     ```bash
-    pip install anchor
+    pip install astro-anchor
     ```
 
 === "uv"
@@ -148,9 +148,9 @@ Build intelligent context pipelines in minutes.
 === "Extras"
 
     ```bash
-    pip install anchor[bm25]   # BM25 sparse retrieval (rank-bm25)
-    pip install anchor[cli]    # CLI tools (typer + rich)
-    pip install anchor[all]    # Everything
+    pip install astro-anchor[bm25]   # BM25 sparse retrieval (rank-bm25)
+    pip install astro-anchor[cli]    # CLI tools (typer + rich)
+    pip install astro-anchor[all]    # Everything
     ```
 
 ---

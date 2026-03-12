@@ -14,7 +14,7 @@ icon: material/download
 === "pip"
 
     ```bash
-    pip install anchor
+    pip install astro-anchor
     ```
 
 === "uv"
@@ -31,12 +31,12 @@ what you need, or grab everything at once.
 === "pip"
 
     ```bash
-    pip install anchor[bm25]       # BM25 sparse retrieval
-    pip install anchor[cli]        # CLI tools (typer + rich)
-    pip install anchor[flashrank]  # FlashRank reranker
-    pip install anchor[anthropic]  # Anthropic token counting
-    pip install anchor[otlp]       # OpenTelemetry export
-    pip install anchor[all]        # Everything above
+    pip install astro-anchor[bm25]       # BM25 sparse retrieval
+    pip install astro-anchor[cli]        # CLI tools (typer + rich)
+    pip install astro-anchor[flashrank]  # FlashRank reranker
+    pip install astro-anchor[anthropic]  # Anthropic token counting
+    pip install astro-anchor[otlp]       # OpenTelemetry export
+    pip install astro-anchor[all]        # Everything above
     ```
 
 === "uv"

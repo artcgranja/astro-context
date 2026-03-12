@@ -16,18 +16,18 @@ protocol-driven architecture.
 
 ## Installation
 
-pip install anchor
+pip install astro-anchor
 
 Optional extras:
-  pip install anchor[tiktoken]    # tiktoken tokenizer
-  pip install anchor[bm25]        # BM25 sparse retrieval
-  pip install anchor[anthropic]   # Anthropic formatter + agent
-  pip install anchor[agents]      # Agent framework (Anthropic SDK)
-  pip install anchor[flashrank]   # FlashRank reranker
-  pip install anchor[pdf]         # PDF parsing
-  pip install anchor[otlp]        # OpenTelemetry export
-  pip install anchor[cli]         # CLI (typer + rich)
-  pip install anchor[all]         # Everything
+  pip install astro-anchor[tiktoken]    # tiktoken tokenizer
+  pip install astro-anchor[bm25]        # BM25 sparse retrieval
+  pip install astro-anchor[anthropic]   # Anthropic formatter + agent
+  pip install astro-anchor[agents]      # Agent framework (Anthropic SDK)
+  pip install astro-anchor[flashrank]   # FlashRank reranker
+  pip install astro-anchor[pdf]         # PDF parsing
+  pip install astro-anchor[otlp]        # OpenTelemetry export
+  pip install astro-anchor[cli]         # CLI (typer + rich)
+  pip install astro-anchor[all]         # Everything
 
 ## Core Concepts
 

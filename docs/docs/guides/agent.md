@@ -46,7 +46,7 @@ for chunk in agent.chat("What is context engineering?"):
 
 !!! note
     The Agent requires the `anthropic` package. Install it with
-    `pip install anchor[anthropic]`.
+    `pip install astro-anchor[anthropic]`.
 
 ## Constructor
 

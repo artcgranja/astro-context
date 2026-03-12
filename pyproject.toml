@@ -1,5 +1,5 @@
 [project]
-name = "anchor"
+name = "astro-anchor"
 version = "0.1.0"
 description = "Context engineering toolkit for AI applications"
 readme = "README.md"
@@ -42,7 +42,7 @@ docs = [
     "mkdocs-minify-plugin>=0.8,<1",
     "mkdocstrings[python]>=0.25,<1",
 ]
-all = ["anchor[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
+all = ["astro-anchor[bm25,cli,anthropic,tiktoken,agents,pdf,flashrank,otlp]"]
 
 [project.scripts]
 anchor = "anchor.cli:app"
@@ -66,6 +66,9 @@ dev = [
     "tiktoken>=0.7,<1",
     "mkdocs-material>=9.7.2",
 ]
+
+[tool.uv.build-backend]
+module-name = "anchor"
 
 [build-system]
 requires = ["uv_build>=0.8.17,<0.9.0"]

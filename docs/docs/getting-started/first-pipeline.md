@@ -114,7 +114,7 @@ pipeline = (
 
 !!! note
     BM25 sparse retrieval requires the optional `bm25` extra:
-    `pip install anchor[bm25]`
+    `pip install astro-anchor[bm25]`
 
 ---
 

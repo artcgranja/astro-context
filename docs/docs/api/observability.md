@@ -226,7 +226,7 @@ from anchor.observability import OTLPSpanExporter
 
 !!! warning
     Requires `opentelemetry-exporter-otlp-proto-http` and
-    `opentelemetry-sdk`. Install with `pip install anchor[otlp]`.
+    `opentelemetry-sdk`. Install with `pip install astro-anchor[otlp]`.
 
 **Constructor:**
 
@@ -300,7 +300,7 @@ from anchor.observability import OTLPMetricsExporter
 
 !!! warning
     Requires `opentelemetry-exporter-otlp-proto-http` and
-    `opentelemetry-sdk`. Install with `pip install anchor[otlp]`.
+    `opentelemetry-sdk`. Install with `pip install astro-anchor[otlp]`.
 
 **Constructor:**
 

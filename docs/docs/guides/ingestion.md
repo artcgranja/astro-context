@@ -284,7 +284,7 @@ Parsers implement the `DocumentParser` protocol and return `(text, metadata)` tu
 
 !!! note
     `PDFParser` requires the optional `pdf` extra:
-    `pip install anchor[pdf]`
+    `pip install astro-anchor[pdf]`
 
 `DocumentIngester` auto-selects the parser by file extension. Override via the
 `parsers` constructor argument:
