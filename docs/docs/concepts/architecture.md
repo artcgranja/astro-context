@@ -9,38 +9,25 @@ priority, enforces token budgets, and produces a formatted result.
 Every call to `pipeline.build()` (or `await pipeline.abuild()`) executes a
 six-stage pipeline:
 
-```
- QueryBundle (or plain str)
-        |
-        v
- +-------------------+
- | 1. System Prompts  |  Collect system-level ContextItems (priority=10)
- +-------------------+
-        |
-        v
- +-------------------+
- | 2. Memory          |  Collect memory items from MemoryProvider
- +-------------------+
-        |
-        v
- +-------------------+
- | 3. Pipeline Steps  |  Execute retriever, filter, reranker, and custom steps
- +-------------------+
-        |
-        v
- +-------------------+
- | 4. Window Assembly |  Sort by priority/score, fill up to max_tokens
- +-------------------+
-        |
-        v
- +-------------------+
- | 5. Formatting      |  Convert to Anthropic, OpenAI, or generic text format
- +-------------------+
-        |
-        v
- +-------------------+
- | 6. ContextResult   |  Formatted output + diagnostics + overflow items
- +-------------------+
+```mermaid
+flowchart TD
+    Q["🔍 QueryBundle\n(or plain str)"]
+    S1["<b>Stage 1: System Prompts</b>\nCollect system-level ContextItems\n(priority=10)"]
+    S2["<b>Stage 2: Memory</b>\nCollect memory items\nfrom MemoryProvider"]
+    S3["<b>Stage 3: Pipeline Steps</b>\nRetriever · PostProcessor · Filter\nReranker · Query Transform"]
+    S4["<b>Stage 4: Window Assembly</b>\nPriority-ranked, token-aware\nfill up to max_tokens"]
+    S5["<b>Stage 5: Formatting</b>\nAnthropic · OpenAI · Generic"]
+    S6["<b>Stage 6: ContextResult</b>\nFormatted output + diagnostics\n+ overflow items"]
+
+    Q --> S1 --> S2 --> S3 --> S4 --> S5 --> S6
+
+    style Q fill:#4a90d9,stroke:#2c5f8a,color:#fff,stroke-width:2px
+    style S1 fill:#e8f5e9,stroke:#4caf50,color:#1b5e20,stroke-width:2px
+    style S2 fill:#e8f5e9,stroke:#4caf50,color:#1b5e20,stroke-width:2px
+    style S3 fill:#fff3e0,stroke:#ff9800,color:#e65100,stroke-width:2px
+    style S4 fill:#fce4ec,stroke:#e91e63,color:#880e4f,stroke-width:2px
+    style S5 fill:#e3f2fd,stroke:#2196f3,color:#0d47a1,stroke-width:2px
+    style S6 fill:#f3e5f5,stroke:#9c27b0,color:#4a148c,stroke-width:2px
 ```
 
 ## Stage Details
@@ -164,6 +151,54 @@ never evicted in favor of lower priority items.
 | 6 | Tool results | Tool/function call outputs |
 | 5 | Retrieval (default) | RAG results from retrievers |
 | 1--4 | Custom | Low-priority supplementary context |
+
+```mermaid
+block-beta
+    columns 1
+    block:p10:1
+        columns 2
+        p10l["Priority 10"] p10r["System Prompts — Instructions, persona, rules"]
+    end
+    block:p8:1
+        columns 2
+        p8l["Priority 8"] p8r["Persistent Memory — Long-term facts"]
+    end
+    block:p7:1
+        columns 2
+        p7l["Priority 7"] p7r["Conversation Memory — Recent chat turns"]
+    end
+    block:p6:1
+        columns 2
+        p6l["Priority 6"] p6r["Tool Results — Function call outputs"]
+    end
+    block:p5:1
+        columns 2
+        p5l["Priority 5"] p5r["Retrieval — RAG results from retrievers"]
+    end
+    block:p14:1
+        columns 2
+        p14l["Priority 1–4"] p14r["Custom — Low-priority supplementary context"]
+    end
+
+    style p10 fill:#c62828,color:#fff,stroke:#b71c1c,stroke-width:2px
+    style p10l fill:#c62828,color:#fff,stroke:none
+    style p10r fill:#c62828,color:#fff,stroke:none
+    style p8 fill:#d84315,color:#fff,stroke:#bf360c,stroke-width:2px
+    style p8l fill:#d84315,color:#fff,stroke:none
+    style p8r fill:#d84315,color:#fff,stroke:none
+    style p7 fill:#ef6c00,color:#fff,stroke:#e65100,stroke-width:2px
+    style p7l fill:#ef6c00,color:#fff,stroke:none
+    style p7r fill:#ef6c00,color:#fff,stroke:none
+    style p6 fill:#f9a825,color:#333,stroke:#f57f17,stroke-width:2px
+    style p6l fill:#f9a825,color:#333,stroke:none
+    style p6r fill:#f9a825,color:#333,stroke:none
+    style p5 fill:#7cb342,color:#fff,stroke:#558b2f,stroke-width:2px
+    style p5l fill:#7cb342,color:#fff,stroke:none
+    style p5r fill:#7cb342,color:#fff,stroke:none
+    style p14 fill:#90a4ae,color:#fff,stroke:#607d8b,stroke-width:2px
+    style p14l fill:#90a4ae,color:#fff,stroke:none
+    style p14r fill:#90a4ae,color:#fff,stroke:none
+```
 
 When the total context exceeds `max_tokens`, the pipeline fills from highest
 priority down. Items that do not fit are tracked in `result.overflow_items`.

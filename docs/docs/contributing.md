@@ -199,7 +199,7 @@ See [Architecture](concepts/architecture.md) for details.
 
 ## Getting Help
 
-- **Questions**: Check [Getting Started](getting-started.md)
+- **Questions**: Check [Getting Started](getting-started/index.md)
 - **API Reference**: See [API Docs](api/pipeline.md)
 - **Guides**: Browse [Guides](guides/pipeline.md)
 - **Issues**: [GitHub Issues](https://github.com/arthurgranja/astro-context/issues)

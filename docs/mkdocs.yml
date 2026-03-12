@@ -3,9 +3,13 @@ site_description: Context engineering toolkit for AI applications
 site_url: https://arthurgranja.github.io/astro-context/
 repo_url: https://github.com/arthurgranja/astro-context
 repo_name: arthurgranja/astro-context
+copyright: Copyright &copy; 2026 Astro — MIT License
+edit_uri: edit/main/docs/docs/
 
 theme:
   name: material
+  custom_dir: overrides
+  language: en
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -21,28 +25,55 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
   features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
     - content.code.copy
+    - content.code.select
     - content.tabs.link
-    - navigation.tabs
+    - content.tooltips
+    - header.autohide
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.path
     - navigation.sections
-    - navigation.expand
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.top
+    - navigation.tracking
     - search.highlight
+    - search.share
     - search.suggest
     - toc.follow
   icon:
     repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    annotation: material/information
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Your First Pipeline: getting-started/first-pipeline.md
   - Concepts:
-    - Architecture: concepts/architecture.md
+    - concepts/index.md
     - Context Engineering: concepts/context-engineering.md
+    - Architecture: concepts/architecture.md
     - Protocols: concepts/protocols.md
     - Token Budgets: concepts/token-budgets.md
   - Guides:
+    - guides/index.md
     - Pipeline: guides/pipeline.md
     - Retrieval: guides/retrieval.md
     - Advanced Retrieval: guides/advanced-retrieval.md
@@ -57,7 +88,17 @@ nav:
     - Storage: guides/storage.md
     - Multi-modal: guides/multimodal.md
     - Cache: guides/cache.md
+  - Cookbook:
+    - cookbook/index.md
+    - Chatbot with Memory: cookbook/chatbot-with-memory.md
+    - RAG Pipeline: cookbook/rag-pipeline.md
+    - Document Ingestion: cookbook/document-ingestion.md
+    - Custom Retriever: cookbook/custom-retriever.md
+    - Evaluation Workflow: cookbook/evaluation-workflow.md
+    - Agent with Tools: cookbook/agent-with-tools.md
+    - Production Patterns: cookbook/production-patterns.md
   - API Reference:
+    - api/index.md
     - Pipeline: api/pipeline.md
     - Retrieval: api/retrieval.md
     - Memory: api/memory.md
@@ -73,28 +114,87 @@ nav:
     - Multi-modal: api/multimodal.md
     - Cache: api/cache.md
     - Exceptions: api/exceptions.md
-  - Examples:
-    - Chatbot with Memory: examples/chatbot-with-memory.md
-    - RAG Pipeline: examples/rag-pipeline.md
-    - Document Ingestion: examples/document-ingestion.md
-    - Custom Retriever: examples/custom-retriever.md
-    - Evaluation Workflow: examples/evaluation-workflow.md
-    - Agent with Tools: examples/agent-with-tools.md
+  - FAQ: faq.md
+  - Changelog: changelog.md
   - Contributing: contributing.md
 
 plugins:
-  - search
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
 
 markdown_extensions:
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.details
+  - abbr
   - admonition
   - attr_list
+  - def_list
+  - footnotes
   - md_in_html
+  - tables
   - toc:
       permalink: true
-  - tables
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: arthurgranja
+      repo: astro-context
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/arthurgranja/astro-context
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/astro-context/
+  generator: false
+  version:
+    provider: mike
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: Thanks for your feedback! Help us improve by opening an issue.
+
+extra_css:
+  - stylesheets/extra.css

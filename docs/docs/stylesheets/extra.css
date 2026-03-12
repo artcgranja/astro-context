@@ -1,0 +1,197 @@
+/* ==========================================================================
+   astro-context -- Custom Styles
+   Theme: Deep Purple (#7c4dff) + Amber (#ffab00)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Hero Section
+   -------------------------------------------------------------------------- */
+
+.hero {
+  text-align: center;
+  padding: 2rem 1rem 1rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(
+    135deg,
+    rgba(124, 77, 255, 0.06) 0%,
+    rgba(255, 171, 0, 0.04) 50%,
+    rgba(124, 77, 255, 0.02) 100%
+  );
+  border-radius: 0.75rem;
+}
+
+[data-md-color-scheme="slate"] .hero {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 77, 255, 0.12) 0%,
+    rgba(255, 171, 0, 0.06) 50%,
+    rgba(124, 77, 255, 0.04) 100%
+  );
+}
+
+.hero h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.hero h3 {
+  font-size: 1.15rem;
+  font-weight: 400;
+  opacity: 0.82;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+}
+
+.hero p:last-of-type {
+  margin-top: 0.5rem;
+}
+
+.hero .md-button {
+  margin: 0.25rem 0.4rem;
+}
+
+.hero img[src*="shields.io"] {
+  vertical-align: middle;
+  margin: 0 0.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   Feature Grid Cards
+   -------------------------------------------------------------------------- */
+
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > ol > li {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > ol > li:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(124, 77, 255, 0.10);
+  border-color: var(--md-primary-fg-color);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ul > li:hover,
+[data-md-color-scheme="slate"] .md-typeset .grid.cards > ol > li:hover {
+  box-shadow: 0 6px 24px rgba(124, 77, 255, 0.18);
+}
+
+/* Icon sizing inside cards */
+.md-typeset .grid.cards .lg {
+  font-size: 1.6rem;
+}
+
+.md-typeset .grid.cards .middle {
+  vertical-align: middle;
+}
+
+/* --------------------------------------------------------------------------
+   Code Blocks
+   -------------------------------------------------------------------------- */
+
+.md-typeset pre > code {
+  border-radius: 0.4rem;
+}
+
+.md-typeset code {
+  border-radius: 0.25rem;
+}
+
+/* Subtle left accent on code blocks */
+.md-typeset pre {
+  border-left: 3px solid var(--md-primary-fg-color);
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   Badges / Version Indicators
+   -------------------------------------------------------------------------- */
+
+.md-typeset .badge {
+  display: inline-block;
+  padding: 0.15em 0.55em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 2rem;
+  vertical-align: middle;
+}
+
+.md-typeset .badge--primary {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+
+.md-typeset .badge--accent {
+  background-color: var(--md-accent-fg-color);
+  color: #000;
+}
+
+.md-typeset .badge--new {
+  background-color: #00c853;
+  color: #fff;
+}
+
+.md-typeset .badge--deprecated {
+  background-color: #ff5252;
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   Landing Page Spacing
+   -------------------------------------------------------------------------- */
+
+/* Give the home page a bit more breathing room */
+.md-main__inner {
+  margin-top: 0;
+}
+
+/* Tighter horizontal rules on home */
+.md-typeset hr {
+  margin: 2rem 0;
+  border-color: var(--md-default-fg-color--lightest);
+}
+
+/* Comparison table: center columns except first */
+.md-typeset table:not([class]) td:not(:first-child),
+.md-typeset table:not([class]) th:not(:first-child) {
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Mermaid Diagram Tweaks
+   -------------------------------------------------------------------------- */
+
+.mermaid {
+  margin: 1.5rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Adjustments
+   -------------------------------------------------------------------------- */
+
+@media screen and (max-width: 76.25em) {
+  .hero h1 {
+    font-size: 2.2rem;
+  }
+
+  .hero h3 {
+    font-size: 1rem;
+  }
+}
+
+@media screen and (max-width: 44.9375em) {
+  .hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .hero {
+    padding: 1.5rem 0.75rem 0.75rem;
+  }
+}

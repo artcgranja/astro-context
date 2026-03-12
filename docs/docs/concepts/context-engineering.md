@@ -139,7 +139,7 @@ receives the best possible context within its token budget.
 ## Getting Started
 
 To build your first context pipeline, see the
-[Getting Started](../getting-started.md) guide. For deeper architectural
+[Getting Started](../getting-started/index.md) guide. For deeper architectural
 details, read the [Architecture](architecture.md) page.
 
 ## See Also

@@ -1,63 +1,14 @@
-# Getting Started
-
-This guide walks you through installing astro-context, building your first
-pipeline, and exploring the major features. By the end you will have a working
-context pipeline with memory, retrieval, token budgets, and diagnostics.
-
+---
+icon: material/school
 ---
 
-## Installation
+# Your First Pipeline
 
-```bash
-pip install astro-context
-```
-
-Or with [uv](https://docs.astral.sh/uv/):
-
-```bash
-uv add astro-context
-```
-
-### Optional Extras
-
-```bash
-pip install astro-context[bm25]   # BM25 sparse retrieval (rank-bm25)
-pip install astro-context[cli]    # CLI tools (typer + rich)
-pip install astro-context[all]    # Everything
-```
-
----
-
-## Your First Pipeline
-
-The simplest pipeline uses memory and a system prompt:
-
-```python
-from astro_context import ContextPipeline, QueryBundle, MemoryManager
-
-# Create pipeline with memory
-memory = MemoryManager(conversation_tokens=4096)
-pipeline = (
-    ContextPipeline(max_tokens=8192)
-    .with_memory(memory)
-    .add_system_prompt("You are a helpful coding assistant.")
-)
-
-# Add conversation history
-memory.add_user_message("Help me write a Python function")
-memory.add_assistant_message("Sure! What should the function do?")
-
-# Build context for the next query
-result = pipeline.build(QueryBundle(query_str="It should sort a list"))
-print(result.formatted_output)
-```
-
-!!! tip
-    `build()` also accepts a plain string. The following two calls are equivalent:
-    ```python
-    result = pipeline.build("It should sort a list")
-    result = pipeline.build(QueryBundle(query_str="It should sort a list"))
-    ```
+This tutorial picks up where the [Quickstart](quickstart.md) left off. You
+will add retrieval, hybrid search, provider formatting, token budgets,
+custom steps, async support, query transformation, and diagnostics to your
+pipeline. By the end you will have a solid understanding of every major
+feature in astro-context.
 
 ---
 
@@ -107,6 +58,10 @@ result = pipeline.build(QueryBundle(query_str="How to sort in Python?"))
 print(f"Found {len(result.window.items)} context items")
 print(f"Used {result.window.used_tokens}/{result.window.max_tokens} tokens")
 ```
+
+!!! info "Bring your own embeddings"
+    astro-context never calls an embedding provider directly. You supply the
+    `embed_fn` and can use OpenAI, Cohere, local models, or anything else.
 
 ---
 
@@ -165,6 +120,9 @@ pipeline = (
 
 ## Formatting for Different Providers
 
+astro-context can format the assembled context window for any major LLM
+provider:
+
 ```python
 from astro_context import AnthropicFormatter, OpenAIFormatter, GenericTextFormatter
 
@@ -198,21 +156,25 @@ budget = default_chat_budget(max_tokens=8192)
 pipeline = ContextPipeline(max_tokens=8192).with_budget(budget)
 ```
 
+### Default allocations
+
 The `default_chat_budget` allocates tokens as follows:
 
-| Source | Allocation | Tokens (8192) |
+| Source | Allocation | Tokens (8 192) |
 |--------|-----------|---------------|
 | System prompts | 10% | 819 |
 | Persistent memory | 10% | 819 |
-| Conversation turns | 20% | 1638 |
-| Retrieval results | 25% | 2048 |
-| Reserved for LLM response | 15% | 1228 |
-| Shared pool (unallocated) | 20% | 1638 |
+| Conversation turns | 20% | 1 638 |
+| Retrieval results | 25% | 2 048 |
+| Reserved for LLM response | 15% | 1 228 |
+| Shared pool (unallocated) | 20% | 1 638 |
+
+### Preset factories
 
 Three preset factories are available:
 
-- **`default_chat_budget(max_tokens)`** -- Conversational apps. 60% of usable tokens
-  go to conversation and memory.
+- **`default_chat_budget(max_tokens)`** -- Conversational apps. 60% of usable
+  tokens go to conversation and memory.
 - **`default_rag_budget(max_tokens)`** -- RAG-heavy apps. 40% of usable tokens
   go to retrieval results.
 - **`default_agent_budget(max_tokens)`** -- Agentic apps. Includes a 15% tool
@@ -222,6 +184,8 @@ Three preset factories are available:
     The `reserve_tokens` field (15% by default) is subtracted from `max_tokens`
     before any items are placed. Make sure your pipeline's `max_tokens`
     is large enough to leave room after the reservation.
+
+### Custom budgets
 
 You can also construct a custom `TokenBudget` directly:
 
@@ -381,7 +345,7 @@ result = pipeline.build("What causes memory leaks in Python?")
     astro-context never calls an LLM directly. You provide the generation
     function (`generate_fn`) and the transformers handle orchestration.
 
-### Other Transformers
+### Other transformers
 
 - **`MultiQueryTransformer`** -- Generates N alternative phrasings for broader
   retrieval coverage. Provide `generate_fn: (str, int) -> list[str]`.
@@ -390,7 +354,7 @@ result = pipeline.build("What causes memory leaks in Python?")
 - **`StepBackTransformer`** -- Generates a more abstract version of the query
   alongside the original. Provide `generate_fn: (str) -> str`.
 
-### Chaining Transformers
+### Chaining transformers
 
 Use `QueryTransformPipeline` to chain multiple transformers:
 
@@ -430,7 +394,7 @@ print(f"Token utilization: {result.diagnostics['token_utilization']:.0%}")
 print(f"Overflow items: {len(result.overflow_items)}")
 ```
 
-### Interpreting Diagnostics
+### Interpreting diagnostics
 
 The `diagnostics` dictionary contains the following fields:
 
@@ -459,7 +423,9 @@ The `diagnostics` dictionary contains the following fields:
     Consider increasing `max_tokens`, tuning per-source budgets, or filtering
     low-quality items earlier in the pipeline.
 
-### Overflow Items
+---
+
+## Overflow Items
 
 Items that did not fit in the context window are available in
 `result.overflow_items`:
@@ -468,6 +434,9 @@ Items that did not fit in the context window are available in
 for item in result.overflow_items:
     print(f"  [{item.source}] priority={item.priority} tokens={item.token_count}")
 ```
+
+Use overflow data to decide whether to increase `max_tokens`, adjust budgets,
+or apply stricter filtering in earlier pipeline steps.
 
 ---
 
@@ -485,6 +454,10 @@ of lower priority items.
 | 5 | Retrieval (default) | RAG results from retrievers |
 | 1--4 | Custom | Low-priority supplementary context |
 
+!!! info
+    The priority system works together with token budgets. Within a single
+    source category, items are ordered by priority first, then by score.
+
 ---
 
 ## Where to Go Next
@@ -493,22 +466,22 @@ Now that you have the basics, dive deeper into specific topics:
 
 **Guides**
 
-- [Pipeline Guide](guides/pipeline.md) -- Steps, callbacks, decorators, and error handling
-- [Retrieval Guide](guides/retrieval.md) -- Dense, sparse, hybrid retrieval and reranking
-- [Memory Guide](guides/memory.md) -- Sliding window, summary buffer, and graph memory
-- [Ingestion Guide](guides/ingestion.md) -- Parsing, chunking, and indexing documents
-- [Query Transformation Guide](guides/query-transform.md) -- HyDE, multi-query, decomposition
-- [Evaluation Guide](guides/evaluation.md) -- Measuring retrieval and RAG quality
-- [Observability Guide](guides/observability.md) -- Tracing, metrics, and cost tracking
+- [Pipeline Guide](../guides/pipeline.md) -- Steps, callbacks, decorators, and error handling
+- [Retrieval Guide](../guides/retrieval.md) -- Dense, sparse, hybrid retrieval and reranking
+- [Memory Guide](../guides/memory.md) -- Sliding window, summary buffer, and graph memory
+- [Ingestion Guide](../guides/ingestion.md) -- Parsing, chunking, and indexing documents
+- [Query Transformation Guide](../guides/query-transform.md) -- HyDE, multi-query, decomposition
+- [Evaluation Guide](../guides/evaluation.md) -- Measuring retrieval and RAG quality
+- [Observability Guide](../guides/observability.md) -- Tracing, metrics, and cost tracking
 
 **Concepts**
 
-- [Architecture](concepts/architecture.md) -- How the pipeline, window, and priority system work
+- [Architecture](../concepts/architecture.md) -- How the pipeline, window, and priority system work
 
 **API Reference**
 
-- [Pipeline API](api/pipeline.md) -- `ContextPipeline`, `PipelineStep`, factory functions
-- [Retrieval API](api/retrieval.md) -- Retrievers, rerankers, and fusion
-- [Memory API](api/memory.md) -- `MemoryManager`, eviction, consolidation
-- [Models API](api/models.md) -- `ContextItem`, `QueryBundle`, `TokenBudget`
-- [Query API](api/query.md) -- Transformers and classifiers
+- [Pipeline API](../api/pipeline.md) -- `ContextPipeline`, `PipelineStep`, factory functions
+- [Retrieval API](../api/retrieval.md) -- Retrievers, rerankers, and fusion
+- [Memory API](../api/memory.md) -- `MemoryManager`, eviction, consolidation
+- [Models API](../api/models.md) -- `ContextItem`, `QueryBundle`, `TokenBudget`
+- [Query API](../api/query.md) -- Transformers and classifiers
