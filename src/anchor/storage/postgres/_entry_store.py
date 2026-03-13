@@ -82,7 +82,7 @@ class PostgresEntryStore:
             rows = await conn.fetch(
                 """SELECT * FROM memory_entries
                    WHERE (expires_at IS NULL OR expires_at > $1)
-                     AND content ILIKE $2
+                     AND content ILIKE $2 ESCAPE '\\'
                    ORDER BY relevance_score DESC
                    LIMIT $3""",
                 now,
@@ -145,7 +145,8 @@ class PostgresEntryStore:
         idx = 2
 
         if query:
-            clauses.append(f"content ILIKE ${idx}")
+            clauses.append(f"content ILIKE ${idx} ESCAPE '\\'")
+
             params.append(f"%{escape_like(query)}%")
             idx += 1
         if user_id is not None:

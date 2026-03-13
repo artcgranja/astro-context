@@ -117,6 +117,12 @@ class RedisEntryStore:
         .. warning::
             Not atomic — entries added between ``smembers`` and ``execute``
             may be partially cleared. For strict atomicity use a Lua script.
+
+        .. note::
+            If entry data keys were evicted by Redis but the ID tracking set
+            still has entries, orphaned ``user:`` and ``sess:`` index keys
+            may remain. A periodic ``SCAN``-based cleanup is recommended for
+            long-lived deployments.
         """
         client = self._conn_manager.get_client()
         ids = client.smembers(self._ids_key())
@@ -312,6 +318,11 @@ class AsyncRedisEntryStore:
         .. warning::
             Not atomic — entries added between ``smembers`` and ``execute``
             may be partially cleared. For strict atomicity use a Lua script.
+
+        .. note::
+            If entry data keys were evicted by Redis but the ID tracking set
+            still has entries, orphaned ``user:`` and ``sess:`` index keys
+            may remain.
         """
         client = self._conn_manager.get_async_client()
         ids = await client.smembers(self._ids_key())

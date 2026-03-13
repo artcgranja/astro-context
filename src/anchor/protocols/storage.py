@@ -307,7 +307,11 @@ class GarbageCollectableStore(Protocol):
 
 @runtime_checkable
 class AsyncContextStore(Protocol):
-    """Async variant of :class:`ContextStore`."""
+    """Async variant of :class:`ContextStore`.
+
+    All methods mirror their sync counterparts.  See :class:`ContextStore`
+    for full parameter documentation.
+    """
 
     async def add(self, item: ContextItem) -> None: ...
     async def get(self, item_id: str) -> ContextItem | None: ...
@@ -318,7 +322,11 @@ class AsyncContextStore(Protocol):
 
 @runtime_checkable
 class AsyncVectorStore(Protocol):
-    """Async variant of :class:`VectorStore`."""
+    """Async variant of :class:`VectorStore`.
+
+    All methods mirror their sync counterparts.  See :class:`VectorStore`
+    for full parameter documentation.
+    """
 
     async def add_embedding(
         self, item_id: str, embedding: list[float], metadata: dict[str, Any] | None = None
@@ -331,7 +339,11 @@ class AsyncVectorStore(Protocol):
 
 @runtime_checkable
 class AsyncDocumentStore(Protocol):
-    """Async variant of :class:`DocumentStore`."""
+    """Async variant of :class:`DocumentStore`.
+
+    All methods mirror their sync counterparts.  See :class:`DocumentStore`
+    for full parameter documentation.
+    """
 
     async def add_document(
         self, doc_id: str, content: str, metadata: dict[str, Any] | None = None
@@ -343,7 +355,11 @@ class AsyncDocumentStore(Protocol):
 
 @runtime_checkable
 class AsyncMemoryEntryStore(Protocol):
-    """Async variant of :class:`MemoryEntryStore`."""
+    """Async variant of :class:`MemoryEntryStore`.
+
+    All methods mirror their sync counterparts.  See :class:`MemoryEntryStore`
+    for full parameter documentation.
+    """
 
     async def add(self, entry: MemoryEntry) -> None: ...
     async def search(self, query: str, top_k: int = 5) -> list[MemoryEntry]: ...
@@ -354,7 +370,11 @@ class AsyncMemoryEntryStore(Protocol):
 
 @runtime_checkable
 class AsyncGarbageCollectableStore(Protocol):
-    """Async variant of :class:`GarbageCollectableStore`."""
+    """Async variant of :class:`GarbageCollectableStore`.
+
+    All methods mirror their sync counterparts.  See
+    :class:`GarbageCollectableStore` for full parameter documentation.
+    """
 
     async def list_all_unfiltered(self) -> list[MemoryEntry]: ...
     async def delete(self, entry_id: str) -> bool: ...

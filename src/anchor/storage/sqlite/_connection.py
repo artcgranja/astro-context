@@ -32,14 +32,13 @@ class SqliteConnectionManager:
         mgr.close()
     """
 
-    __slots__ = ("_async_conn", "_async_lock", "_db_path", "_local", "_wal_mode")
+    __slots__ = ("_async_conn", "_db_path", "_local", "_wal_mode")
 
     def __init__(self, db_path: str | Path, *, wal_mode: bool = True) -> None:
         self._db_path = Path(db_path).resolve()
         self._wal_mode = wal_mode
         self._local = threading.local()
         self._async_conn: aiosqlite.Connection | None = None
-        self._async_lock: threading.Lock = threading.Lock()
 
     @property
     def db_path(self) -> Path:
@@ -101,8 +100,7 @@ class SqliteConnectionManager:
         """Close the current thread's connection if it exists.
 
         .. note::
-            This only closes the calling thread's connection.  Use
-            :meth:`close_all` to close connections from all threads.
+            This only closes the calling thread's connection.
         """
         conn: sqlite3.Connection | None = getattr(self._local, "conn", None)
         if conn is not None:
