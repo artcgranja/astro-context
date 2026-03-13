@@ -291,9 +291,9 @@ were lost. Return [] if no key facts are found.
 
 ### Thread Safety
 
-- Sync path: `threading.RLock` (reentrant lock, required because `SlidingWindowMemory.add_turn` acquires its own internal lock and then calls the eviction callback, which needs to write to `_tiers` and `_facts`)
+- Sync path: `threading.RLock` (reentrant lock). The outer class acquires its `RLock` around `add_turn`/`add_message`. Because `SlidingWindowMemory` calls `_handle_eviction` synchronously before returning, the eviction handler runs while the outer `RLock` is still held. Since the handler writes to `_tiers` and `_facts` (also gated by the outer `RLock`), the lock must be reentrant. Note: the `SlidingWindowMemory` has its own separate internal `Lock` — the `RLock` on the outer class is unrelated to that.
 - Async path: No lock needed for tier writes in the eviction callback path — async compaction is performed after the window's `add_turn` returns, not inside the eviction callback
-- The eviction callback (`_handle_eviction`) is called from within `SlidingWindowMemory`'s lock. It must NOT attempt to call back into the window. It only writes to `_tiers` and `_facts`, which are protected by the outer `RLock`.
+- The eviction callback (`_handle_eviction`) is called from within `SlidingWindowMemory`'s lock. It must NOT attempt to call back into the window. It only writes to `_tiers` and `_facts`.
 - All mutable state (`_tiers`, `_facts`, `_window`) accessed only within the reentrant lock
 
 ### Observability
@@ -314,7 +314,7 @@ class ProgressiveSummarizationCallback(Protocol):
     def on_compaction_error(self, tier: int, error: Exception) -> None: ...
 ```
 
-`ProgressiveSummarizationMemory` accepts an optional `callbacks: list[ProgressiveSummarizationCallback]` constructor parameter. Callback dispatch uses the existing `fire_callbacks` / `_fire_memory_callback` pattern from `anchor._callbacks`.
+`ProgressiveSummarizationMemory` accepts an optional `callbacks: list[ProgressiveSummarizationCallback]` constructor parameter. Callback dispatch uses `_fire_memory_callback` from `anchor.memory.callbacks` (which internally delegates to `fire_callbacks` from `anchor._callbacks`).
 
 ## Context Output
 
@@ -353,6 +353,15 @@ elif isinstance(self._conversation, ProgressiveSummarizationMemory):
 ```
 
 This change must be included in the implementation scope and tested in the integration test suite.
+
+Additionally, update `MemoryManager.conversation_type` to recognize the new class:
+
+```python
+if isinstance(self._conversation, ProgressiveSummarizationMemory):
+    return "progressive_summarization"
+```
+
+This branch should be checked before the `SummaryBufferMemory` branch (since `ProgressiveSummarizationMemory` is not a subclass of it, order doesn't technically matter, but placing it first is consistent).
 
 ### ContextPipeline
 
