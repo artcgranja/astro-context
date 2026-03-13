@@ -56,6 +56,16 @@ class AgentTool(BaseModel):
             "parameters": self.input_schema,
         }
 
+    def to_tool_schema(self) -> ToolSchema:
+        """Convert to provider-agnostic ToolSchema."""
+        from anchor.llm.models import ToolSchema
+
+        return ToolSchema(
+            name=self.name,
+            description=self.description,
+            input_schema=self.input_schema,
+        )
+
     def validate_input(self, tool_input: dict[str, Any]) -> tuple[bool, str]:
         """Validate tool input against the schema.
 

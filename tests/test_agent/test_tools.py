@@ -355,3 +355,20 @@ def test_validate_input_extra_fields():
     valid, err = tool.validate_input({"name": "Alice", "extra": "ignored"})
     assert valid is True
     assert err == ""
+
+
+def test_agent_tool_to_tool_schema():
+    """Convert AgentTool to provider-agnostic ToolSchema."""
+    from anchor.llm.models import ToolSchema
+
+    tool = AgentTool(
+        name="get_weather",
+        description="Get weather",
+        input_schema={"type": "object", "properties": {"city": {"type": "string"}}},
+        fn=lambda **kwargs: "sunny",
+    )
+    schema = tool.to_tool_schema()
+    assert isinstance(schema, ToolSchema)
+    assert schema.name == "get_weather"
+    assert schema.description == "Get weather"
+    assert schema.input_schema == tool.input_schema
