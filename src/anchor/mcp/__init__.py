@@ -13,11 +13,21 @@ from anchor.mcp.errors import (
     MCPTimeoutError,
     MCPToolError,
 )
+from anchor.mcp.models import (
+    MCPPrompt,
+    MCPPromptArgument,
+    MCPResource,
+    MCPServerConfig,
+)
 
 __all__ = [
     "MCPConfigError",
     "MCPConnectionError",
     "MCPError",
+    "MCPPrompt",
+    "MCPPromptArgument",
+    "MCPResource",
+    "MCPServerConfig",
     "MCPTimeoutError",
     "MCPToolError",
 ]
