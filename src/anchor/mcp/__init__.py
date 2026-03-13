@@ -6,7 +6,7 @@ consumes external MCP servers from anchor's Agent.
 
 from __future__ import annotations
 
-from anchor.mcp.client import FastMCPClientBridge
+from anchor.mcp.client import FastMCPClientBridge, MCPClientPool
 from anchor.mcp.errors import (
     MCPConfigError,
     MCPConnectionError,
@@ -26,6 +26,7 @@ from anchor.mcp.tools import mcp_tool_to_agent_tool, parse_server_string
 __all__ = [
     "FastMCPClientBridge",
     "MCPClient",
+    "MCPClientPool",
     "MCPConfigError",
     "MCPConnectionError",
     "MCPError",

@@ -5,6 +5,7 @@ Uses FastMCP's Client class with auto-inferred transport.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Self
 
@@ -215,3 +216,45 @@ class FastMCPClientBridge:
         exc_tb: Any,
     ) -> None:
         await self.disconnect()
+
+
+class MCPClientPool:
+    """Manages connections to multiple MCP servers.
+
+    Convenience class for connecting to several servers at once
+    and collecting all their tools as AgentTool instances.
+    """
+
+    __slots__ = ("_clients", "_configs")
+
+    def __init__(self, configs: list[MCPServerConfig]) -> None:
+        self._configs = configs
+        self._clients: list[FastMCPClientBridge] = []
+
+    async def connect_all(self) -> None:
+        """Connect to all configured servers concurrently."""
+        bridges = [FastMCPClientBridge(cfg) for cfg in self._configs]
+        await asyncio.gather(*(b.connect() for b in bridges))
+        self._clients = bridges
+
+    async def disconnect_all(self) -> None:
+        """Disconnect all servers."""
+        await asyncio.gather(
+            *(c.disconnect() for c in self._clients),
+            return_exceptions=True,
+        )
+        self._clients = []
+
+    async def all_agent_tools(self) -> list[AgentTool]:
+        """Collect AgentTool instances from all connected servers."""
+        tool_lists = await asyncio.gather(
+            *(c.as_agent_tools() for c in self._clients),
+        )
+        return [tool for tools in tool_lists for tool in tools]
+
+    async def __aenter__(self) -> Self:
+        await self.connect_all()
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        await self.disconnect_all()
