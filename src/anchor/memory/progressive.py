@@ -414,10 +414,11 @@ class ProgressiveSummarizationMemory:
         serialized = _serialize_turns(evicted_turns)
         turn_count = len(evicted_turns)
 
-        existing_t1 = self._tiers.get(1)
-        existing_summary = existing_t1.content if existing_t1 else None
-        existing_count = existing_t1.source_turn_count if existing_t1 else 0
-        t1_config = self._tier_configs.get(1, TierConfig(level=1, max_tokens=1024, target_tokens=500))
+        with self._lock:
+            existing_t1 = self._tiers.get(1)
+            existing_summary = existing_t1.content if existing_t1 else None
+            existing_count = existing_t1.source_turn_count if existing_t1 else 0
+            t1_config = self._tier_configs.get(1, TierConfig(level=1, max_tokens=1024, target_tokens=500))
 
         try:
             new_summary = await self._compactor.asummarize(
@@ -432,17 +433,19 @@ class ProgressiveSummarizationMemory:
         summary_tokens = self._tokenizer.count_tokens(new_summary)
         now = datetime.now(UTC)
 
-        self._tiers[1] = SummaryTier(
-            level=1, content=new_summary, token_count=summary_tokens,
-            source_turn_count=existing_count + turn_count,
-            created_at=existing_t1.created_at if existing_t1 else now, updated_at=now,
-        )
+        with self._lock:
+            self._tiers[1] = SummaryTier(
+                level=1, content=new_summary, token_count=summary_tokens,
+                source_turn_count=existing_count + turn_count,
+                created_at=existing_t1.created_at if existing_t1 else now, updated_at=now,
+            )
         self._fire_callback("on_tier_cascade", 0, 1, self._tokenizer.count_tokens(serialized), summary_tokens)
 
         try:
             new_facts = await self._compactor.aextract_facts(serialized, source_tier=0)
             if new_facts:
-                self._add_facts(new_facts)
+                with self._lock:
+                    self._add_facts(new_facts)
                 self._fire_callback("on_facts_extracted", new_facts, 0)
         except Exception:
             logger.warning("Async fact extraction failed during tier 0→1 cascade")
@@ -452,14 +455,15 @@ class ProgressiveSummarizationMemory:
 
     async def _cascade_tier_async(self, from_level: int, to_level: int) -> None:
         """Async variant of _cascade_tier."""
-        source_tier = self._tiers.get(from_level)
-        if source_tier is None:
-            return
+        with self._lock:
+            source_tier = self._tiers.get(from_level)
+            if source_tier is None:
+                return
 
-        to_config = self._tier_configs.get(to_level, TierConfig(level=to_level, max_tokens=64, target_tokens=20))
-        existing_target = self._tiers.get(to_level)
-        existing_summary = existing_target.content if existing_target else None
-        existing_count = existing_target.source_turn_count if existing_target else 0
+            to_config = self._tier_configs.get(to_level, TierConfig(level=to_level, max_tokens=64, target_tokens=20))
+            existing_target = self._tiers.get(to_level)
+            existing_summary = existing_target.content if existing_target else None
+            existing_count = existing_target.source_turn_count if existing_target else 0
 
         try:
             new_summary = await self._compactor.asummarize(
@@ -474,22 +478,25 @@ class ProgressiveSummarizationMemory:
         summary_tokens = self._tokenizer.count_tokens(new_summary)
         now = datetime.now(UTC)
 
-        self._tiers[to_level] = SummaryTier(
-            level=to_level, content=new_summary, token_count=summary_tokens,
-            source_turn_count=existing_count + source_tier.source_turn_count,
-            created_at=existing_target.created_at if existing_target else now, updated_at=now,
-        )
+        with self._lock:
+            self._tiers[to_level] = SummaryTier(
+                level=to_level, content=new_summary, token_count=summary_tokens,
+                source_turn_count=existing_count + source_tier.source_turn_count,
+                created_at=existing_target.created_at if existing_target else now, updated_at=now,
+            )
 
         if from_level < 2:
             try:
                 new_facts = await self._compactor.aextract_facts(source_tier.content, source_tier=from_level)
                 if new_facts:
-                    self._add_facts(new_facts)
+                    with self._lock:
+                        self._add_facts(new_facts)
                     self._fire_callback("on_facts_extracted", new_facts, from_level)
             except Exception:
                 logger.warning("Async fact extraction failed during tier %d→%d cascade", from_level, to_level)
 
-        self._tiers[from_level] = None
+        with self._lock:
+            self._tiers[from_level] = None
         self._fire_callback("on_tier_cascade", from_level, to_level, source_tier.token_count, summary_tokens)
 
         if to_level < 3 and summary_tokens > to_config.max_tokens:
