@@ -1,6 +1,7 @@
 """Memory management for anchor."""
 
 from .callbacks import MemoryCallback
+from .compactor import TierCompactor
 from .consolidator import SimilarityConsolidator
 from .decay import EbbinghausDecay, ExponentialRecencyScorer, LinearDecay, LinearRecencyScorer
 from .eviction import FIFOEviction, ImportanceEviction, PairedEviction
@@ -8,6 +9,7 @@ from .extractor import CallbackExtractor
 from .gc import GCStats, MemoryGarbageCollector
 from .graph_memory import SimpleGraphMemory
 from .manager import MemoryManager
+from .progressive import ProgressiveSummarizationMemory
 from .sliding_window import SlidingWindowMemory
 from .summary_buffer import SummaryBufferMemory
 
@@ -24,8 +26,10 @@ __all__ = [
     "MemoryGarbageCollector",
     "MemoryManager",
     "PairedEviction",
+    "ProgressiveSummarizationMemory",
     "SimilarityConsolidator",
     "SimpleGraphMemory",
     "SlidingWindowMemory",
     "SummaryBufferMemory",
+    "TierCompactor",
 ]
