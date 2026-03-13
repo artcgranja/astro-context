@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Multi-provider LLM interface (`anchor.llm`) with support for Anthropic, OpenAI, Gemini, Grok, Ollama, OpenRouter, and LiteLLM
+- `LLMProvider` protocol and `BaseLLMProvider` ABC with built-in retry and timeout logic
+- `create_provider()` factory with `"provider/model"` string format and automatic lazy loading
+- `FallbackProvider` for automatic provider failover (fallback only before first stream chunk)
+- Provider error hierarchy: `ProviderError`, `RateLimitError`, `ServerError`, `TimeoutError`, `AuthenticationError`, `ModelNotFoundError`, `ContentFilterError`
+- Thread-safe provider registry with `threading.Lock`
+- Shared `_openai_compat` module for OpenAI/LiteLLM code deduplication
+- Anthropic streaming usage tracking (`input_tokens` + `output_tokens`)
+- LLM Providers API reference and guide documentation
 - Unit tests for `_math.py` (cosine_similarity and clamp functions)
 - `MemoryRetrieverAdapter` tests verifying Retriever protocol compliance
 - `PipelineExecutionError` wrapping test with diagnostics verification
@@ -17,7 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Example: `examples/budget_management.py` -- token budget management and overflow handling
 - README sections for Priority System (1--10 scale) and Token Budgets
 
+### Changed
+- `Agent` constructor: `client` parameter replaced with `llm: LLMProvider` and `fallbacks: list[str]`
+- `Role` and `StopReason` enums changed from `(str, Enum)` to `StrEnum` for correct string formatting
+- `AgentTool`: removed `to_anthropic_schema()`, `to_openai_schema()`, `to_generic_schema()`; replaced with unified `to_tool_schema() -> ToolSchema`
+
 ### Fixed
+- 34 pre-existing test failures caused by missing optional dependencies (tiktoken, rank-bm25)
+- `FallbackProvider.astream` mid-stream fallback semantics (yields now outside try/except)
 - `test_consolidator.py`: eliminated shared mutable state (`_orthogonal_index` dict) by converting to factory function pattern (`make_orthogonal_embed()`)
 - `test_graph_memory.py`: updated `link_memory` unknown entity test to expect `KeyError` instead of `ValueError`
 - README: fixed retrieval example with runnable `embed_fn` and `ContextItem` creation

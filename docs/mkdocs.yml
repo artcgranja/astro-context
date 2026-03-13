@@ -88,6 +88,7 @@ nav:
     - Observability: guides/observability.md
     - Formatters: guides/formatters.md
     - Agent: guides/agent.md
+    - LLM Providers: guides/llm-providers.md
     - Storage: guides/storage.md
     - Multi-modal: guides/multimodal.md
     - Cache: guides/cache.md
@@ -111,6 +112,7 @@ nav:
     - Observability: api/observability.md
     - Formatters: api/formatters.md
     - Agent: api/agent.md
+    - LLM Providers: api/llm.md
     - Models: api/models.md
     - Protocols: api/protocols.md
     - Storage: api/storage.md

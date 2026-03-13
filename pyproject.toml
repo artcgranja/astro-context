@@ -72,6 +72,9 @@ dev = [
     "tiktoken>=0.7,<1",
     "mkdocs-material>=9.7.2",
 ]
+docs = [
+    "mkdocs-minify-plugin>=0.8.0",
+]
 
 [tool.uv.build-backend]
 module-name = "anchor"

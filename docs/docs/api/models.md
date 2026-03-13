@@ -232,7 +232,22 @@ exceeds its budget allocation.
 
 ### `Role`
 
-Type alias for `Literal["user", "assistant", "system", "tool"]`.
+Message role for conversation turns. A `StrEnum` (imported from `anchor.llm.models`).
+
+```python
+from anchor.llm import Role
+```
+
+| Value | String | Description |
+|---|---|---|
+| `Role.SYSTEM` | `"system"` | System prompt messages. |
+| `Role.USER` | `"user"` | User messages. |
+| `Role.ASSISTANT` | `"assistant"` | Assistant responses. |
+| `Role.TOOL` | `"tool"` | Tool call results. |
+
+!!! tip
+    Since `Role` is a `StrEnum`, `str(Role.USER)` returns `"user"` and
+    `Role.USER == "user"` is `True`.
 
 ### `MemoryType`
 

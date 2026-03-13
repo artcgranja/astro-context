@@ -8,15 +8,16 @@ All classes are importable from `anchor`:
 ```python
 from anchor import Agent, AgentTool, tool, Skill, SkillRegistry
 from anchor import memory_skill, rag_skill, memory_tools, rag_tools
+from anchor.llm import LLMProvider, create_provider
 ```
 
 ---
 
 ## Agent
 
-High-level agent combining the context pipeline with Anthropic's streaming
-API. Provides streaming chat with automatic tool use, memory management,
-and agentic RAG.
+High-level agent combining the context pipeline with any LLM provider via
+the [`LLMProvider`](llm.md#llmprovider-protocol) protocol. Provides streaming chat
+with automatic tool use, memory management, and agentic RAG.
 
 ### Constructor
 
@@ -24,14 +25,14 @@ and agentic RAG.
 class Agent:
     def __init__(
         self,
-        model: str,
+        model: str = "claude-haiku-4-5-20251001",
         *,
         api_key: str | None = None,
-        client: Any = None,
+        llm: LLMProvider | None = None,
+        fallbacks: list[str] | None = None,
         max_tokens: int = 16384,
         max_response_tokens: int = 1024,
         max_rounds: int = 10,
-        max_retries: int = 3,
     ) -> None
 ```
 
@@ -39,13 +40,17 @@ class Agent:
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` | required | Anthropic model identifier |
-| `api_key` | `str \| None` | `None` | API key (falls back to `ANTHROPIC_API_KEY` env var) |
-| `client` | `Any` | `None` | Pre-configured `anthropic.Anthropic` client |
+| `model` | `str` | `"claude-haiku-4-5-20251001"` | Model string in `"provider/model"` format. No prefix defaults to `anthropic/`. |
+| `api_key` | `str \| None` | `None` | API key (falls back to provider-specific env var) |
+| `llm` | `LLMProvider \| None` | `None` | Pre-built provider instance. Overrides `model` and `api_key` when set. |
+| `fallbacks` | `list[str] \| None` | `None` | Fallback model strings (e.g. `["openai/gpt-4o"]`). Creates a `FallbackProvider`. |
 | `max_tokens` | `int` | `16384` | Token budget for the context pipeline |
 | `max_response_tokens` | `int` | `1024` | Max tokens in each API response |
 | `max_rounds` | `int` | `10` | Max tool-use rounds per `chat()` call |
-| `max_retries` | `int` | `3` | Max retries on transient API errors |
+
+!!! tip
+    See the [LLM Providers Guide](../guides/llm-providers.md) for supported
+    providers, installation, and fallback chain configuration.
 
 ### Methods
 
@@ -170,32 +175,14 @@ class AgentTool(BaseModel):
 
 ### Methods
 
-#### to_anthropic_schema
+#### to_tool_schema
 
 ```python
-def to_anthropic_schema(self) -> dict[str, Any]
+def to_tool_schema(self) -> ToolSchema
 ```
 
-Convert to Anthropic tool definition format. Returns a dict with `name`,
-`description`, and `input_schema` keys.
-
-#### to_openai_schema
-
-```python
-def to_openai_schema(self) -> dict[str, Any]
-```
-
-Convert to OpenAI function-calling format. Returns a dict with `type` and
-`function` keys.
-
-#### to_generic_schema
-
-```python
-def to_generic_schema(self) -> dict[str, Any]
-```
-
-Convert to a provider-agnostic format. Returns a dict with `name`,
-`description`, and `parameters` keys.
+Convert to a provider-agnostic [`ToolSchema`](llm.md#toolschema). Returns
+a `ToolSchema` with `name`, `description`, and `input_schema` fields.
 
 #### validate_input
 
@@ -456,5 +443,7 @@ def rag_tools(
 ## See Also
 
 - [Agent Guide](../guides/agent.md) -- usage guide with examples
+- [LLM Providers Guide](../guides/llm-providers.md) -- multi-provider setup and fallbacks
+- [LLM API Reference](llm.md) -- provider protocol, models, and errors
 - [Pipeline API Reference](../api/pipeline.md) -- underlying pipeline
 - [Protocols Reference](../api/protocols.md) -- extension point protocols

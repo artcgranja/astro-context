@@ -1,7 +1,7 @@
 # Agent Guide
 
 The Agent module provides a high-level, batteries-included interface that combines
-the context pipeline with Anthropic's API. It handles streaming chat, automatic
+the context pipeline with any LLM provider. It handles streaming chat, automatic
 tool use loops, memory management, and agentic RAG -- all through a fluent builder
 API.
 
@@ -10,7 +10,7 @@ API.
 The `Agent` class wraps three systems into a single entry point:
 
 1. **ContextPipeline** -- assembles system prompts, memory, and retrieval context
-2. **Anthropic Messages API** -- streams responses with automatic retries
+2. **LLM Provider** -- streams responses via the [`LLMProvider`](../api/llm.md#llmprovider-protocol) protocol with automatic retries
 3. **Tool loop** -- executes tools and feeds results back to the model
 
 ```
@@ -20,7 +20,7 @@ User message
 ContextPipeline.build()  -->  system + messages
     |
     v
-Anthropic API (streaming)
+LLM Provider (streaming)
     |
     v
 Tool use?  -- yes --> execute tools --> feed back --> loop
@@ -45,33 +45,34 @@ for chunk in agent.chat("What is context engineering?"):
 ```
 
 !!! note
-    The Agent requires the `anthropic` package. Install it with
-    `pip install astro-anchor[anthropic]`.
+    The Agent requires at least one LLM provider SDK. The default is Anthropic:
+    `pip install astro-anchor[anthropic]`. See the
+    [LLM Providers Guide](llm-providers.md) for all supported providers.
 
 ## Constructor
 
 ```python
 Agent(
-    model: str,
+    model: str = "claude-haiku-4-5-20251001",
     *,
     api_key: str | None = None,
-    client: Any = None,
+    llm: LLMProvider | None = None,
+    fallbacks: list[str] | None = None,
     max_tokens: int = 16384,
     max_response_tokens: int = 1024,
     max_rounds: int = 10,
-    max_retries: int = 3,
 )
 ```
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `model` | `str` | required | Anthropic model identifier (e.g. `"claude-haiku-4-5-20251001"`) |
-| `api_key` | `str \| None` | `None` | Anthropic API key. Uses `ANTHROPIC_API_KEY` env var if omitted |
-| `client` | `Any` | `None` | Pre-configured `anthropic.Anthropic` client instance |
+| `model` | `str` | `"claude-haiku-4-5-20251001"` | Model string in `"provider/model"` format. No prefix defaults to `anthropic/`. |
+| `api_key` | `str \| None` | `None` | API key (falls back to provider-specific env var) |
+| `llm` | `LLMProvider \| None` | `None` | Pre-built provider instance. Overrides `model`/`api_key`. |
+| `fallbacks` | `list[str] \| None` | `None` | Fallback model strings (e.g. `["openai/gpt-4o"]`) |
 | `max_tokens` | `int` | `16384` | Token budget for the context pipeline |
 | `max_response_tokens` | `int` | `1024` | Maximum tokens in each API response |
 | `max_rounds` | `int` | `10` | Maximum tool-use rounds per chat call |
-| `max_retries` | `int` | `3` | Maximum API retries on transient errors |
 
 ## Fluent Configuration
 
@@ -234,9 +235,7 @@ my_tool = AgentTool(
 
 Key methods:
 
-- `to_anthropic_schema()` -- Anthropic tool format
-- `to_openai_schema()` -- OpenAI function-calling format
-- `to_generic_schema()` -- Provider-agnostic format
+- `to_tool_schema()` -- Provider-agnostic [`ToolSchema`](../api/llm.md#toolschema)
 - `validate_input(tool_input)` -- Returns `(bool, str)` tuple
 
 ## Skills System
@@ -406,20 +405,27 @@ for chunk in agent.chat("Remember that my favorite color is blue"):
 
 ## Error Handling and Retries
 
-The agent retries on transient Anthropic errors with exponential backoff:
+The underlying `BaseLLMProvider` retries on transient errors with exponential
+backoff. Transient errors include:
 
-- `RateLimitError`
-- `APIConnectionError`
-- `APITimeoutError`
+- `RateLimitError` -- 429 responses (respects `retry_after` header)
+- `ServerError` -- 5xx responses
+- `TimeoutError` -- request timeouts
 
-Backoff delays: 1s, 2s, 4s, etc., up to `max_retries` attempts.
+Non-transient errors (`AuthenticationError`, `ModelNotFoundError`,
+`ContentFilterError`) raise immediately.
 
 Tool execution errors are caught and returned as error messages to the model,
 allowing it to recover gracefully.
 
+See the [LLM Providers Guide](llm-providers.md) for details on fallback
+chains and the error hierarchy.
+
 ## See Also
 
+- [LLM Providers Guide](llm-providers.md) -- multi-provider setup and fallbacks
 - [Pipeline Guide](../guides/pipeline.md) -- underlying context assembly
 - [Memory Guide](../guides/memory.md) -- memory management details
 - [Agent API Reference](../api/agent.md) -- complete API signatures
+- [LLM API Reference](../api/llm.md) -- provider protocol, models, and errors
 - [Formatters Guide](../guides/formatters.md) -- output formatting
