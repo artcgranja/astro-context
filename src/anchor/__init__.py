@@ -616,3 +616,41 @@ __all__ = [
     "rrf_fuse",
     "tool",
 ]
+
+# MCP Bridge (optional — requires pip install astro-anchor[mcp])
+try:
+    from anchor.mcp import (
+        FastMCPClientBridge,
+        FastMCPServerBridge,
+        MCPClient,
+        MCPClientPool,
+        MCPConfigError,
+        MCPConnectionError,
+        MCPError,
+        MCPPrompt,
+        MCPPromptArgument,
+        MCPResource,
+        MCPServer,
+        MCPServerConfig,
+        MCPTimeoutError,
+        MCPToolError,
+    )
+
+    __all__ += [
+        "FastMCPClientBridge",
+        "FastMCPServerBridge",
+        "MCPClient",
+        "MCPClientPool",
+        "MCPConfigError",
+        "MCPConnectionError",
+        "MCPError",
+        "MCPPrompt",
+        "MCPPromptArgument",
+        "MCPResource",
+        "MCPServer",
+        "MCPServerConfig",
+        "MCPTimeoutError",
+        "MCPToolError",
+    ]
+except ImportError:
+    pass  # fastmcp not installed — MCP bridge unavailable
