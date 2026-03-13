@@ -209,7 +209,8 @@ class MCPConnectionError(MCPError):
         server_name: str,
         transport: str = "",
     ) -> None:
-        super().__init__(message)
+        full_msg = f"[{server_name}] {message}" if server_name else message
+        super().__init__(full_msg)
         self.server_name = server_name
         self.transport = transport
 
@@ -225,7 +226,8 @@ class MCPToolError(MCPError):
         server_name: str,
         cause: BaseException | None = None,
     ) -> None:
-        super().__init__(message)
+        full_msg = f"[{server_name}/{tool_name}] {message}"
+        super().__init__(full_msg)
         self.tool_name = tool_name
         self.server_name = server_name
         self.cause = cause
@@ -491,7 +493,7 @@ And add these names to `__all__`.
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/distracted-panini && python -m pytest tests/test_mcp/test_models.py -v`
-Expected: All 10 tests PASS
+Expected: All 13 tests PASS
 
 - [ ] **Step 6: Commit**
 
