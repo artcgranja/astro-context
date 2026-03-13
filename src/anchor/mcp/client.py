@@ -1,0 +1,217 @@
+"""FastMCP-backed client bridge for consuming external MCP servers.
+
+Uses FastMCP's Client class with auto-inferred transport.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Self
+
+from anchor.agent.models import AgentTool
+from anchor.llm.models import ToolSchema
+from anchor.mcp.errors import MCPConnectionError, MCPToolError
+from anchor.mcp.models import (
+    MCPPrompt,
+    MCPPromptArgument,
+    MCPResource,
+    MCPServerConfig,
+)
+from anchor.mcp.tools import mcp_tool_to_agent_tool
+
+try:
+    from fastmcp.client import Client
+except ImportError as exc:
+    _import_error = exc
+
+    class Client:  # type: ignore[no-redef]
+        """Placeholder when fastmcp is not installed."""
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise ImportError(
+                "MCP bridge requires the 'fastmcp' package. "
+                "Install with: pip install astro-anchor[mcp]"
+            ) from _import_error
+
+logger = logging.getLogger(__name__)
+
+
+class FastMCPClientBridge:
+    """Connects to external MCP servers using FastMCP Client.
+
+    Implements the MCPClient protocol. Adapts MCP tools to
+    anchor's AgentTool format for seamless Agent integration.
+    """
+
+    __slots__ = ("_cached_tools", "_config", "_fastmcp_client")
+
+    def __init__(self, config: MCPServerConfig) -> None:
+        self._config = config
+        self._fastmcp_client: Client | None = None
+        self._cached_tools: list[ToolSchema] | None = None
+
+    async def connect(self) -> None:
+        """Connect using auto-inferred transport."""
+        try:
+            if self._config.url is not None:
+                client = Client(self._config.url)
+            elif self._config.command is not None:
+                cmd = self._config.command
+                if self._config.args:
+                    cmd = f"{cmd} {' '.join(self._config.args)}"
+                client = Client(cmd)
+            else:
+                msg = "No command or URL configured"
+                raise MCPConnectionError(
+                    msg,
+                    server_name=self._config.name,
+                    transport="unknown",
+                )
+
+            self._fastmcp_client = await client.__aenter__()
+        except MCPConnectionError:
+            raise
+        except Exception as exc:
+            msg = f"Failed to connect to MCP server '{self._config.name}': {exc}"
+            raise MCPConnectionError(
+                msg,
+                server_name=self._config.name,
+                transport="http" if self._config.url else "stdio",
+            ) from exc
+
+    async def disconnect(self) -> None:
+        """Close the FastMCP Client connection."""
+        if self._fastmcp_client is not None:
+            try:
+                await self._fastmcp_client.__aexit__(None, None, None)
+            except Exception:
+                logger.warning(
+                    "Error disconnecting from MCP server '%s'",
+                    self._config.name,
+                    exc_info=True,
+                )
+            finally:
+                self._fastmcp_client = None
+                self._cached_tools = None
+
+    async def list_tools(self) -> list[ToolSchema]:
+        """List tools, with optional caching."""
+        if self._config.cache_tools and self._cached_tools is not None:
+            return self._cached_tools
+
+        assert self._fastmcp_client is not None  # noqa: S101
+        mcp_tools = await self._fastmcp_client.list_tools()
+        schemas = [
+            ToolSchema(
+                name=t.name,
+                description=t.description or "",
+                input_schema=t.inputSchema,
+            )
+            for t in mcp_tools
+        ]
+
+        if self._config.cache_tools:
+            self._cached_tools = schemas
+
+        return schemas
+
+    async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
+        """Execute tool via FastMCP Client, return result as string."""
+        assert self._fastmcp_client is not None  # noqa: S101
+        try:
+            result = await self._fastmcp_client.call_tool(name, arguments)
+            if hasattr(result, "content") and isinstance(result.content, list):
+                texts = [
+                    block.text for block in result.content
+                    if hasattr(block, "text") and block.text
+                ]
+                return " ".join(texts) if texts else str(result)
+            return str(result)
+        except Exception as exc:
+            raise MCPToolError(
+                f"MCP tool '{name}' failed: {exc}",
+                tool_name=name,
+                server_name=self._config.name,
+                cause=exc,
+            ) from exc
+
+    async def list_resources(self) -> list[MCPResource]:
+        """List resources from the MCP server."""
+        assert self._fastmcp_client is not None  # noqa: S101
+        mcp_resources = await self._fastmcp_client.list_resources()
+        return [
+            MCPResource(
+                uri=str(r.uri),
+                name=r.name,
+                description=r.description,
+                mime_type=r.mimeType if hasattr(r, "mimeType") else None,
+            )
+            for r in mcp_resources
+        ]
+
+    async def read_resource(self, uri: str) -> str:
+        """Read a resource by URI."""
+        assert self._fastmcp_client is not None  # noqa: S101
+        result = await self._fastmcp_client.read_resource(uri)
+        if isinstance(result, list) and result:
+            first = result[0]
+            if hasattr(first, "content"):
+                return str(first.content)
+        return str(result)
+
+    async def list_prompts(self) -> list[MCPPrompt]:
+        """List prompt templates from the MCP server."""
+        assert self._fastmcp_client is not None  # noqa: S101
+        mcp_prompts = await self._fastmcp_client.list_prompts()
+        return [
+            MCPPrompt(
+                name=p.name,
+                description=p.description,
+                arguments=[
+                    MCPPromptArgument(
+                        name=a.name,
+                        description=a.description,
+                        required=a.required or False,
+                    )
+                    for a in (p.arguments or [])
+                ],
+            )
+            for p in mcp_prompts
+        ]
+
+    async def get_prompt(self, name: str, arguments: dict[str, Any]) -> str:
+        """Get a rendered prompt."""
+        assert self._fastmcp_client is not None  # noqa: S101
+        result = await self._fastmcp_client.get_prompt(name, arguments)
+        if hasattr(result, "messages") and result.messages:
+            texts = []
+            for msg in result.messages:
+                if hasattr(msg.content, "text"):
+                    texts.append(msg.content.text)
+            return " ".join(texts) if texts else str(result)
+        return str(result)
+
+    async def as_agent_tools(self) -> list[AgentTool]:
+        """Convert all MCP tools to AgentTool instances."""
+        schemas = await self.list_tools()
+        return [
+            mcp_tool_to_agent_tool(
+                schema=schema,
+                async_caller=self.call_tool,
+                server_name=self._config.name,
+                prefix=self._config.prefix_tools,
+            )
+            for schema in schemas
+        ]
+
+    async def __aenter__(self) -> Self:
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
+        await self.disconnect()
