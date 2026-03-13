@@ -1568,7 +1568,8 @@ class TestFastMCPServerBridge:
         assert len(server._registered_prompts) == 1
 
     def test_from_agent(self) -> None:
-        # Test that from_agent creates a server with the agent's tools
+        # Test that from_agent creates a server with the agent's tools,
+        # resources (context://pipeline, context://memory), and prompt (chat)
         from anchor.agent.agent import Agent
 
         agent = Agent(model="claude-haiku-4-5-20251001").with_tools([greet, add])
@@ -1576,6 +1577,29 @@ class TestFastMCPServerBridge:
         assert isinstance(server, FastMCPServerBridge)
         # Agent has 2 tools
         assert len(server._registered_tools) >= 2
+        # Should expose context://pipeline and context://memory resources
+        assert "context://pipeline" in server._registered_resources
+        assert "context://memory" in server._registered_resources
+        # Should expose chat prompt
+        assert "chat" in server._registered_prompts
+
+    def test_from_pipeline(self) -> None:
+        # Test that from_pipeline creates a server with query tool and context://result resource
+        mock_pipeline = MagicMock()
+        mock_result = MagicMock()
+        mock_result.formatted_output = "pipeline output"
+        mock_pipeline.build.return_value = mock_result
+
+        server = FastMCPServerBridge.from_pipeline(mock_pipeline)
+        assert isinstance(server, FastMCPServerBridge)
+        assert "query" in server._registered_tools
+        assert "context://result" in server._registered_resources
+
+    @pytest.mark.asyncio
+    async def test_run_unknown_transport_raises(self) -> None:
+        server = FastMCPServerBridge("test")
+        with pytest.raises(ValueError, match="Unknown transport"):
+            await server.run(transport="invalid")
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1583,7 +1607,9 @@ class TestFastMCPServerBridge:
 Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/distracted-panini && python -m pytest tests/test_mcp/test_server.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'anchor.mcp.server'`
 
-- [ ] **Step 3: Implement FastMCPServerBridge**
+- [ ] **Step 3a: Create server.py with core class and expose methods**
+
+Create `src/anchor/mcp/server.py` with the class skeleton, `__init__`, `expose_tool`, `expose_tools`, `expose_resource`, `expose_prompt`, and `run`:
 
 Create `src/anchor/mcp/server.py`:
 
@@ -1666,23 +1692,66 @@ class FastMCPServerBridge:
 
     @classmethod
     def from_agent(cls, agent: Agent) -> FastMCPServerBridge:
-        """Create server from an Agent, exposing all its tools."""
+        """Create server from an Agent, exposing all its tools.
+
+        Also exposes:
+        - resource ``context://pipeline`` -> pipeline query
+        - resource ``context://memory`` -> memory state
+        - prompt ``chat`` -> send a message through the agent
+        """
         server = cls(name="anchor-agent")
         server.expose_tools(agent._tools)
+
+        # Expose pipeline resource
+        def _pipeline_resource() -> str:
+            """Return the agent's pipeline configuration."""
+            return str(getattr(agent, "_pipeline", "No pipeline configured"))
+
+        server.expose_resource("context://pipeline", _pipeline_resource)
+
+        # Expose memory resource
+        def _memory_resource() -> str:
+            """Return the agent's memory state."""
+            return str(getattr(agent, "_memory", "No memory configured"))
+
+        server.expose_resource("context://memory", _memory_resource)
+
+        # Expose chat prompt
+        def _chat_prompt(message: str) -> str:
+            """Send a message through the agent."""
+            return message
+
+        server.expose_prompt("chat", _chat_prompt)
+
         return server
 
     @classmethod
     def from_pipeline(cls, pipeline: ContextPipeline) -> FastMCPServerBridge:
-        """Create server exposing pipeline as retrieval tools."""
+        """Create server exposing pipeline as retrieval tools.
+
+        Exposes:
+        - tool ``query`` -> run pipeline.build() and return results
+        - resource ``context://result`` -> last pipeline result
+        """
         server = cls(name="anchor-pipeline")
+        _last_result: list[str] = []
 
         def query(text: str) -> str:
             """Run the context pipeline and return formatted results."""
             result = pipeline.build(text)
-            return str(result.formatted_output)
+            output = str(result.formatted_output)
+            _last_result.clear()
+            _last_result.append(output)
+            return output
 
         server._mcp.tool(name="query", description="Query the context pipeline")(query)
         server._registered_tools.append("query")
+
+        def _result_resource() -> str:
+            """Return the last pipeline result."""
+            return _last_result[0] if _last_result else "No results yet"
+
+        server.expose_resource("context://result", _result_resource)
 
         return server
 
@@ -1699,6 +1768,11 @@ class FastMCPServerBridge:
             raise ValueError(msg)
 ```
 
+- [ ] **Step 3b: Verify core expose methods pass**
+
+Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/distracted-panini && python -m pytest tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_satisfies_protocol tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_expose_tool tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_expose_tools tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_expose_resource tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_expose_prompt tests/test_mcp/test_server.py::TestFastMCPServerBridge::test_run_unknown_transport_raises -v`
+Expected: These 6 tests PASS. Factory method tests (`from_agent`, `from_pipeline`) may still fail — that's fine, they depend on the full class.
+
 - [ ] **Step 4: Update `__init__.py` exports**
 
 Add `FastMCPServerBridge` to imports and `__all__`.
@@ -1706,7 +1780,7 @@ Add `FastMCPServerBridge` to imports and `__all__`.
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `cd /Users/arthurgranja/github/astro-context/.claude/worktrees/distracted-panini && python -m pytest tests/test_mcp/test_server.py -v`
-Expected: All 6 tests PASS
+Expected: All 8 tests PASS
 
 - [ ] **Step 6: Commit**
 
