@@ -15,7 +15,8 @@ Caching:
     CacheBackend, InMemoryCacheBackend
 
 Memory Management:
-    MemoryManager, SlidingWindowMemory, SummaryBufferMemory, SimpleGraphMemory,
+    MemoryManager, SlidingWindowMemory, SummaryBufferMemory, ProgressiveSummarizationMemory,
+    TierCompactor, SimpleGraphMemory,
     MemoryGarbageCollector, GCStats, MemoryCallback, CallbackExtractor,
     MemoryContextEnricher, ContextQueryEnricher,
     FIFOEviction, ImportanceEviction, PairedEviction,
@@ -171,10 +172,12 @@ from anchor.memory import (
     MemoryGarbageCollector,
     MemoryManager,
     PairedEviction,
+    ProgressiveSummarizationMemory,
     SimilarityConsolidator,
     SimpleGraphMemory,
     SlidingWindowMemory,
     SummaryBufferMemory,
+    TierCompactor,
 )
 from anchor.models import (
     BudgetAllocation,
@@ -517,6 +520,7 @@ __all__ = [
     "PlainTextParser",
     "PostProcessor",
     "ProviderError",
+    "ProgressiveSummarizationMemory",
     "ProviderNotInstalledError",
     "QueryBundle",
     "QueryClassifier",
@@ -567,6 +571,7 @@ __all__ = [
     "TableAwareChunker",
     "TableEncoder",
     "TableExtractor",
+    "TierCompactor",
     "TextEncoder",
     "TiktokenCounter",
     "TimeoutError",

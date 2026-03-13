@@ -20,6 +20,7 @@ from anchor.protocols.storage import MemoryEntryStore
 from anchor.protocols.tokenizer import Tokenizer
 from anchor.tokens.counter import get_default_counter
 
+from .progressive import ProgressiveSummarizationMemory
 from .sliding_window import SlidingWindowMemory
 from .summary_buffer import SummaryBufferMemory
 
@@ -77,9 +78,12 @@ class MemoryManager:
     def conversation_type(self) -> str:
         """Return the type of the underlying conversation memory.
 
-        Returns ``"sliding_window"``, ``"summary_buffer"``, or the class name
-        for custom ``ConversationMemory`` implementations.
+        Returns ``"sliding_window"``, ``"summary_buffer"``,
+        ``"progressive_summarization"``, or the class name for custom
+        ``ConversationMemory`` implementations.
         """
+        if isinstance(self._conversation, ProgressiveSummarizationMemory):
+            return "progressive_summarization"
         if isinstance(self._conversation, SummaryBufferMemory):
             return "summary_buffer"
         if isinstance(self._conversation, SlidingWindowMemory):
@@ -95,7 +99,9 @@ class MemoryManager:
 
     def _add_message(self, role: Role, content: str) -> None:
         """Add a message to the conversation backend (works with both types)."""
-        if isinstance(self._conversation, SummaryBufferMemory):
+        if isinstance(self._conversation, ProgressiveSummarizationMemory):
+            self._conversation.add_message(role, content)
+        elif isinstance(self._conversation, SummaryBufferMemory):
             self._conversation.add_message(role, content)
         elif isinstance(self._conversation, SlidingWindowMemory):
             self._conversation.add_turn(role, content)
