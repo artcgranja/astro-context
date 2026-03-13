@@ -41,10 +41,13 @@ Content flows downward as tiers fill up. Key facts are extracted at every transi
 New turn added → Tier 0 (SlidingWindowMemory)
                     │
                     ▼ (when Tier 0 exceeds max_tokens)
-              Evicted turns
+              Evicted turns (ConversationTurn[])
                     │
-                    ├──▶ TierCompactor.summarize(turns, target=Tier1) → Tier 1 content
-                    └──▶ TierCompactor.extract_facts(turns) → KeyFact[]
+                    ├──▶ serialize_turns(turns) → str
+                    │        Format: "{role}: {content}\n" per turn (no metadata)
+                    │
+                    ├──▶ TierCompactor.summarize(serialized, target=Tier1) → Tier 1 content
+                    └──▶ TierCompactor.extract_facts(serialized) → KeyFact[]
                               │
                               ▼ (when Tier 1 exceeds max_tokens)
                     TierCompactor.summarize(tier1_content, target=Tier2) → Tier 2 content
@@ -56,6 +59,17 @@ New turn added → Tier 0 (SlidingWindowMemory)
 ```
 
 When a higher tier receives new content, it merges with existing content via progressive compaction (the LLM receives both the existing summary and the new content to produce a unified result).
+
+### Turn Serialization
+
+`TierCompactor` accepts `str` content. `ProgressiveSummarizationMemory` is responsible for serializing `ConversationTurn` objects before passing to the compactor. The serialization format for Tier 0→1 transitions:
+
+```python
+def _serialize_turns(turns: list[ConversationTurn]) -> str:
+    return "\n".join(f"{turn.role}: {turn.content}" for turn in turns)
+```
+
+Metadata is not included in serialization — it's conversational content only. For Tier 1→2 and 2→3 transitions, the input is already a summary string, so no serialization is needed.
 
 ## Data Models
 
@@ -132,7 +146,7 @@ Constructor:
 def __init__(
     self,
     max_tokens: int = 8192,
-    llm: LLMProvider | str = "claude-haiku-4-5-20251001",
+    llm: LLMProvider | str = "anthropic/claude-haiku-4-5-20251001",
     tier_config: list[TierConfig] | None = None,
     max_facts: int = 50,
     fact_token_budget: int = 500,
@@ -206,11 +220,15 @@ class TierCompactor:
     ) -> str:
         """Async summarization."""
 
-    def extract_facts(self, content: str) -> list[KeyFact]:
-        """Sync key-fact extraction. Returns parsed facts."""
+    def extract_facts(self, content: str, source_tier: int) -> list[KeyFact]:
+        """Sync key-fact extraction. Returns parsed facts.
 
-    async def aextract_facts(self, content: str) -> list[KeyFact]:
-        """Async key-fact extraction."""
+        The LLM returns only {"type", "content"} pairs. The compactor
+        injects source_tier, generates id, and computes token_count
+        when constructing KeyFact objects from the parsed JSON."""
+
+    async def aextract_facts(self, content: str, source_tier: int) -> list[KeyFact]:
+        """Async key-fact extraction. Same source_tier injection as sync variant."""
 ```
 
 **Prompt templates** (internal, not exposed):
@@ -273,41 +291,68 @@ were lost. Return [] if no key facts are found.
 
 ### Thread Safety
 
-- Sync path: `threading.Lock` (same pattern as `SummaryBufferMemory`)
-- Async path: `asyncio.Lock`
-- All mutable state (`_tiers`, `_facts`, `_window`) accessed only within lock
+- Sync path: `threading.RLock` (reentrant lock, required because `SlidingWindowMemory.add_turn` acquires its own internal lock and then calls the eviction callback, which needs to write to `_tiers` and `_facts`)
+- Async path: No lock needed for tier writes in the eviction callback path — async compaction is performed after the window's `add_turn` returns, not inside the eviction callback
+- The eviction callback (`_handle_eviction`) is called from within `SlidingWindowMemory`'s lock. It must NOT attempt to call back into the window. It only writes to `_tiers` and `_facts`, which are protected by the outer `RLock`.
+- All mutable state (`_tiers`, `_facts`, `_window`) accessed only within the reentrant lock
 
 ### Observability
 
-Emits callbacks via anchor's callback system:
-- `on_tier_cascade(from_tier: int, to_tier: int, tokens_in: int, tokens_out: int)`
-- `on_facts_extracted(facts: list[KeyFact], source_tier: int)`
-- `on_compaction_error(tier: int, error: Exception)`
+Defines a new `ProgressiveSummarizationCallback` protocol in `src/anchor/memory/callbacks.py`, extending the existing callback architecture. Uses the `_fire_memory_callback` helper from the same file for error-safe dispatch.
+
+```python
+@runtime_checkable
+class ProgressiveSummarizationCallback(Protocol):
+    """Callback protocol for progressive summarization events."""
+
+    def on_tier_cascade(
+        self, from_tier: int, to_tier: int, tokens_in: int, tokens_out: int
+    ) -> None: ...
+
+    def on_facts_extracted(self, facts: list[KeyFact], source_tier: int) -> None: ...
+
+    def on_compaction_error(self, tier: int, error: Exception) -> None: ...
+```
+
+`ProgressiveSummarizationMemory` accepts an optional `callbacks: list[ProgressiveSummarizationCallback]` constructor parameter. Callback dispatch uses the existing `fire_callbacks` / `_fire_memory_callback` pattern from `anchor._callbacks`.
 
 ## Context Output
 
 `to_context_items(priority=7)` returns items in this order:
 
-| Source | Priority | SourceType | Metadata |
-|--------|----------|------------|----------|
-| Tier 3 (ultra-compact) | 4 | CONVERSATION | `{"tier": 3, "summary": True}` |
-| Tier 2 (compact) | 5 | CONVERSATION | `{"tier": 2, "summary": True}` |
-| Tier 1 (detailed) | 6 | CONVERSATION | `{"tier": 1, "summary": True}` |
-| Tier 0 (verbatim turns) | 7 | CONVERSATION | `{"role": "user"/"assistant"}` |
-| Key facts | 8 | MEMORY | `{"fact_type": "decision", ...}` |
+Priorities are always **relative** to the `priority` parameter (default 7):
 
-The `priority` parameter controls Tier 0's priority. Other tiers are offset: `priority - 1`, `priority - 2`, `priority - 3`. Facts are always `priority + 1`.
+| Source | Priority formula | Default (priority=7) | SourceType | Metadata |
+|--------|-----------------|---------------------|------------|----------|
+| Tier 3 (ultra-compact) | `priority - 3` | 4 | CONVERSATION | `{"tier": 3, "summary": True}` |
+| Tier 2 (compact) | `priority - 2` | 5 | CONVERSATION | `{"tier": 2, "summary": True}` |
+| Tier 1 (detailed) | `priority - 1` | 6 | CONVERSATION | `{"tier": 1, "summary": True}` |
+| Tier 0 (verbatim turns) | `priority` | 7 | CONVERSATION | `{"role": "user"/"assistant"}` |
+| Key facts | `priority + 1` | 8 | MEMORY | `{"fact_type": "decision", ...}` |
+
+All tier priorities are derived from the `priority` parameter. This means calling `to_context_items(priority=5)` produces Tier 3 at priority 2, Tier 2 at 3, Tier 1 at 4, Tier 0 at 5, and facts at 6. The `TierConfig.priority` field is used only for the default configuration — at runtime, the `priority` parameter takes precedence.
 
 ## Integration Points
 
 ### MemoryManager
 
 ```python
-memory = ProgressiveSummarizationMemory(llm="claude-haiku-4-5-20251001")
+memory = ProgressiveSummarizationMemory(llm="anthropic/claude-haiku-4-5-20251001")
 manager = MemoryManager(conversation_memory=memory)
 ```
 
-Works because `ProgressiveSummarizationMemory` satisfies `ConversationMemory` protocol. The existing `MemoryManager._add_message` dispatch needs a new branch for `ProgressiveSummarizationMemory` (same pattern as the existing `SummaryBufferMemory` branch).
+Works because `ProgressiveSummarizationMemory` satisfies `ConversationMemory` protocol.
+
+**Required change to `MemoryManager._add_message`** (file: `src/anchor/memory/manager.py`):
+
+Add a new `isinstance` branch for `ProgressiveSummarizationMemory` that calls `self._conversation.add_message(role, content)`. This follows the exact same pattern as the existing `SummaryBufferMemory` branch:
+
+```python
+elif isinstance(self._conversation, ProgressiveSummarizationMemory):
+    self._conversation.add_message(role, content)
+```
+
+This change must be included in the implementation scope and tested in the integration test suite.
 
 ### ContextPipeline
 
@@ -336,7 +381,7 @@ Add to `src/anchor/memory/__init__.py` (if exists, otherwise in the main init).
 1. **Construction**
    - Default config from `max_tokens`
    - Custom `tier_config`
-   - String LLM resolution (`"claude-haiku-4-5-20251001"` → provider)
+   - String LLM resolution (`"anthropic/claude-haiku-4-5-20251001"` → provider)
    - Invalid config (overlapping budgets, negative tokens) → ValueError
 
 2. **Cascade Behavior**
@@ -363,11 +408,16 @@ Add to `src/anchor/memory/__init__.py` (if exists, otherwise in the main init).
    - `clear()` resets everything
    - Satisfies `ConversationMemory` at runtime (`isinstance` check)
 
-6. **Thread Safety**
-   - Concurrent `add_message` calls don't corrupt state
-   - Async `aadd_message` with `asyncio.Lock`
+6. **Async Symmetry**
+   - `aadd_turn` delegates to async LLM compaction (not sync)
+   - `aadd_message` uses async compaction path
+   - Verify no sync LLM calls in async code path
 
-7. **Error Handling**
+7. **Thread Safety**
+   - Concurrent `add_message` calls don't corrupt state
+   - RLock prevents deadlock in eviction callback chain
+
+8. **Error Handling**
    - LLM failure → fallback to raw concatenation
    - Fact extraction failure → skip, log warning
    - Over-budget summary → truncation
@@ -391,9 +441,10 @@ Add to `src/anchor/memory/__init__.py` (if exists, otherwise in the main init).
 
 ### Integration Tests: `tests/test_memory/test_progressive_integration.py`
 
-1. **MemoryManager integration** — `ProgressiveSummarizationMemory` as conversation backend
+1. **MemoryManager integration** — `ProgressiveSummarizationMemory` as conversation backend, verify `add_user_message()` / `add_assistant_message()` dispatch correctly via the new `isinstance` branch
 2. **Full 20-turn conversation** — verify all tiers populated after sufficient messages
 3. **Context pipeline** — items flow through `ContextPipeline.run()` correctly
+4. **MemoryManager._add_message dispatch** — verify the new `ProgressiveSummarizationMemory` branch in `_add_message` works correctly and doesn't raise `TypeError`
 
 All tests use mocked `LLMProvider` returning canned responses. No real API calls.
 
