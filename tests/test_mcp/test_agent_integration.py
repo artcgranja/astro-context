@@ -129,3 +129,48 @@ class TestAgentAsyncMCPExecution:
         agent._mcp_tools = [mcp_tool]
         all_tools = agent._all_active_tools()
         assert any(t.name == "mcp_tool" for t in all_tools)
+
+    @pytest.mark.asyncio
+    async def test_aexecute_mcp_tool_error_includes_details(self) -> None:
+        agent = Agent(llm=MagicMock())
+        async_caller = AsyncMock(side_effect=RuntimeError("connection reset"))
+
+        def sentinel(**_kwargs: Any) -> str:
+            raise MCPError("sync")
+
+        tool = AgentTool(
+            name="broken",
+            description="Broken tool",
+            input_schema={"type": "object", "properties": {}},
+            fn=sentinel,
+        )
+        object.__setattr__(tool, "_mcp_async_caller", async_caller)
+        object.__setattr__(tool, "_mcp_original_name", "broken")
+        agent._mcp_tools = [tool]
+        result = await agent._aexecute_tool("broken", {})
+        assert "connection reset" in result
+
+    @pytest.mark.asyncio
+    async def test_aclose_disconnects_pool(self) -> None:
+        agent = Agent(llm=MagicMock())
+        mock_pool = AsyncMock()
+        agent._mcp_pool = mock_pool
+        agent._mcp_tools = [MagicMock()]
+
+        await agent.aclose()
+        mock_pool.disconnect_all.assert_awaited_once()
+        assert agent._mcp_pool is None
+        assert agent._mcp_tools == []
+
+    @pytest.mark.asyncio
+    async def test_async_context_manager(self) -> None:
+        mock_pool = AsyncMock()
+        async with Agent(llm=MagicMock()) as agent:
+            agent._mcp_pool = mock_pool
+            agent._mcp_tools = [MagicMock()]
+        mock_pool.disconnect_all.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_aclose_noop_without_pool(self) -> None:
+        agent = Agent(llm=MagicMock())
+        await agent.aclose()  # should not raise

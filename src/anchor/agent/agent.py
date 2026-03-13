@@ -244,11 +244,15 @@ class Agent:
                 async_caller = getattr(tool, "_mcp_async_caller", None)
                 if async_caller is not None:
                     original_name = getattr(tool, "_mcp_original_name", name)
+                    # Validate input before calling MCP tool
+                    valid, err = tool.validate_input(tool_input)
+                    if not valid:
+                        return f"Error: invalid input for tool '{name}': {err}"
                     try:
                         return await async_caller(original_name, tool_input)
-                    except Exception:
+                    except Exception as exc:
                         logger.exception("MCP tool '%s' failed", name)
-                        return f"Error: MCP tool '{name}' failed."
+                        return f"Error: MCP tool '{name}' failed: {exc}"
 
                 # Regular tool — run sync
                 valid, err = tool.validate_input(tool_input)
@@ -466,9 +470,14 @@ class Agent:
         # Lazy MCP connection
         if self._mcp_configs and self._mcp_pool is None:
             from anchor.mcp.client import MCPClientPool
-            self._mcp_pool = MCPClientPool(self._mcp_configs)
-            await self._mcp_pool.connect_all()
-            self._mcp_tools = await self._mcp_pool.all_agent_tools()
+            pool = MCPClientPool(self._mcp_configs)
+            try:
+                await pool.connect_all()
+                self._mcp_tools = await pool.all_agent_tools()
+                self._mcp_pool = pool
+            except Exception:
+                await pool.disconnect_all()
+                raise
 
         ctx_result = await self._pipeline.abuild(message)
         self._last_result = ctx_result
@@ -554,3 +563,21 @@ class Agent:
 
         if self._memory is not None and final_text:
             self._memory.add_assistant_message(final_text)
+
+    async def aclose(self) -> None:
+        """Clean up MCP connections and other async resources."""
+        if self._mcp_pool is not None:
+            await self._mcp_pool.disconnect_all()
+            self._mcp_pool = None
+            self._mcp_tools = []
+
+    async def __aenter__(self) -> Agent:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
+        await self.aclose()

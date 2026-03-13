@@ -59,6 +59,9 @@ def parse_server_string(server: str) -> MCPServerConfig:
     - Other strings -> command + args (split by whitespace)
     """
     stripped = server.strip()
+    if not stripped:
+        msg = "Server string must not be empty"
+        raise MCPError(msg)
 
     if stripped.startswith(("http://", "https://")):
         parsed = urlparse(stripped)

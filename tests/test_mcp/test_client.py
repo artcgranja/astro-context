@@ -230,3 +230,45 @@ class TestFastMCPClientBridge:
             async with FastMCPClientBridge(stdio_config) as bridge:
                 assert bridge._fastmcp_client is not None
             assert bridge._fastmcp_client is None
+
+    async def test_list_tools_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.list_tools()
+
+    async def test_call_tool_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.call_tool("test", {})
+
+    async def test_list_resources_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.list_resources()
+
+    async def test_read_resource_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.read_resource("file:///test")
+
+    async def test_list_prompts_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.list_prompts()
+
+    async def test_get_prompt_not_connected_raises(
+        self, stdio_config: MCPServerConfig,
+    ) -> None:
+        bridge = FastMCPClientBridge(stdio_config)
+        with pytest.raises(MCPConnectionError, match="Not connected"):
+            await bridge.get_prompt("test", {})

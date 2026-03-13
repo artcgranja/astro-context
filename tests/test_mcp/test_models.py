@@ -61,6 +61,14 @@ class TestMCPServerConfig:
         cfg = MCPServerConfig(name="slow", url="http://slow.example.com", timeout=120.0)
         assert cfg.timeout == 120.0
 
+    def test_rejects_both_command_and_url(self) -> None:
+        with pytest.raises(ValidationError, match=r"command.*or.*url.*not both"):
+            MCPServerConfig(name="bad", command="echo", url="http://example.com")
+
+    def test_rejects_empty_name(self) -> None:
+        with pytest.raises(ValidationError, match=r"name.*non-empty"):
+            MCPServerConfig(name="", command="echo")
+
 
 class TestMCPResource:
     """MCPResource model."""

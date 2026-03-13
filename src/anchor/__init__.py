@@ -619,6 +619,10 @@ __all__ = [
 
 # MCP Bridge (optional — requires pip install astro-anchor[mcp])
 try:
+    import fastmcp as _fastmcp  # noqa: F401 — probe for optional dependency
+except ImportError:
+    pass  # fastmcp not installed — MCP bridge unavailable
+else:
     from anchor.mcp import (
         FastMCPClientBridge,
         FastMCPServerBridge,
@@ -652,5 +656,3 @@ try:
         "MCPTimeoutError",
         "MCPToolError",
     ]
-except ImportError:
-    pass  # fastmcp not installed — MCP bridge unavailable

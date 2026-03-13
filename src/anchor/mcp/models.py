@@ -50,6 +50,12 @@ class MCPServerConfig(BaseModel, frozen=True):
         if self.command is None and self.url is None:
             msg = "MCPServerConfig requires either 'command' (STDIO) or 'url' (HTTP)"
             raise ValueError(msg)
+        if self.command is not None and self.url is not None:
+            msg = "MCPServerConfig accepts 'command' or 'url', not both"
+            raise ValueError(msg)
+        if not self.name:
+            msg = "MCPServerConfig 'name' must be non-empty"
+            raise ValueError(msg)
         return self
 
 

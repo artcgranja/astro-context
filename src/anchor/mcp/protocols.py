@@ -7,7 +7,7 @@ Follows anchor's established pattern from protocols/retriever.py.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, Protocol, Self, runtime_checkable
+from typing import Any, Literal, Protocol, Self, runtime_checkable
 
 from anchor.agent.models import AgentTool
 from anchor.llm.models import ToolSchema
@@ -53,11 +53,13 @@ class MCPServer(Protocol):
     def expose_tools(self, tools: list[AgentTool]) -> None: ...
 
     def expose_resource(
-        self, uri: str, handler: Callable[..., str] | Callable[..., Any],
+        self, uri: str, handler: Callable[..., Any],
     ) -> None: ...
 
     def expose_prompt(
-        self, name: str, handler: Callable[..., str] | Callable[..., Any],
+        self, name: str, handler: Callable[..., Any],
     ) -> None: ...
 
-    async def run(self, transport: str = "stdio") -> None: ...
+    async def run(
+        self, transport: Literal["stdio", "sse"] = "stdio",
+    ) -> None: ...

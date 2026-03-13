@@ -34,8 +34,15 @@ class TestMCPErrorHierarchy:
         assert err.cause is cause
 
     def test_mcp_timeout_error_is_mcp_error(self) -> None:
-        err = MCPTimeoutError("timed out")
+        err = MCPTimeoutError("timed out", server_name="fs", operation="list_tools")
         assert isinstance(err, MCPError)
+        assert err.server_name == "fs"
+        assert err.operation == "list_tools"
+
+    def test_mcp_timeout_error_defaults(self) -> None:
+        err = MCPTimeoutError("timed out")
+        assert err.server_name == ""
+        assert err.operation == ""
 
     def test_mcp_config_error_is_mcp_error(self) -> None:
         err = MCPConfigError("bad config")

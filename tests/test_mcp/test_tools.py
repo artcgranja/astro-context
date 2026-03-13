@@ -148,3 +148,11 @@ class TestParseServerString:
         assert cfg.timeout == 30.0
         assert cfg.env is None
         assert cfg.headers is None
+
+    def test_empty_string_raises(self) -> None:
+        with pytest.raises(MCPError, match="must not be empty"):
+            parse_server_string("")
+
+    def test_whitespace_only_raises(self) -> None:
+        with pytest.raises(MCPError, match="must not be empty"):
+            parse_server_string("   ")

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -75,3 +76,29 @@ class TestMCPClientPool:
             async with MCPClientPool(two_configs) as pool:
                 assert len(pool._clients) == 2
             assert len(pool._clients) == 0
+
+    async def test_connect_all_partial_failure_cleans_up(
+        self, two_configs: list[MCPServerConfig],
+    ) -> None:
+        """If one server fails to connect, successfully connected ones are cleaned up."""
+        call_count = 0
+
+        async def mock_connect(bridge: Any) -> None:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 2:
+                raise OSError("connection refused")
+
+        with patch(
+            "anchor.mcp.client.FastMCPClientBridge.connect",
+            side_effect=mock_connect,
+            autospec=True,
+        ), patch(
+            "anchor.mcp.client.FastMCPClientBridge.disconnect",
+            new_callable=AsyncMock,
+        ) as mock_disconnect:
+            pool = MCPClientPool(two_configs)
+            with pytest.raises(OSError, match="connection refused"):
+                await pool.connect_all()
+            # The successfully connected bridge should have been cleaned up
+            assert mock_disconnect.call_count == 1

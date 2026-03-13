@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shlex
 from typing import Any, Self
 
 from anchor.agent.models import AgentTool
@@ -73,7 +74,7 @@ class FastMCPClientBridge:
             elif self._config.command is not None:
                 cmd = self._config.command
                 if self._config.args:
-                    cmd = f"{cmd} {' '.join(self._config.args)}"
+                    cmd = f"{cmd} {' '.join(shlex.quote(a) for a in self._config.args)}"
                 if self._config.env:
                     kwargs["env"] = dict(self._config.env)
                 client = Client(cmd, **kwargs)
@@ -101,11 +102,11 @@ class FastMCPClientBridge:
         if self._fastmcp_client is not None:
             try:
                 await self._fastmcp_client.__aexit__(None, None, None)  # type: ignore[no-untyped-call]
-            except Exception:
-                logger.warning(
-                    "Error disconnecting from MCP server '%s'",
+            except (OSError, ConnectionError) as exc:
+                logger.error(
+                    "Error disconnecting from MCP server '%s': %s",
                     self._config.name,
-                    exc_info=True,
+                    exc,
                 )
             finally:
                 self._fastmcp_client = None
@@ -280,10 +281,17 @@ class MCPClientPool:
 
     async def disconnect_all(self) -> None:
         """Disconnect all servers."""
-        await asyncio.gather(
+        results = await asyncio.gather(
             *(c.disconnect() for c in self._clients),
             return_exceptions=True,
         )
+        for client, result in zip(self._clients, results, strict=True):
+            if isinstance(result, Exception):
+                logger.error(
+                    "Error disconnecting MCP server '%s': %s",
+                    client._config.name,
+                    result,
+                )
         self._clients = []
 
     async def all_agent_tools(self) -> list[AgentTool]:

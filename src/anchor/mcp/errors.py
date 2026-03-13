@@ -50,6 +50,17 @@ class MCPToolError(MCPError):
 class MCPTimeoutError(MCPError):
     """MCP server operation timed out."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        server_name: str = "",
+        operation: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.server_name = server_name
+        self.operation = operation
+
 
 class MCPConfigError(MCPError):
     """Invalid MCP server configuration."""
