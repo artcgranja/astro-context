@@ -76,45 +76,45 @@ class AsyncSqliteContextStore:
 
     async def add(self, item: ContextItem) -> None:
         row = context_item_to_row(item)
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute(
-                "INSERT OR REPLACE INTO context_items "
-                "(id, content, source, score, priority, token_count, "
-                "metadata_json, created_at) "
-                "VALUES (:id, :content, :source, :score, :priority, "
-                ":token_count, :metadata_json, :created_at)",
-                row,
-            )
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute(
+            "INSERT OR REPLACE INTO context_items "
+            "(id, content, source, score, priority, token_count, "
+            "metadata_json, created_at) "
+            "VALUES (:id, :content, :source, :score, :priority, "
+            ":token_count, :metadata_json, :created_at)",
+            row,
+        )
+        await conn.commit()
 
     async def get(self, item_id: str) -> ContextItem | None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "SELECT * FROM context_items WHERE id = ?", (item_id,)
-            )
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            return row_to_context_item(row)
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "SELECT * FROM context_items WHERE id = ?", (item_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return row_to_context_item(row)
 
     async def get_all(self) -> list[ContextItem]:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute("SELECT * FROM context_items")
-            rows = await cursor.fetchall()
-            return [row_to_context_item(r) for r in rows]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute("SELECT * FROM context_items")
+        rows = await cursor.fetchall()
+        return [row_to_context_item(r) for r in rows]
 
     async def delete(self, item_id: str) -> bool:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "DELETE FROM context_items WHERE id = ?", (item_id,)
-            )
-            await conn.commit()
-            return cursor.rowcount > 0
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "DELETE FROM context_items WHERE id = ?", (item_id,)
+        )
+        await conn.commit()
+        return cursor.rowcount > 0
 
     async def clear(self) -> None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute("DELETE FROM context_items")
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute("DELETE FROM context_items")
+        await conn.commit()
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(db={self._conn_manager.db_path!s})"

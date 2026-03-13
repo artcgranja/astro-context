@@ -62,7 +62,8 @@ class PostgresVectorStore:
             result = await conn.execute(
                 "DELETE FROM embeddings WHERE item_id = $1", item_id
             )
-            return result == "DELETE 1"
+            # asyncpg returns "DELETE N" where N is rows affected
+            return int(result.split()[-1]) > 0
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"

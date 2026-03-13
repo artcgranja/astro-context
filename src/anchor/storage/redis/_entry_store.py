@@ -112,6 +112,12 @@ class RedisEntryStore:
         return True
 
     def clear(self) -> None:
+        """Remove all entries.
+
+        .. warning::
+            Not atomic — entries added between ``smembers`` and ``execute``
+            may be partially cleared. For strict atomicity use a Lua script.
+        """
         client = self._conn_manager.get_client()
         ids = client.smembers(self._ids_key())
         if not ids:
@@ -301,6 +307,12 @@ class AsyncRedisEntryStore:
         return True
 
     async def clear(self) -> None:
+        """Remove all entries.
+
+        .. warning::
+            Not atomic — entries added between ``smembers`` and ``execute``
+            may be partially cleared. For strict atomicity use a Lua script.
+        """
         client = self._conn_manager.get_async_client()
         ids = await client.smembers(self._ids_key())
         if not ids:

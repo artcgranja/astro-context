@@ -75,38 +75,38 @@ class AsyncSqliteDocumentStore:
         content: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute(
-                "INSERT OR REPLACE INTO documents "
-                "(doc_id, content, metadata_json) "
-                "VALUES (?, ?, ?)",
-                (doc_id, content, json.dumps(metadata or {}, default=str)),
-            )
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute(
+            "INSERT OR REPLACE INTO documents "
+            "(doc_id, content, metadata_json) "
+            "VALUES (?, ?, ?)",
+            (doc_id, content, json.dumps(metadata or {}, default=str)),
+        )
+        await conn.commit()
 
     async def get_document(self, doc_id: str) -> str | None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "SELECT content FROM documents WHERE doc_id = ?", (doc_id,)
-            )
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            return row["content"]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "SELECT content FROM documents WHERE doc_id = ?", (doc_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return row["content"]
 
     async def list_documents(self) -> list[str]:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute("SELECT doc_id FROM documents")
-            rows = await cursor.fetchall()
-            return [row["doc_id"] for row in rows]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute("SELECT doc_id FROM documents")
+        rows = await cursor.fetchall()
+        return [row["doc_id"] for row in rows]
 
     async def delete_document(self, doc_id: str) -> bool:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "DELETE FROM documents WHERE doc_id = ?", (doc_id,)
-            )
-            await conn.commit()
-            return cursor.rowcount > 0
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "DELETE FROM documents WHERE doc_id = ?", (doc_id,)
+        )
+        await conn.commit()
+        return cursor.rowcount > 0
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(db={self._conn_manager.db_path!s})"

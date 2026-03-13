@@ -1,4 +1,11 @@
-"""PostgreSQL-backed MemoryEntryStore implementation."""
+"""PostgreSQL-backed MemoryEntryStore implementation.
+
+Note: This module does NOT reuse ``anchor.storage._serialization`` because
+asyncpg returns ``asyncpg.Record`` objects which already parse JSONB columns
+into native Python dicts/lists. The SQLite serialization helpers assume
+plain strings that need ``json.loads()`` calls, making them incompatible
+with asyncpg's automatic deserialization.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +14,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from anchor.models.memory import MemoryEntry, MemoryType
+from anchor.storage._serialization import escape_like
 
 if TYPE_CHECKING:
     from anchor.storage.postgres._connection import PostgresConnectionManager
@@ -78,7 +86,7 @@ class PostgresEntryStore:
                    ORDER BY relevance_score DESC
                    LIMIT $3""",
                 now,
-                f"%{query}%",
+                f"%{escape_like(query)}%",
                 top_k,
             )
             return [_row_to_entry(r) for r in rows]
@@ -98,7 +106,8 @@ class PostgresEntryStore:
             result = await conn.execute(
                 "DELETE FROM memory_entries WHERE id = $1", entry_id
             )
-            return result == "DELETE 1"
+            # asyncpg returns "DELETE N" where N is rows affected
+            return int(result.split()[-1]) > 0
 
     async def clear(self) -> None:
         async with self._conn_manager.acquire() as conn:
@@ -137,7 +146,7 @@ class PostgresEntryStore:
 
         if query:
             clauses.append(f"content ILIKE ${idx}")
-            params.append(f"%{query}%")
+            params.append(f"%{escape_like(query)}%")
             idx += 1
         if user_id is not None:
             clauses.append(f"user_id = ${idx}")

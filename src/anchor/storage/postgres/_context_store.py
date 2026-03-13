@@ -66,7 +66,8 @@ class PostgresContextStore:
             result = await conn.execute(
                 "DELETE FROM context_items WHERE id = $1", item_id
             )
-            return result == "DELETE 1"
+            # asyncpg returns "DELETE N" where N is rows affected
+            return int(result.split()[-1]) > 0
 
     async def clear(self) -> None:
         async with self._conn_manager.acquire() as conn:

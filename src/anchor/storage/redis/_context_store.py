@@ -57,6 +57,12 @@ class RedisContextStore:
         return results[0] > 0
 
     def clear(self) -> None:
+        """Remove all items.
+
+        .. warning::
+            Not atomic — items added between ``smembers`` and ``delete``
+            may be partially cleared. For strict atomicity use a Lua script.
+        """
         client = self._conn_manager.get_client()
         ids = client.smembers(self._ids_key())
         if ids:
@@ -117,6 +123,12 @@ class AsyncRedisContextStore:
         return results[0] > 0
 
     async def clear(self) -> None:
+        """Remove all items.
+
+        .. warning::
+            Not atomic — items added between ``smembers`` and ``delete``
+            may be partially cleared. For strict atomicity use a Lua script.
+        """
         client = self._conn_manager.get_async_client()
         ids = await client.smembers(self._ids_key())
         if ids:

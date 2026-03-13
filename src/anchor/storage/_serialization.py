@@ -89,18 +89,15 @@ def row_to_memory_entry(row: dict[str, Any] | Any) -> MemoryEntry:
     )
 
 
-def document_to_row(
-    doc_id: str, content: str, metadata: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Convert document data to a flat dict for SQL INSERT."""
-    return {
-        "doc_id": doc_id,
-        "content": content,
-        "metadata_json": json.dumps(metadata or {}, default=str),
-    }
-
-
 def row_to_document_content(row: dict[str, Any] | Any) -> str:
     """Extract document content from a database row."""
     r = dict(row) if not isinstance(row, dict) else row
     return r["content"]
+
+
+def escape_like(query: str) -> str:
+    """Escape special characters (``%``, ``_``, ``\\``) for SQL LIKE patterns.
+
+    The caller must append ``ESCAPE '\\\\'`` to the SQL statement.
+    """
+    return query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

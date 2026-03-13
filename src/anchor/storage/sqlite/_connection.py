@@ -20,6 +20,10 @@ class SqliteConnectionManager:
     Each thread gets its own connection to allow concurrent reads.
     WAL mode enables readers to proceed without blocking writers.
 
+    The async connection is cached (one per manager instance) and shared
+    across ``await get_async_connection()`` calls.  Call :meth:`aclose`
+    to release it.
+
     Example::
 
         mgr = SqliteConnectionManager("data.db")
@@ -28,12 +32,14 @@ class SqliteConnectionManager:
         mgr.close()
     """
 
-    __slots__ = ("_db_path", "_local", "_wal_mode")
+    __slots__ = ("_async_conn", "_async_lock", "_db_path", "_local", "_wal_mode")
 
     def __init__(self, db_path: str | Path, *, wal_mode: bool = True) -> None:
         self._db_path = Path(db_path).resolve()
         self._wal_mode = wal_mode
         self._local = threading.local()
+        self._async_conn: aiosqlite.Connection | None = None
+        self._async_lock: threading.Lock = threading.Lock()
 
     @property
     def db_path(self) -> Path:
@@ -61,10 +67,16 @@ class SqliteConnectionManager:
         return conn
 
     async def get_async_connection(self) -> aiosqlite.Connection:
-        """Return an aiosqlite connection.
+        """Return a cached aiosqlite connection, creating one on first call.
+
+        The connection is reused across calls.  Call :meth:`aclose` to
+        release it when done.
 
         Raises ``ImportError`` if ``aiosqlite`` is not installed.
         """
+        if self._async_conn is not None:
+            return self._async_conn
+
         try:
             import aiosqlite as _aiosqlite
         except ImportError as e:
@@ -82,14 +94,26 @@ class SqliteConnectionManager:
         if self._wal_mode:
             await conn.execute("PRAGMA journal_mode=WAL")
             await conn.execute("PRAGMA synchronous=NORMAL")
+        self._async_conn = conn
         return conn
 
     def close(self) -> None:
-        """Close the thread-local connection if it exists."""
+        """Close the current thread's connection if it exists.
+
+        .. note::
+            This only closes the calling thread's connection.  Use
+            :meth:`close_all` to close connections from all threads.
+        """
         conn: sqlite3.Connection | None = getattr(self._local, "conn", None)
         if conn is not None:
             conn.close()
             self._local.conn = None
+
+    async def aclose(self) -> None:
+        """Close the cached async connection if it exists."""
+        if self._async_conn is not None:
+            await self._async_conn.close()
+            self._async_conn = None
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(db_path={self._db_path!s})"

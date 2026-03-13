@@ -57,7 +57,8 @@ class PostgresDocumentStore:
             result = await conn.execute(
                 "DELETE FROM documents WHERE doc_id = $1", doc_id
             )
-            return result == "DELETE 1"
+            # asyncpg returns "DELETE N" where N is rows affected
+            return int(result.split()[-1]) > 0
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}()"

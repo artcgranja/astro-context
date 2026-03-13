@@ -476,3 +476,67 @@ class TestSqliteEntryStoreSearchFiltered:
     def test_top_k_limits_results(self, populated_store):
         results = populated_store.search_filtered("", top_k=2)
         assert len(results) == 2
+
+
+# ---------------------------------------------------------------------------
+# TestAsyncSqliteSmoke
+# ---------------------------------------------------------------------------
+
+
+aiosqlite = pytest.importorskip("aiosqlite")
+
+
+class TestAsyncSqliteSmoke:
+    """Basic smoke tests for async SQLite store variants."""
+
+    @pytest.fixture
+    def async_conn_manager(self, tmp_path):
+        mgr = SqliteConnectionManager(tmp_path / "async_smoke.db")
+        ensure_tables(mgr.get_connection())
+        return mgr
+
+    @pytest.mark.asyncio
+    async def test_async_entry_add_and_get(self, async_conn_manager):
+        from anchor.storage.sqlite._entry_store import AsyncSqliteEntryStore
+
+        store = AsyncSqliteEntryStore(async_conn_manager)
+        entry = make_memory_entry(entry_id="ae1", content="async entry")
+        await store.add(entry)
+        got = await store.get("ae1")
+        assert got is not None
+        assert got.content == "async entry"
+        await async_conn_manager.aclose()
+
+    @pytest.mark.asyncio
+    async def test_async_context_add_and_get(self, async_conn_manager):
+        from anchor.storage.sqlite._context_store import AsyncSqliteContextStore
+
+        store = AsyncSqliteContextStore(async_conn_manager)
+        item = ContextItem(id="ac1", content="async ctx", source="user")
+        await store.add(item)
+        got = await store.get("ac1")
+        assert got is not None
+        assert got.content == "async ctx"
+        await async_conn_manager.aclose()
+
+    @pytest.mark.asyncio
+    async def test_async_document_add_and_get(self, async_conn_manager):
+        from anchor.storage.sqlite._document_store import AsyncSqliteDocumentStore
+
+        store = AsyncSqliteDocumentStore(async_conn_manager)
+        await store.add_document("ad1", "async doc content")
+        got = await store.get_document("ad1")
+        assert got == "async doc content"
+        await async_conn_manager.aclose()
+
+    @pytest.mark.asyncio
+    async def test_async_vector_add_and_search(self, async_conn_manager):
+        from anchor.storage.sqlite._vector_store import AsyncSqliteVectorStore
+
+        store = AsyncSqliteVectorStore(async_conn_manager)
+        emb = make_embedding(dim=4, seed=42)
+        await store.add_embedding("av1", emb)
+        results = await store.search(emb, top_k=1)
+        assert len(results) == 1
+        assert results[0][0] == "av1"
+        await async_conn_manager.aclose()

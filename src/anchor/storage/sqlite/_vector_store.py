@@ -106,41 +106,41 @@ class AsyncSqliteVectorStore:
         metadata: dict[str, Any] | None = None,
     ) -> None:
         blob = _pack_embedding(embedding)
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute(
-                "INSERT OR REPLACE INTO embeddings "
-                "(item_id, embedding_blob, metadata_json) "
-                "VALUES (?, ?, ?)",
-                (item_id, blob, json.dumps(metadata or {})),
-            )
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute(
+            "INSERT OR REPLACE INTO embeddings "
+            "(item_id, embedding_blob, metadata_json) "
+            "VALUES (?, ?, ?)",
+            (item_id, blob, json.dumps(metadata or {})),
+        )
+        await conn.commit()
 
     async def search(
         self, query_embedding: list[float], top_k: int = 10
     ) -> list[tuple[str, float]]:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "SELECT item_id, embedding_blob FROM embeddings"
-            )
-            rows = await cursor.fetchall()
-            if not rows:
-                return []
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "SELECT item_id, embedding_blob FROM embeddings"
+        )
+        rows = await cursor.fetchall()
+        if not rows:
+            return []
 
-            dim = len(query_embedding)
-            results: list[tuple[str, float]] = []
-            for row in rows:
-                emb = _unpack_embedding(row["embedding_blob"], dim)
-                score = cosine_similarity(query_embedding, emb)
-                results.append((row["item_id"], score))
-            return heapq.nlargest(top_k, results, key=lambda x: x[1])
+        dim = len(query_embedding)
+        results: list[tuple[str, float]] = []
+        for row in rows:
+            emb = _unpack_embedding(row["embedding_blob"], dim)
+            score = cosine_similarity(query_embedding, emb)
+            results.append((row["item_id"], score))
+        return heapq.nlargest(top_k, results, key=lambda x: x[1])
 
     async def delete(self, item_id: str) -> bool:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "DELETE FROM embeddings WHERE item_id = ?", (item_id,)
-            )
-            await conn.commit()
-            return cursor.rowcount > 0
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "DELETE FROM embeddings WHERE item_id = ?", (item_id,)
+        )
+        await conn.commit()
+        return cursor.rowcount > 0
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(db={self._conn_manager.db_path!s})"

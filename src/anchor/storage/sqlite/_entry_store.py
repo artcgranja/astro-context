@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from anchor.models.memory import MemoryEntry, MemoryType
-from anchor.storage._serialization import memory_entry_to_row, row_to_memory_entry
+from anchor.storage._serialization import escape_like, memory_entry_to_row, row_to_memory_entry
 
 if TYPE_CHECKING:
     from anchor.storage.sqlite._connection import SqliteConnectionManager
@@ -53,8 +53,8 @@ class SqliteEntryStore:
         conn = self._conn_manager.get_connection()
         rows = conn.execute(
             f"SELECT * FROM memory_entries WHERE {_NON_EXPIRED_CLAUSE} "  # noqa: S608
-            "AND content LIKE ? ORDER BY relevance_score DESC LIMIT ?",
-            (now, f"%{query}%", top_k),
+            "AND content LIKE ? ESCAPE '\\' ORDER BY relevance_score DESC LIMIT ?",
+            (now, f"%{escape_like(query)}%", top_k),
         ).fetchall()
         return [row_to_memory_entry(r) for r in rows]
 
@@ -119,8 +119,8 @@ class SqliteEntryStore:
         params: list[Any] = [now]
 
         if query:
-            clauses.append("content LIKE ?")
-            params.append(f"%{query}%")
+            clauses.append("content LIKE ? ESCAPE '\\'")
+            params.append(f"%{escape_like(query)}%")
         if user_id is not None:
             clauses.append("user_id = ?")
             params.append(user_id)
@@ -188,61 +188,61 @@ class AsyncSqliteEntryStore:
 
     async def add(self, entry: MemoryEntry) -> None:
         row = memory_entry_to_row(entry)
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute(_INSERT_SQL, row)
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute(_INSERT_SQL, row)
+        await conn.commit()
 
     async def search(
         self, query: str, top_k: int = 5
     ) -> list[MemoryEntry]:
         now = datetime.now(UTC).isoformat()
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                f"SELECT * FROM memory_entries WHERE {_NON_EXPIRED_CLAUSE} "  # noqa: S608
-                "AND content LIKE ? ORDER BY relevance_score DESC LIMIT ?",
-                (now, f"%{query}%", top_k),
-            )
-            rows = await cursor.fetchall()
-            return [row_to_memory_entry(r) for r in rows]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            f"SELECT * FROM memory_entries WHERE {_NON_EXPIRED_CLAUSE} "  # noqa: S608
+            "AND content LIKE ? ESCAPE '\\' ORDER BY relevance_score DESC LIMIT ?",
+            (now, f"%{escape_like(query)}%", top_k),
+        )
+        rows = await cursor.fetchall()
+        return [row_to_memory_entry(r) for r in rows]
 
     async def list_all(self) -> list[MemoryEntry]:
         now = datetime.now(UTC).isoformat()
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                f"SELECT * FROM memory_entries WHERE {_NON_EXPIRED_CLAUSE}",  # noqa: S608
-                (now,),
-            )
-            rows = await cursor.fetchall()
-            return [row_to_memory_entry(r) for r in rows]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            f"SELECT * FROM memory_entries WHERE {_NON_EXPIRED_CLAUSE}",  # noqa: S608
+            (now,),
+        )
+        rows = await cursor.fetchall()
+        return [row_to_memory_entry(r) for r in rows]
 
     async def delete(self, entry_id: str) -> bool:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "DELETE FROM memory_entries WHERE id = ?", (entry_id,)
-            )
-            await conn.commit()
-            return cursor.rowcount > 0
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "DELETE FROM memory_entries WHERE id = ?", (entry_id,)
+        )
+        await conn.commit()
+        return cursor.rowcount > 0
 
     async def clear(self) -> None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            await conn.execute("DELETE FROM memory_entries")
-            await conn.commit()
+        conn = await self._conn_manager.get_async_connection()
+        await conn.execute("DELETE FROM memory_entries")
+        await conn.commit()
 
     async def list_all_unfiltered(self) -> list[MemoryEntry]:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute("SELECT * FROM memory_entries")
-            rows = await cursor.fetchall()
-            return [row_to_memory_entry(r) for r in rows]
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute("SELECT * FROM memory_entries")
+        rows = await cursor.fetchall()
+        return [row_to_memory_entry(r) for r in rows]
 
     async def get(self, entry_id: str) -> MemoryEntry | None:
-        async with await self._conn_manager.get_async_connection() as conn:
-            cursor = await conn.execute(
-                "SELECT * FROM memory_entries WHERE id = ?", (entry_id,)
-            )
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            return row_to_memory_entry(row)
+        conn = await self._conn_manager.get_async_connection()
+        cursor = await conn.execute(
+            "SELECT * FROM memory_entries WHERE id = ?", (entry_id,)
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return row_to_memory_entry(row)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(db={self._conn_manager.db_path!s})"
