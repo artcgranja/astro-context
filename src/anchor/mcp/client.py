@@ -51,16 +51,32 @@ class FastMCPClientBridge:
         self._fastmcp_client: Client | None = None  # type: ignore[type-arg]
         self._cached_tools: list[ToolSchema] | None = None
 
+    def _not_connected_error(self) -> MCPConnectionError:
+        """Build a 'not connected' error for guard checks."""
+        return MCPConnectionError(
+            "Not connected. Call connect() or use async context manager first.",
+            server_name=self._config.name,
+            transport="unknown",
+        )
+
     async def connect(self) -> None:
         """Connect using auto-inferred transport."""
         try:
+            kwargs: dict[str, Any] = {}
+            if self._config.timeout is not None:
+                kwargs["timeout"] = self._config.timeout
+
             if self._config.url is not None:
-                client = Client(self._config.url)
+                if self._config.headers:
+                    kwargs["headers"] = dict(self._config.headers)
+                client = Client(self._config.url, **kwargs)
             elif self._config.command is not None:
                 cmd = self._config.command
                 if self._config.args:
                     cmd = f"{cmd} {' '.join(self._config.args)}"
-                client = Client(cmd)
+                if self._config.env:
+                    kwargs["env"] = dict(self._config.env)
+                client = Client(cmd, **kwargs)
             else:
                 msg = "No command or URL configured"
                 raise MCPConnectionError(
@@ -100,7 +116,8 @@ class FastMCPClientBridge:
         if self._config.cache_tools and self._cached_tools is not None:
             return self._cached_tools
 
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         mcp_tools = await self._fastmcp_client.list_tools()
         schemas = [
             ToolSchema(
@@ -118,7 +135,8 @@ class FastMCPClientBridge:
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
         """Execute tool via FastMCP Client, return result as string."""
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         try:
             result = await self._fastmcp_client.call_tool(name, arguments)
             if hasattr(result, "content") and isinstance(result.content, list):
@@ -138,7 +156,8 @@ class FastMCPClientBridge:
 
     async def list_resources(self) -> list[MCPResource]:
         """List resources from the MCP server."""
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         mcp_resources = await self._fastmcp_client.list_resources()
         return [
             MCPResource(
@@ -152,7 +171,8 @@ class FastMCPClientBridge:
 
     async def read_resource(self, uri: str) -> str:
         """Read a resource by URI."""
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         result = await self._fastmcp_client.read_resource(uri)
         if isinstance(result, list) and result:
             first = result[0]
@@ -162,7 +182,8 @@ class FastMCPClientBridge:
 
     async def list_prompts(self) -> list[MCPPrompt]:
         """List prompt templates from the MCP server."""
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         mcp_prompts = await self._fastmcp_client.list_prompts()
         return [
             MCPPrompt(
@@ -182,7 +203,8 @@ class FastMCPClientBridge:
 
     async def get_prompt(self, name: str, arguments: dict[str, Any]) -> str:
         """Get a rendered prompt."""
-        assert self._fastmcp_client is not None  # noqa: S101
+        if self._fastmcp_client is None:
+            raise self._not_connected_error()
         result = await self._fastmcp_client.get_prompt(name, arguments)
         if hasattr(result, "messages") and result.messages:
             texts = []
@@ -232,9 +254,28 @@ class MCPClientPool:
         self._clients: list[FastMCPClientBridge] = []
 
     async def connect_all(self) -> None:
-        """Connect to all configured servers concurrently."""
+        """Connect to all configured servers concurrently.
+
+        If any connection fails, already-connected bridges are cleaned up
+        before re-raising the first error.
+        """
         bridges = [FastMCPClientBridge(cfg) for cfg in self._configs]
-        await asyncio.gather(*(b.connect() for b in bridges))
+        results = await asyncio.gather(
+            *(b.connect() for b in bridges),
+            return_exceptions=True,
+        )
+        errors = [r for r in results if isinstance(r, BaseException)]
+        if errors:
+            # Clean up any successfully connected bridges
+            connected = [
+                b for b, r in zip(bridges, results, strict=True)
+                if not isinstance(r, BaseException)
+            ]
+            await asyncio.gather(
+                *(b.disconnect() for b in connected),
+                return_exceptions=True,
+            )
+            raise errors[0]
         self._clients = bridges
 
     async def disconnect_all(self) -> None:
