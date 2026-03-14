@@ -14,6 +14,61 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+
+#### LLM Providers (`anchor.llm`)
+- Multi-provider LLM interface with unified API across Anthropic, OpenAI, Gemini, Grok, Ollama, OpenRouter, and LiteLLM
+- `FallbackProvider` for automatic failover across multiple LLM backends
+- Unified error hierarchy: `ProviderError`, `AuthenticationError`, `RateLimitError`, `ContentFilterError`, `ModelNotFoundError`, `ServerError`, `TimeoutError`, `ProviderNotInstalledError`
+- `create_provider` factory and `register_provider` for custom backends
+- Cost calculation via `calculate_cost` with `MODEL_PRICING` registry
+- Streaming support with `StreamChunk` and `ToolCallDelta`
+- Typed message/response models: `Message`, `LLMResponse`, `ContentBlock`, `ToolCall`, `ToolResult`, `ToolSchema`, `Usage`, `StopReason`
+
+#### MCP Bridge (`anchor.mcp`)
+- Bidirectional Model Context Protocol integration (requires `astro-anchor[mcp]`)
+- `FastMCPClientBridge` for consuming external MCP servers as anchor tools
+- `FastMCPServerBridge` for exposing anchor pipelines and tools as MCP servers
+- `MCPClientPool` for managing connections to multiple MCP servers
+- `MCPClient` / `MCPServer` abstractions with typed config (`MCPServerConfig`)
+- MCP resource and prompt models: `MCPResource`, `MCPPrompt`, `MCPPromptArgument`
+- `mcp_tool_to_agent_tool` converter and `parse_server_string` utility
+- Error hierarchy: `MCPError`, `MCPConfigError`, `MCPConnectionError`, `MCPTimeoutError`, `MCPToolError`
+
+#### Agent Framework (`anchor.agent`)
+- Tool-calling agent with `@tool` decorator for defining agent tools
+- `Agent` class with async streaming via `achat`
+- `Skill` and `SkillRegistry` for organizing related tools
+- Built-in `memory_skill` / `memory_tools` and `rag_skill` / `rag_tools` for out-of-the-box capabilities
+
+#### Advanced Retrieval
+- `RoutedRetriever` with pluggable routing: `CallbackRouter`, `KeywordRouter`, `MetadataRouter`
+- `LateInteractionRetriever` with `LateInteractionScorer` and `MaxSimScorer` for ColBERT-style retrieval
+- `SharedSpaceRetriever` for cross-modal retrieval in a unified embedding space
+- `CrossModalEncoder` and `TokenLevelEncoder` protocols for multi-modal embeddings
+- `RoundRobinReranker` and `RerankerPipeline` for composable reranking strategies
+- Async retriever/reranker variants: `AsyncDenseRetriever`, `AsyncHybridRetriever`, `AsyncCrossEncoderReranker`, `AsyncCohereReranker`
+
+#### Evaluation Enhancements
+- `ABTestRunner` and `ABTestResult` for A/B testing pipeline configurations
+- `HumanEvaluationCollector` and `HumanJudgment` for human-in-the-loop evaluation
+- `BatchEvaluator` with parallelization for large-scale evaluation runs
+- `HumanEvaluator` protocol for pluggable human evaluation backends
+
+#### Query Enhancements
+- `ContextualQueryTransformer` for context-aware query rewriting
+- `ConversationRewriter` for resolving coreferences in multi-turn conversations
+- `KeywordClassifier`, `EmbeddingClassifier`, `CallbackClassifier` for query routing
+- `QueryClassifier` protocol and `classified_retriever_step` pipeline step
+
+#### Memory Enhancements
+- `ProgressiveSummarizationMemory` with multi-tier compaction
+- `TierCompactor` with `CompactionStrategy` and `AsyncCompactionStrategy` protocols
+
+#### Ingestion Enhancements
+- `CodeChunker` for language-aware code splitting
+- `TableAwareChunker` for preserving table structures during chunking
+
+#### Tests & Examples
 - Unit tests for `_math.py` (cosine_similarity and clamp functions)
 - `MemoryRetrieverAdapter` tests verifying Retriever protocol compliance
 - `PipelineExecutionError` wrapping test with diagnostics verification

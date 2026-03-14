@@ -84,6 +84,8 @@ print(result.diagnostics)        # Token usage, timing, overflow info
 - **Hybrid RAG** — Dense embeddings + BM25 sparse retrieval with Reciprocal Rank Fusion
 - **Smart Memory** — Token-aware sliding window with automatic eviction
 - **Token Budgets** — Priority-ranked context assembly that never exceeds your window
+- **LLM Providers** — Unified interface for Anthropic, OpenAI, Gemini, Grok, Ollama, OpenRouter, LiteLLM with fallback
+- **MCP Bridge** — Bidirectional Model Context Protocol integration for consuming and exposing MCP tools
 - **Provider Agnostic** — Format output for Anthropic, OpenAI, or plain text
 - **Protocol-Based** — Plug in any vector store, tokenizer, or retriever via PEP 544 Protocols
 - **Type-Safe** — Pydantic v2 models throughout, full `py.typed` support
@@ -225,10 +227,11 @@ uv run ruff check src/ tests/
 
 ## Roadmap
 
-- **v0.1.0** (current) — Hybrid RAG, Memory, Pipeline, Formatters, Async, Decorator API, Agent Framework, [Full docs](https://artcgranja.github.io/anchor/)
-- **v0.2.0** — MCP Bridge, progressive summarization, persistent storage backends
-- **v0.3.0** — GraphRAG, multi-modal context, LangChain/LlamaIndex adapters
-- **v1.0.0** — Production-grade APIs, plugin ecosystem
+- **v0.1.0** — Hybrid RAG, Memory, Pipeline, Formatters, Async, Decorator API, Agent Framework, [Full docs](https://artcgranja.github.io/anchor/)
+- **v0.2.0** (current) — LLM Providers, MCP Bridge, multi-modal context, advanced retrieval (routed, late-interaction, shared-space), progressive summarization, A/B testing, query classifiers
+- **v0.3.0** — Persistent vector store backends (PostgreSQL, Redis, Qdrant), production deployment guides
+- **v0.4.0** — GraphRAG, LangChain/LlamaIndex adapters, webhook-based event system
+- **v1.0.0** — Stable public API, plugin ecosystem, managed cloud offering
 
 ## License
 

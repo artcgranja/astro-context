@@ -305,13 +305,13 @@ class FallbackProvider:
 
 | Provider | Model Prefix | SDK Package | Install Extra |
 |---|---|---|---|
-| Anthropic | `anthropic/` | `anthropic` | `pip install anchor-ai[anthropic]` |
-| OpenAI | `openai/` | `openai` | `pip install anchor-ai[openai]` |
-| Google Gemini | `gemini/` | `google-genai` | `pip install anchor-ai[gemini]` |
-| Grok (xAI) | `grok/` | `openai` | `pip install anchor-ai[openai]` |
-| Ollama | `ollama/` | `ollama` | `pip install anchor-ai[ollama]` |
-| OpenRouter | `openrouter/` | `openai` | `pip install anchor-ai[openai]` |
-| LiteLLM | `litellm/` | `litellm` | `pip install anchor-ai[litellm]` |
+| Anthropic | `anthropic/` | `anthropic` | `pip install astro-anchor[anthropic]` |
+| OpenAI | `openai/` | `openai` | `pip install astro-anchor[openai]` |
+| Google Gemini | `gemini/` | `google-genai` | `pip install astro-anchor[gemini]` |
+| Grok (xAI) | `grok/` | `openai` | `pip install astro-anchor[openai]` |
+| Ollama | `ollama/` | `ollama` | `pip install astro-anchor[ollama]` |
+| OpenRouter | `openrouter/` | `openai` | `pip install astro-anchor[openai]` |
+| LiteLLM | `litellm/` | `litellm` | `pip install astro-anchor[litellm]` |
 
 ---
 

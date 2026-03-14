@@ -366,6 +366,39 @@ memory = SlidingWindowMemory(max_tokens=4096, on_evict=promoter)
 
 ---
 
+## `MemoryContextEnricher`
+
+Enriches queries by appending recent conversation context. Helps retrieval steps
+find documents relevant to the ongoing conversation, not just the literal query.
+
+```python
+from anchor import MemoryContextEnricher
+
+MemoryContextEnricher(
+    max_items: int = 5,
+    template: str = "{query}\n\nConversation context: {context}",
+)
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_items` | `int` | `5` | Maximum number of recent memory items to include. Must be positive. |
+| `template` | `str` | `"{query}\n\nConversation context: {context}"` | Format string with `{query}` and `{context}` placeholders. |
+
+**Usage:**
+
+```python
+enricher = MemoryContextEnricher(max_items=3)
+pipeline = ContextPipeline(max_tokens=8192).with_query_enricher(enricher)
+```
+
+Satisfies the `MemoryQueryEnricher` protocol. When attached via `with_query_enricher()`,
+it receives memory items and appends a summary to the query before retrieval steps execute.
+
+---
+
 ## `PipelineCallback`
 
 A runtime-checkable protocol for pipeline event callbacks. All methods are

@@ -142,7 +142,7 @@ Build intelligent context pipelines in minutes.
 === "uv"
 
     ```bash
-    uv add anchor
+    uv add astro-anchor
     ```
 
 === "Extras"

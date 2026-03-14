@@ -31,6 +31,10 @@ theme:
   logo: assets/logo-dark.svg
   favicon: assets/logo-light.svg
   icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    annotation: material/information
   features:
     - announce.dismiss
     - content.action.edit
@@ -56,12 +60,6 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
-  icon:
-    repo: fontawesome/brands/github
-    edit: material/pencil
-    view: material/eye
-    annotation: material/information
-
 nav:
   - Home: index.md
   - Getting Started:
@@ -89,6 +87,7 @@ nav:
     - Formatters: guides/formatters.md
     - Agent: guides/agent.md
     - LLM Providers: guides/llm-providers.md
+    - MCP Bridge: guides/mcp.md
     - Storage: guides/storage.md
     - Multi-modal: guides/multimodal.md
     - Cache: guides/cache.md
@@ -118,6 +117,8 @@ nav:
     - Storage: api/storage.md
     - Multi-modal: api/multimodal.md
     - Cache: api/cache.md
+    - MCP Bridge: api/mcp.md
+    - Tokens: api/tokens.md
     - Exceptions: api/exceptions.md
   - FAQ: faq.md
   - Changelog: changelog.md

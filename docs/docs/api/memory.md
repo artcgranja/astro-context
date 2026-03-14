@@ -369,6 +369,64 @@ class MemoryCallback(Protocol):
 
 ---
 
+## ProgressiveSummarizationMemory
+
+Four-tier progressive summarization memory. Satisfies the `ConversationMemory` protocol.
+Pluggable into `MemoryManager` and `ContextPipeline`.
+
+```python
+ProgressiveSummarizationMemory(
+    max_tokens: int = 8192,
+    llm: LLMProvider | str = "anthropic/claude-haiku-4-5-20251001",
+    tier_config: list[TierConfig] | None = None,
+    max_facts: int = 50,
+    fact_token_budget: int = 500,
+    tokenizer: Tokenizer | None = None,
+    callbacks: list[ProgressiveSummarizationCallback] | None = None,
+)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_tokens` | `int` | `8192` | Total token budget across all tiers. Must be positive. |
+| `llm` | `LLMProvider \| str` | `"anthropic/claude-haiku-4-5-20251001"` | LLM for summarization. Accepts a provider instance or a `"provider/model"` string. |
+| `tier_config` | `list[TierConfig] \| None` | `None` | Custom tier allocation. Defaults to 4 tiers (verbatim → bullet → paragraph → archive). |
+| `max_facts` | `int` | `50` | Maximum extracted facts to retain. |
+| `fact_token_budget` | `int` | `500` | Token budget reserved for facts. |
+| `tokenizer` | `Tokenizer \| None` | `None` | Custom tokenizer. Falls back to the built-in counter. |
+| `callbacks` | `list \| None` | `None` | Lifecycle callbacks for summarization events. |
+
+| Method | Returns | Description |
+|---|---|---|
+| `add_turn(role, content, **metadata)` | `ConversationTurn` | Add a turn, triggering tier promotion when budget is exceeded. |
+| `to_context_items(priority=7)` | `list[ContextItem]` | Assemble context items from all tiers and facts. |
+| `clear()` | `None` | Clear all tiers and facts. |
+
+---
+
+## TierCompactor
+
+Handles LLM calls for summarization and fact extraction. Used internally by `ProgressiveSummarizationMemory`.
+
+```python
+TierCompactor(
+    llm: LLMProvider,
+    tokenizer: Tokenizer | None = None,
+)
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `llm` | `LLMProvider` | *(required)* | LLM provider for generating summaries. |
+| `tokenizer` | `Tokenizer \| None` | `None` | Custom tokenizer. Falls back to the built-in counter. |
+
+| Method | Returns | Description |
+|---|---|---|
+| `summarize(content, target_tier, target_tokens, existing_summary=None)` | `str` | Synchronously summarize content for a target tier. Falls back to truncation on LLM failure. |
+| `extract_facts(content)` | `list[str]` | Extract key facts from content via LLM. Returns empty list on failure. |
+
+---
+
 ## CallbackExtractor
 
 Delegates memory extraction to a user-provided function.
