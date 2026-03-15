@@ -14,6 +14,7 @@ from typing import Any
 
 from anchor._math import cosine_similarity
 from anchor.models.context import ContextItem
+from anchor.models.memory import ConversationTurn, SummaryTier
 
 logger = logging.getLogger(__name__)
 
@@ -324,3 +325,58 @@ class InMemoryGraphStore:
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(nodes={len(self._nodes)}, edges={len(self._edges)})"
+
+
+class InMemoryConversationStore:
+    """Dict-backed conversation store. Implements ConversationStore protocol."""
+
+    __slots__ = ("_lock", "_tiers", "_turns")
+
+    def __init__(self) -> None:
+        self._turns: dict[str, list[ConversationTurn]] = {}
+        self._tiers: dict[str, dict[int, SummaryTier | None]] = {}
+        self._lock = threading.Lock()
+
+    def append_turn(self, session_id: str, turn: ConversationTurn) -> None:
+        with self._lock:
+            self._turns.setdefault(session_id, []).append(turn)
+
+    def load_turns(self, session_id: str, limit: int | None = None) -> list[ConversationTurn]:
+        with self._lock:
+            turns = self._turns.get(session_id, [])
+            if limit is not None:
+                return list(turns[-limit:])
+            return list(turns)
+
+    def save_summary_tiers(self, session_id: str, tiers: dict[int, SummaryTier | None]) -> None:
+        with self._lock:
+            self._tiers[session_id] = dict(tiers)
+
+    def load_summary_tiers(self, session_id: str) -> dict[int, SummaryTier | None]:
+        with self._lock:
+            return dict(self._tiers.get(session_id, {1: None, 2: None, 3: None}))
+
+    def truncate_turns(self, session_id: str, keep_last: int) -> None:
+        with self._lock:
+            turns = self._turns.get(session_id)
+            if turns is not None:
+                self._turns[session_id] = turns[-keep_last:]
+
+    def delete_session(self, session_id: str) -> bool:
+        with self._lock:
+            found = session_id in self._turns or session_id in self._tiers
+            self._turns.pop(session_id, None)
+            self._tiers.pop(session_id, None)
+            return found
+
+    def list_sessions(self) -> list[str]:
+        with self._lock:
+            return list(set(self._turns) | set(self._tiers))
+
+    def clear(self) -> None:
+        with self._lock:
+            self._turns.clear()
+            self._tiers.clear()
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(sessions={len(set(self._turns) | set(self._tiers))})"
