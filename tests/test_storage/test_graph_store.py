@@ -156,3 +156,45 @@ class TestInMemoryGraphStoreClear:
         store.clear()
         assert store.list_nodes() == []
         assert store.list_edges() == []
+
+
+class TestSimpleGraphMemoryBackwardsCompat:
+    def test_default_no_store_works(self):
+        """Existing usage without a store must work identically."""
+        from anchor.memory.graph_memory import SimpleGraphMemory
+        graph = SimpleGraphMemory()
+        graph.add_entity("alice", {"type": "person"})
+        graph.add_relationship("alice", "knows", "bob")
+        assert "bob" in graph.get_related_entities("alice")
+
+    def test_with_store_delegates(self):
+        """When a store is provided, operations delegate to it."""
+        from anchor.memory.graph_memory import SimpleGraphMemory
+        store = InMemoryGraphStore()
+        graph = SimpleGraphMemory(store=store)
+        graph.add_entity("alice", {"type": "person"})
+        graph.add_relationship("alice", "knows", "bob")
+        # Verify store has the data
+        assert "alice" in store.list_nodes()
+        assert ("alice", "knows", "bob") in store.list_edges()
+
+    def test_relation_filter_through_graph_memory(self):
+        """relation_filter flows through to the underlying store."""
+        from anchor.memory.graph_memory import SimpleGraphMemory
+        store = InMemoryGraphStore()
+        graph = SimpleGraphMemory(store=store)
+        graph.add_relationship("alice", "knows", "bob")
+        graph.add_relationship("alice", "works_with", "carol")
+        neighbors = graph.get_related_entities("alice", relation_filter="knows")
+        assert neighbors == ["bob"]
+
+    def test_relation_filter_list_through_graph_memory(self):
+        """relation_filter as a list flows through to the underlying store."""
+        from anchor.memory.graph_memory import SimpleGraphMemory
+        store = InMemoryGraphStore()
+        graph = SimpleGraphMemory(store=store)
+        graph.add_relationship("alice", "knows", "bob")
+        graph.add_relationship("alice", "works_with", "carol")
+        graph.add_relationship("alice", "manages", "dave")
+        neighbors = graph.get_related_entities("alice", relation_filter=["knows", "works_with"])
+        assert sorted(neighbors) == ["bob", "carol"]
