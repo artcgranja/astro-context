@@ -269,3 +269,61 @@ class TestSqliteGraphStore:
         sqlite_graph_store.add_edge("c", "r", "a")
         neighbors = sqlite_graph_store.get_neighbors("a", max_depth=5)
         assert sorted(neighbors) == ["b", "c"]
+
+
+try:
+    import asyncpg
+    HAS_ASYNCPG = True
+except ImportError:
+    HAS_ASYNCPG = False
+
+postgres_only = pytest.mark.skipif(not HAS_ASYNCPG, reason="asyncpg not installed")
+
+
+@postgres_only
+@pytest.mark.asyncio
+class TestPostgresGraphStore:
+    """Tests for PostgresGraphStore. Requires running PostgreSQL."""
+
+    @pytest.fixture
+    async def pg_graph_store(self):
+        import os
+        dsn = os.environ.get("ANCHOR_TEST_POSTGRES_DSN")
+        if not dsn:
+            pytest.skip("ANCHOR_TEST_POSTGRES_DSN not set")
+        from anchor.storage.postgres._graph_store import PostgresGraphStore
+        from anchor.storage.postgres._connection import PostgresConnectionManager
+        mgr = PostgresConnectionManager(dsn)
+        store = PostgresGraphStore(mgr)
+        yield store
+        await store.clear()
+
+    async def test_add_and_list_nodes(self, pg_graph_store):
+        await pg_graph_store.add_node("alice", {"type": "person"})
+        nodes = await pg_graph_store.list_nodes()
+        assert "alice" in nodes
+
+    async def test_add_edge_and_traverse(self, pg_graph_store):
+        await pg_graph_store.add_edge("alice", "knows", "bob")
+        await pg_graph_store.add_edge("bob", "knows", "carol")
+        neighbors = await pg_graph_store.get_neighbors("alice", max_depth=2)
+        assert sorted(neighbors) == ["bob", "carol"]
+
+    async def test_relation_filter(self, pg_graph_store):
+        await pg_graph_store.add_edge("alice", "knows", "bob")
+        await pg_graph_store.add_edge("alice", "works_with", "carol")
+        neighbors = await pg_graph_store.get_neighbors("alice", relation_filter="knows")
+        assert neighbors == ["bob"]
+
+    async def test_handles_cycles(self, pg_graph_store):
+        await pg_graph_store.add_edge("a", "r", "b")
+        await pg_graph_store.add_edge("b", "r", "c")
+        await pg_graph_store.add_edge("c", "r", "a")
+        neighbors = await pg_graph_store.get_neighbors("a", max_depth=5)
+        assert sorted(neighbors) == ["b", "c"]
+
+    async def test_link_and_get_memory_ids(self, pg_graph_store):
+        await pg_graph_store.add_node("alice")
+        await pg_graph_store.link_memory("alice", "mem-001")
+        ids = await pg_graph_store.get_memory_ids("alice")
+        assert ids == ["mem-001"]
