@@ -7,6 +7,7 @@ Install with: pip install astro-anchor[postgres]
 
 from anchor.storage.postgres._connection import PostgresConnectionManager
 from anchor.storage.postgres._context_store import PostgresContextStore
+from anchor.storage.postgres._conversation_store import PostgresConversationStore
 from anchor.storage.postgres._document_store import PostgresDocumentStore
 from anchor.storage.postgres._entry_store import PostgresEntryStore
 from anchor.storage.postgres._graph_store import PostgresGraphStore
@@ -16,6 +17,7 @@ from anchor.storage.postgres._vector_store import PostgresVectorStore
 __all__ = [
     "PostgresConnectionManager",
     "PostgresContextStore",
+    "PostgresConversationStore",
     "PostgresDocumentStore",
     "PostgresEntryStore",
     "PostgresGraphStore",

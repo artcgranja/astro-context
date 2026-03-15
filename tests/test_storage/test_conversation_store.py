@@ -186,3 +186,61 @@ class TestSqliteConversationStore:
         sqlite_conv_store.append_turn("sess-1", _turn("user", "hello"))
         sqlite_conv_store.clear()
         assert sqlite_conv_store.list_sessions() == []
+
+
+try:
+    import asyncpg
+    HAS_ASYNCPG = True
+except ImportError:
+    HAS_ASYNCPG = False
+
+postgres_only = pytest.mark.skipif(not HAS_ASYNCPG, reason="asyncpg not installed")
+
+
+@postgres_only
+@pytest.mark.asyncio
+class TestPostgresConversationStore:
+    """Tests for PostgresConversationStore. Requires running PostgreSQL."""
+
+    @pytest.fixture
+    async def pg_conv_store(self):
+        import os
+        dsn = os.environ.get("ANCHOR_TEST_POSTGRES_DSN")
+        if not dsn:
+            pytest.skip("ANCHOR_TEST_POSTGRES_DSN not set")
+        from anchor.storage.postgres._conversation_store import PostgresConversationStore
+        from anchor.storage.postgres._connection import PostgresConnectionManager
+        mgr = PostgresConnectionManager(dsn)
+        store = PostgresConversationStore(mgr)
+        yield store
+        await store.clear()
+
+    async def test_append_and_load(self, pg_conv_store):
+        await pg_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        await pg_conv_store.append_turn("sess-1", _turn("assistant", "hi"))
+        turns = await pg_conv_store.load_turns("sess-1")
+        assert len(turns) == 2
+        assert turns[0].content == "hello"
+
+    async def test_load_with_limit(self, pg_conv_store):
+        for i in range(10):
+            await pg_conv_store.append_turn("sess-1", _turn("user", f"msg-{i}"))
+        turns = await pg_conv_store.load_turns("sess-1", limit=3)
+        assert len(turns) == 3
+        assert turns[0].content == "msg-7"
+
+    async def test_save_and_load_tiers(self, pg_conv_store):
+        tiers = {1: _tier(1, "summary", 5), 2: None, 3: None}
+        await pg_conv_store.save_summary_tiers("sess-1", tiers)
+        loaded = await pg_conv_store.load_summary_tiers("sess-1")
+        assert loaded[1].content == "summary"
+
+    async def test_delete_session(self, pg_conv_store):
+        await pg_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        assert await pg_conv_store.delete_session("sess-1") is True
+        assert await pg_conv_store.load_turns("sess-1") == []
+
+    async def test_list_sessions(self, pg_conv_store):
+        await pg_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        await pg_conv_store.append_turn("sess-2", _turn("user", "world"))
+        assert sorted(await pg_conv_store.list_sessions()) == ["sess-1", "sess-2"]
