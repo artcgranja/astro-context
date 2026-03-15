@@ -53,6 +53,43 @@ _TABLES: list[str] = [
         created_at  REAL NOT NULL,
         expires_at  REAL
     )""",
+    """CREATE TABLE IF NOT EXISTS graph_nodes (
+        node_id       TEXT PRIMARY KEY,
+        metadata_json TEXT NOT NULL DEFAULT '{}'
+    )""",
+    """CREATE TABLE IF NOT EXISTS graph_edges (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        source        TEXT NOT NULL,
+        relation      TEXT NOT NULL,
+        target        TEXT NOT NULL,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        UNIQUE(source, relation, target)
+    )""",
+    """CREATE TABLE IF NOT EXISTS graph_memory_links (
+        node_id   TEXT NOT NULL,
+        memory_id TEXT NOT NULL,
+        PRIMARY KEY (node_id, memory_id)
+    )""",
+    """CREATE TABLE IF NOT EXISTS conversation_turns (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id    TEXT NOT NULL,
+        turn_index    INTEGER NOT NULL,
+        role          TEXT NOT NULL,
+        content       TEXT NOT NULL,
+        token_count   INTEGER NOT NULL DEFAULT 0,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        created_at    TEXT NOT NULL
+    )""",
+    """CREATE TABLE IF NOT EXISTS summary_tiers (
+        session_id       TEXT NOT NULL,
+        tier_level       INTEGER NOT NULL,
+        content          TEXT NOT NULL,
+        token_count      INTEGER NOT NULL,
+        source_turn_count INTEGER NOT NULL,
+        created_at       TEXT NOT NULL,
+        updated_at       TEXT NOT NULL,
+        PRIMARY KEY (session_id, tier_level)
+    )""",
 ]
 
 _INDEXES: list[str] = [
@@ -62,6 +99,11 @@ _INDEXES: list[str] = [
     "CREATE INDEX IF NOT EXISTS idx_memory_entries_created_at ON memory_entries(created_at)",
     "CREATE INDEX IF NOT EXISTS idx_memory_entries_expires_at ON memory_entries(expires_at)",
     "CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache_entries(expires_at)",
+    "CREATE INDEX IF NOT EXISTS idx_edges_source ON graph_edges(source)",
+    "CREATE INDEX IF NOT EXISTS idx_edges_target ON graph_edges(target)",
+    "CREATE INDEX IF NOT EXISTS idx_edges_relation ON graph_edges(relation)",
+    "CREATE INDEX IF NOT EXISTS idx_memory_links_node ON graph_memory_links(node_id)",
+    "CREATE INDEX IF NOT EXISTS idx_turns_session ON conversation_turns(session_id, turn_index)",
 ]
 
 
