@@ -125,3 +125,64 @@ class TestInMemoryConversationStoreSession:
         store.append_turn("sess-2", _turn("user", "world"))
         store.clear()
         assert store.list_sessions() == []
+
+
+import pytest
+from anchor.storage.sqlite import SqliteConnectionManager
+
+
+@pytest.fixture
+def sqlite_conv_store():
+    from anchor.storage.sqlite._conversation_store import SqliteConversationStore
+    conn_mgr = SqliteConnectionManager(":memory:")
+    return SqliteConversationStore(conn_mgr)
+
+
+class TestSqliteConversationStore:
+    def test_satisfies_protocol(self, sqlite_conv_store):
+        assert isinstance(sqlite_conv_store, ConversationStore)
+
+    def test_append_and_load(self, sqlite_conv_store):
+        sqlite_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        sqlite_conv_store.append_turn("sess-1", _turn("assistant", "hi"))
+        turns = sqlite_conv_store.load_turns("sess-1")
+        assert len(turns) == 2
+        assert turns[0].content == "hello"
+
+    def test_load_with_limit(self, sqlite_conv_store):
+        for i in range(10):
+            sqlite_conv_store.append_turn("sess-1", _turn("user", f"msg-{i}"))
+        turns = sqlite_conv_store.load_turns("sess-1", limit=3)
+        assert len(turns) == 3
+        assert turns[0].content == "msg-7"
+
+    def test_truncate_turns(self, sqlite_conv_store):
+        for i in range(10):
+            sqlite_conv_store.append_turn("sess-1", _turn("user", f"msg-{i}"))
+        sqlite_conv_store.truncate_turns("sess-1", keep_last=3)
+        turns = sqlite_conv_store.load_turns("sess-1")
+        assert len(turns) == 3
+        assert turns[0].content == "msg-7"
+
+    def test_save_and_load_tiers(self, sqlite_conv_store):
+        tiers = {1: _tier(1, "summary", 5), 2: None, 3: None}
+        sqlite_conv_store.save_summary_tiers("sess-1", tiers)
+        loaded = sqlite_conv_store.load_summary_tiers("sess-1")
+        assert loaded[1].content == "summary"
+        assert loaded[1].source_turn_count == 5
+        assert loaded[2] is None
+
+    def test_delete_session(self, sqlite_conv_store):
+        sqlite_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        assert sqlite_conv_store.delete_session("sess-1") is True
+        assert sqlite_conv_store.load_turns("sess-1") == []
+
+    def test_list_sessions(self, sqlite_conv_store):
+        sqlite_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        sqlite_conv_store.append_turn("sess-2", _turn("user", "world"))
+        assert sorted(sqlite_conv_store.list_sessions()) == ["sess-1", "sess-2"]
+
+    def test_clear(self, sqlite_conv_store):
+        sqlite_conv_store.append_turn("sess-1", _turn("user", "hello"))
+        sqlite_conv_store.clear()
+        assert sqlite_conv_store.list_sessions() == []

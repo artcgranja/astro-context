@@ -4,6 +4,10 @@ Install with: pip install astro-anchor[sqlite]
 """
 
 from anchor.storage.sqlite._connection import SqliteConnectionManager
+from anchor.storage.sqlite._conversation_store import (
+    AsyncSqliteConversationStore,
+    SqliteConversationStore,
+)
 from anchor.storage.sqlite._context_store import (
     AsyncSqliteContextStore,
     SqliteContextStore,
@@ -22,12 +26,14 @@ from anchor.storage.sqlite._vector_store import (
 
 __all__ = [
     "AsyncSqliteContextStore",
+    "AsyncSqliteConversationStore",
     "AsyncSqliteDocumentStore",
     "AsyncSqliteEntryStore",
     "AsyncSqliteGraphStore",
     "AsyncSqliteVectorStore",
     "SqliteConnectionManager",
     "SqliteContextStore",
+    "SqliteConversationStore",
     "SqliteDocumentStore",
     "SqliteEntryStore",
     "SqliteGraphStore",
