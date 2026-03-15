@@ -16,7 +16,7 @@ from anchor.models.memory import (
     _compute_content_hash,
 )
 from anchor.protocols.memory import ConversationMemory
-from anchor.protocols.storage import MemoryEntryStore
+from anchor.protocols.storage import ConversationStore, MemoryEntryStore
 from anchor.protocols.tokenizer import Tokenizer
 from anchor.tokens.counter import get_default_counter
 
@@ -38,7 +38,7 @@ class MemoryManager:
     created from those parameters (backwards-compatible default).
     """
 
-    __slots__ = ("_conversation", "_persistent_store", "_tokenizer")
+    __slots__ = ("_auto_persist", "_conversation", "_conversation_store", "_is_loading", "_persistent_store", "_session_id", "_tokenizer")
 
     def __init__(
         self,
@@ -47,7 +47,14 @@ class MemoryManager:
         on_evict: Callable[[list[ConversationTurn]], None] | None = None,
         persistent_store: MemoryEntryStore | None = None,
         conversation_memory: ConversationMemory | None = None,
+        conversation_store: ConversationStore | None = None,
+        session_id: str | None = None,
+        auto_persist: bool = False,
     ) -> None:
+        if conversation_store is not None and session_id is None:
+            msg = "session_id is required when conversation_store is provided"
+            raise ValueError(msg)
+
         self._tokenizer = tokenizer or get_default_counter()
         if conversation_memory is not None:
             self._conversation: ConversationMemory = conversation_memory
@@ -61,6 +68,10 @@ class MemoryManager:
                 on_evict=on_evict,
             )
         self._persistent_store = persistent_store
+        self._conversation_store = conversation_store
+        self._session_id = session_id
+        self._auto_persist = auto_persist
+        self._is_loading = False
 
     def __repr__(self) -> str:
         has_store = self._persistent_store is not None
@@ -111,6 +122,15 @@ class MemoryManager:
                 "does not support add_turn() or add_message()"
             )
             raise TypeError(msg)
+
+        if (
+            self._auto_persist
+            and not self._is_loading
+            and self._conversation_store is not None
+            and self._session_id is not None
+        ):
+            turn = ConversationTurn(role=role, content=content)
+            self._conversation_store.append_turn(self._session_id, turn)
 
     def add_user_message(self, content: str) -> None:
         """Add a user message to the conversation history."""
@@ -268,6 +288,43 @@ class MemoryManager:
         # Conversation turns
         items.extend(self._conversation.to_context_items(priority=priority))
         return items
+
+    def save(self) -> None:
+        """Persist conversation state to the conversation store.
+
+        When *auto_persist* is ``False``, all current turns are appended
+        to the store.  Summary tiers are always saved when the conversation
+        backend is ``ProgressiveSummarizationMemory``.
+        """
+        if self._conversation_store is None or self._session_id is None:
+            return
+        if not self._auto_persist:
+            for turn in self._conversation.turns:
+                self._conversation_store.append_turn(self._session_id, turn)
+        if isinstance(self._conversation, ProgressiveSummarizationMemory):
+            self._conversation_store.save_summary_tiers(
+                self._session_id, self._conversation.tiers
+            )
+
+    def load(self) -> None:
+        """Restore conversation state from the conversation store.
+
+        Turns are replayed through ``_add_message`` so the conversation
+        backend rebuilds its internal state.  The ``_is_loading`` flag
+        prevents auto-persist from duplicating turns in the store.
+        """
+        if self._conversation_store is None or self._session_id is None:
+            return
+        self._is_loading = True
+        try:
+            turns = self._conversation_store.load_turns(self._session_id)
+            for turn in turns:
+                self._add_message(turn.role, turn.content)
+            if isinstance(self._conversation, ProgressiveSummarizationMemory):
+                tiers = self._conversation_store.load_summary_tiers(self._session_id)
+                self._conversation._tiers = tiers
+        finally:
+            self._is_loading = False
 
     def clear(self) -> None:
         """Clear conversation history and persistent store (if present)."""
